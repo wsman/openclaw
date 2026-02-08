@@ -89,12 +89,15 @@ function compactLine(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function resolveModelDisplay(entry?: {
-  model?: unknown;
-  modelProvider?: unknown;
-  modelOverride?: unknown;
-  providerOverride?: unknown;
-}) {
+function resolveModelDisplay(
+  entry?: {
+    model?: unknown;
+    modelProvider?: unknown;
+    modelOverride?: unknown;
+    providerOverride?: unknown;
+  },
+  fallbackModel?: string,
+) {
   const model = typeof entry?.model === "string" ? entry.model.trim() : "";
   const provider = typeof entry?.modelProvider === "string" ? entry.modelProvider.trim() : "";
   let combined = model.includes("/") ? model : model && provider ? `${provider}/${model}` : model;
@@ -110,6 +113,9 @@ function resolveModelDisplay(entry?: {
       : overrideModel && overrideProvider
         ? `${overrideProvider}/${overrideModel}`
         : overrideModel;
+  }
+  if (!combined) {
+    combined = fallbackModel?.trim() || "";
   }
   if (!combined) {
     return "model n/a";
@@ -432,7 +438,7 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
         const task = compactLine(entry.task);
         const runtime = formatDurationCompact(now - (entry.startedAt ?? entry.createdAt));
         const status = resolveDisplayStatus(entry);
-        const line = `${index}. ${label} (${resolveModelDisplay(sessionEntry)}, ${runtime}${usageText ? `, ${usageText}` : ""}) ${status}${task.toLowerCase() !== label.toLowerCase() ? ` - ${task}` : ""}`;
+        const line = `${index}. ${label} (${resolveModelDisplay(sessionEntry, entry.model)}, ${runtime}${usageText ? `, ${usageText}` : ""}) ${status}${task.toLowerCase() !== label.toLowerCase() ? ` - ${task}` : ""}`;
         index += 1;
         return line;
       });
@@ -451,7 +457,7 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
           (entry.endedAt ?? now) - (entry.startedAt ?? entry.createdAt),
         );
         const status = resolveDisplayStatus(entry);
-        const line = `${index}. ${label} (${resolveModelDisplay(sessionEntry)}, ${runtime}${usageText ? `, ${usageText}` : ""}) ${status}${task.toLowerCase() !== label.toLowerCase() ? ` - ${task}` : ""}`;
+        const line = `${index}. ${label} (${resolveModelDisplay(sessionEntry, entry.model)}, ${runtime}${usageText ? `, ${usageText}` : ""}) ${status}${task.toLowerCase() !== label.toLowerCase() ? ` - ${task}` : ""}`;
         index += 1;
         return line;
       });

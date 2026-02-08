@@ -160,8 +160,8 @@ function resolveModelRef(entry?: SessionEntry) {
   return overrideProvider || undefined;
 }
 
-function resolveModelDisplay(entry?: SessionEntry) {
-  const modelRef = resolveModelRef(entry);
+function resolveModelDisplay(entry?: SessionEntry, fallbackModel?: string) {
+  const modelRef = resolveModelRef(entry) || fallbackModel || undefined;
   if (!modelRef) {
     return "model n/a";
   }
@@ -496,7 +496,7 @@ export function createSubagentsTool(opts?: { agentSessionKey?: string }): AnyAge
             const runtime = formatDurationCompact(now - (entry.startedAt ?? entry.createdAt));
             const label = truncate(resolveRunLabel(entry), 48);
             const task = truncate(entry.task.trim(), 72);
-            const line = `${index}. ${label} (${resolveModelDisplay(sessionEntry)}, ${runtime}${usageText ? `, ${usageText}` : ""}) ${status}${task.toLowerCase() !== label.toLowerCase() ? ` - ${task}` : ""}`;
+            const line = `${index}. ${label} (${resolveModelDisplay(sessionEntry, entry.model)}, ${runtime}${usageText ? `, ${usageText}` : ""}) ${status}${task.toLowerCase() !== label.toLowerCase() ? ` - ${task}` : ""}`;
             const view = {
               index,
               runId: entry.runId,
@@ -506,7 +506,7 @@ export function createSubagentsTool(opts?: { agentSessionKey?: string }): AnyAge
               status,
               runtime,
               runtimeMs: now - (entry.startedAt ?? entry.createdAt),
-              model: resolveModelRef(sessionEntry),
+              model: resolveModelRef(sessionEntry) || entry.model,
               totalTokens,
               startedAt: entry.startedAt,
             };
@@ -529,7 +529,7 @@ export function createSubagentsTool(opts?: { agentSessionKey?: string }): AnyAge
             );
             const label = truncate(resolveRunLabel(entry), 48);
             const task = truncate(entry.task.trim(), 72);
-            const line = `${index}. ${label} (${resolveModelDisplay(sessionEntry)}, ${runtime}${usageText ? `, ${usageText}` : ""}) ${status}${task.toLowerCase() !== label.toLowerCase() ? ` - ${task}` : ""}`;
+            const line = `${index}. ${label} (${resolveModelDisplay(sessionEntry, entry.model)}, ${runtime}${usageText ? `, ${usageText}` : ""}) ${status}${task.toLowerCase() !== label.toLowerCase() ? ` - ${task}` : ""}`;
             const view = {
               index,
               runId: entry.runId,
@@ -539,7 +539,7 @@ export function createSubagentsTool(opts?: { agentSessionKey?: string }): AnyAge
               status,
               runtime,
               runtimeMs: (entry.endedAt ?? now) - (entry.startedAt ?? entry.createdAt),
-              model: resolveModelRef(sessionEntry),
+              model: resolveModelRef(sessionEntry) || entry.model,
               totalTokens,
               startedAt: entry.startedAt,
               endedAt: entry.endedAt,
