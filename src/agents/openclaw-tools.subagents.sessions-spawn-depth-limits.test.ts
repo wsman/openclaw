@@ -142,6 +142,86 @@ describe("sessions_spawn depth + child limits", () => {
     });
   });
 
+  it("rejects depth-2 callers when spawnDepth is missing but spawnedBy ancestry implies depth 2", async () => {
+    configOverride = {
+      session: {
+        mainKey: "main",
+        scope: "per-sender",
+        store: storeTemplatePath,
+      },
+      agents: {
+        defaults: {
+          subagents: {
+            maxSpawnDepth: 2,
+          },
+        },
+      },
+    };
+
+    const depth1 = "agent:main:subagent:depth-1";
+    const callerKey = "agent:main:subagent:depth-2";
+    writeStore("main", {
+      [depth1]: {
+        sessionId: "depth-1",
+        updatedAt: Date.now(),
+        spawnedBy: "agent:main:main",
+      },
+      [callerKey]: {
+        sessionId: "depth-2",
+        updatedAt: Date.now(),
+        spawnedBy: depth1,
+      },
+    });
+
+    const tool = createSessionsSpawnTool({ agentSessionKey: callerKey });
+    const result = await tool.execute("call-depth-ancestry-reject", { task: "hello" });
+
+    expect(result.details).toMatchObject({
+      status: "forbidden",
+      error: "sessions_spawn is not allowed at this depth (current depth: 2, max: 2)",
+    });
+  });
+
+  it("rejects depth-2 callers when the requester key is a sessionId", async () => {
+    configOverride = {
+      session: {
+        mainKey: "main",
+        scope: "per-sender",
+        store: storeTemplatePath,
+      },
+      agents: {
+        defaults: {
+          subagents: {
+            maxSpawnDepth: 2,
+          },
+        },
+      },
+    };
+
+    const depth1 = "agent:main:subagent:depth-1";
+    const callerKey = "agent:main:subagent:depth-2";
+    writeStore("main", {
+      [depth1]: {
+        sessionId: "depth-1-session",
+        updatedAt: Date.now(),
+        spawnedBy: "agent:main:main",
+      },
+      [callerKey]: {
+        sessionId: "depth-2-session",
+        updatedAt: Date.now(),
+        spawnedBy: depth1,
+      },
+    });
+
+    const tool = createSessionsSpawnTool({ agentSessionKey: "depth-2-session" });
+    const result = await tool.execute("call-depth-sessionid-reject", { task: "hello" });
+
+    expect(result.details).toMatchObject({
+      status: "forbidden",
+      error: "sessions_spawn is not allowed at this depth (current depth: 2, max: 2)",
+    });
+  });
+
   it("rejects when active children for requester session reached maxChildrenPerAgent", async () => {
     configOverride = {
       session: {
