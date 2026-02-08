@@ -24,6 +24,7 @@ import {
   waitForEmbeddedPiRunEnd,
 } from "./pi-embedded.js";
 import { type AnnounceQueueItem, enqueueAnnounce } from "./subagent-announce-queue.js";
+import { getSubagentDepthFromSessionStore } from "./subagent-depth.js";
 import { readLatestAssistantReply } from "./tools/agent-step.js";
 
 function formatTokenCount(value?: number) {
@@ -136,6 +137,8 @@ function resolveAnnounceOrigin(
 }
 
 async function sendAnnounce(item: AnnounceQueueItem) {
+  const requesterDepth = getSubagentDepthFromSessionStore(item.sessionKey);
+  const requesterIsSubagent = requesterDepth >= 1;
   const origin = item.origin;
   const threadId =
     origin?.threadId != null && origin.threadId !== "" ? String(origin.threadId) : undefined;
@@ -144,11 +147,11 @@ async function sendAnnounce(item: AnnounceQueueItem) {
     params: {
       sessionKey: item.sessionKey,
       message: item.prompt,
-      channel: origin?.channel,
-      accountId: origin?.accountId,
-      to: origin?.to,
-      threadId,
-      deliver: true,
+      channel: requesterIsSubagent ? undefined : origin?.channel,
+      accountId: requesterIsSubagent ? undefined : origin?.accountId,
+      to: requesterIsSubagent ? undefined : origin?.to,
+      threadId: requesterIsSubagent ? undefined : threadId,
+      deliver: !requesterIsSubagent,
       idempotencyKey: crypto.randomUUID(),
     },
     expectFinal: true,
@@ -565,9 +568,13 @@ export async function runSubagentAnnounceFlow(params: {
       return true;
     }
 
-    // Send to main agent - it will respond in its own voice
+    const requesterDepth = getSubagentDepthFromSessionStore(params.requesterSessionKey);
+    const requesterIsSubagent = requesterDepth >= 1;
+
+    // Send to the requester session. For nested subagents this is an internal
+    // follow-up injection (deliver=false) so the orchestrator receives it.
     let directOrigin = requesterOrigin;
-    if (!directOrigin) {
+    if (!requesterIsSubagent && !directOrigin) {
       const { entry } = loadRequesterSessionEntry(params.requesterSessionKey);
       directOrigin = deliveryContextFromSession(entry);
     }
@@ -576,12 +583,12 @@ export async function runSubagentAnnounceFlow(params: {
       params: {
         sessionKey: params.requesterSessionKey,
         message: triggerMessage,
-        deliver: true,
-        channel: directOrigin?.channel,
-        accountId: directOrigin?.accountId,
-        to: directOrigin?.to,
+        deliver: !requesterIsSubagent,
+        channel: requesterIsSubagent ? undefined : directOrigin?.channel,
+        accountId: requesterIsSubagent ? undefined : directOrigin?.accountId,
+        to: requesterIsSubagent ? undefined : directOrigin?.to,
         threadId:
-          directOrigin?.threadId != null && directOrigin.threadId !== ""
+          !requesterIsSubagent && directOrigin?.threadId != null && directOrigin.threadId !== ""
             ? String(directOrigin.threadId)
             : undefined,
         idempotencyKey: crypto.randomUUID(),
