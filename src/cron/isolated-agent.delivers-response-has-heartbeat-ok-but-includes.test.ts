@@ -20,10 +20,18 @@ vi.mock("../agents/model-catalog.js", () => ({
 vi.mock("../agents/subagent-announce.js", () => ({
   runSubagentAnnounceFlow: vi.fn(),
 }));
+vi.mock("../agents/tools/agent-step.js", () => ({
+  readLatestAssistantReply: vi.fn(),
+}));
+vi.mock("../agents/subagent-registry.js", () => ({
+  countActiveDescendantRuns: vi.fn(() => 0),
+}));
 
 import { loadModelCatalog } from "../agents/model-catalog.js";
 import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 import { runSubagentAnnounceFlow } from "../agents/subagent-announce.js";
+import { countActiveDescendantRuns } from "../agents/subagent-registry.js";
+import { readLatestAssistantReply } from "../agents/tools/agent-step.js";
 import { runCronIsolatedAgentTurn } from "./isolated-agent.js";
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
@@ -91,6 +99,8 @@ describe("runCronIsolatedAgentTurn", () => {
     vi.mocked(runEmbeddedPiAgent).mockReset();
     vi.mocked(loadModelCatalog).mockResolvedValue([]);
     vi.mocked(runSubagentAnnounceFlow).mockReset().mockResolvedValue(true);
+    vi.mocked(countActiveDescendantRuns).mockReset().mockReturnValue(0);
+    vi.mocked(readLatestAssistantReply).mockReset().mockResolvedValue(undefined);
     setActivePluginRegistry(
       createTestRegistry([
         {

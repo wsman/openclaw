@@ -20,10 +20,18 @@ vi.mock("../agents/model-catalog.js", () => ({
 vi.mock("../agents/subagent-announce.js", () => ({
   runSubagentAnnounceFlow: vi.fn(),
 }));
+vi.mock("../agents/tools/agent-step.js", () => ({
+  readLatestAssistantReply: vi.fn(),
+}));
+vi.mock("../agents/subagent-registry.js", () => ({
+  countActiveDescendantRuns: vi.fn(() => 0),
+}));
 
 import { loadModelCatalog } from "../agents/model-catalog.js";
 import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 import { runSubagentAnnounceFlow } from "../agents/subagent-announce.js";
+import { countActiveDescendantRuns } from "../agents/subagent-registry.js";
+import { readLatestAssistantReply } from "../agents/tools/agent-step.js";
 import { runCronIsolatedAgentTurn } from "./isolated-agent.js";
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
@@ -91,6 +99,8 @@ describe("runCronIsolatedAgentTurn", () => {
     vi.mocked(runEmbeddedPiAgent).mockReset();
     vi.mocked(loadModelCatalog).mockResolvedValue([]);
     vi.mocked(runSubagentAnnounceFlow).mockReset().mockResolvedValue(true);
+    vi.mocked(countActiveDescendantRuns).mockReset().mockReturnValue(0);
+    vi.mocked(readLatestAssistantReply).mockReset().mockResolvedValue(undefined);
     setActivePluginRegistry(
       createTestRegistry([
         {
@@ -399,6 +409,140 @@ describe("runCronIsolatedAgentTurn", () => {
 
       expect(res.status).toBe("ok");
       expect(runSubagentAnnounceFlow).toHaveBeenCalledTimes(1);
+      expect(deps.sendMessageTelegram).not.toHaveBeenCalled();
+    });
+  });
+
+  it("skips parent cron announce while spawned subagents are still active", async () => {
+    await withTempHome(async (home) => {
+      const storePath = await writeSessionStore(home);
+      const deps: CliDeps = {
+        sendMessageWhatsApp: vi.fn(),
+        sendMessageTelegram: vi.fn(),
+        sendMessageDiscord: vi.fn(),
+        sendMessageSignal: vi.fn(),
+        sendMessageIMessage: vi.fn(),
+      };
+      vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
+        payloads: [{ text: "on it, pulling everything together now. should be about 4 to 5 min." }],
+        meta: {
+          durationMs: 5,
+          agentMeta: { sessionId: "s", provider: "p", model: "m" },
+        },
+      });
+      vi.mocked(countActiveDescendantRuns).mockReturnValueOnce(1).mockReturnValue(0);
+      vi.mocked(readLatestAssistantReply).mockResolvedValue(
+        "on it, pulling everything together now. should be about 4 to 5 min.",
+      );
+
+      const res = await runCronIsolatedAgentTurn({
+        cfg: makeCfg(home, storePath, {
+          channels: { telegram: { botToken: "t-1" } },
+        }),
+        deps,
+        job: {
+          ...makeJob({ kind: "agentTurn", message: "do it" }),
+          delivery: { mode: "announce", channel: "telegram", to: "123" },
+        },
+        message: "do it",
+        sessionKey: "cron:job-1",
+        lane: "cron",
+      });
+
+      expect(res.status).toBe("ok");
+      expect(runSubagentAnnounceFlow).not.toHaveBeenCalled();
+      expect(deps.sendMessageTelegram).not.toHaveBeenCalled();
+    });
+  });
+
+  it("announces final cron synthesis after descendant subagents settle", async () => {
+    await withTempHome(async (home) => {
+      const storePath = await writeSessionStore(home);
+      const deps: CliDeps = {
+        sendMessageWhatsApp: vi.fn(),
+        sendMessageTelegram: vi.fn(),
+        sendMessageDiscord: vi.fn(),
+        sendMessageSignal: vi.fn(),
+        sendMessageIMessage: vi.fn(),
+      };
+      vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
+        payloads: [{ text: "on it, pulling everything together now. should be about 4 to 5 min." }],
+        meta: {
+          durationMs: 5,
+          agentMeta: { sessionId: "s", provider: "p", model: "m" },
+        },
+      });
+      vi.mocked(countActiveDescendantRuns).mockReturnValueOnce(1).mockReturnValue(0);
+      vi.mocked(readLatestAssistantReply).mockResolvedValue(
+        "final morning briefing text for tyler",
+      );
+
+      const res = await runCronIsolatedAgentTurn({
+        cfg: makeCfg(home, storePath, {
+          channels: { telegram: { botToken: "t-1" } },
+        }),
+        deps,
+        job: {
+          ...makeJob({ kind: "agentTurn", message: "do it" }),
+          delivery: { mode: "announce", channel: "telegram", to: "123" },
+        },
+        message: "do it",
+        sessionKey: "cron:job-1",
+        lane: "cron",
+      });
+
+      expect(res.status).toBe("ok");
+      expect(runSubagentAnnounceFlow).toHaveBeenCalledTimes(1);
+      const announceArgs = vi.mocked(runSubagentAnnounceFlow).mock.calls[0]?.[0] as
+        | { roundOneReply?: string }
+        | undefined;
+      expect(announceArgs?.roundOneReply).toBe("final morning briefing text for tyler");
+      expect(deps.sendMessageTelegram).not.toHaveBeenCalled();
+    });
+  });
+
+  it("announces unchanged substantive cron summary after descendants settle", async () => {
+    await withTempHome(async (home) => {
+      const storePath = await writeSessionStore(home);
+      const deps: CliDeps = {
+        sendMessageWhatsApp: vi.fn(),
+        sendMessageTelegram: vi.fn(),
+        sendMessageDiscord: vi.fn(),
+        sendMessageSignal: vi.fn(),
+        sendMessageIMessage: vi.fn(),
+      };
+      const finalSummary =
+        "hey tyler, here's your monday rundown. you have a call at 1pm and flight at 4pm, with clear weather in oceanside and your top priority staying the dan app work. you've got this, keep it tight and ship great code today.";
+      vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
+        payloads: [{ text: finalSummary }],
+        meta: {
+          durationMs: 5,
+          agentMeta: { sessionId: "s", provider: "p", model: "m" },
+        },
+      });
+      vi.mocked(countActiveDescendantRuns).mockReturnValueOnce(1).mockReturnValue(0);
+      vi.mocked(readLatestAssistantReply).mockResolvedValue(finalSummary);
+
+      const res = await runCronIsolatedAgentTurn({
+        cfg: makeCfg(home, storePath, {
+          channels: { telegram: { botToken: "t-1" } },
+        }),
+        deps,
+        job: {
+          ...makeJob({ kind: "agentTurn", message: "do it" }),
+          delivery: { mode: "announce", channel: "telegram", to: "123" },
+        },
+        message: "do it",
+        sessionKey: "cron:job-1",
+        lane: "cron",
+      });
+
+      expect(res.status).toBe("ok");
+      expect(runSubagentAnnounceFlow).toHaveBeenCalledTimes(1);
+      const announceArgs = vi.mocked(runSubagentAnnounceFlow).mock.calls[0]?.[0] as
+        | { roundOneReply?: string }
+        | undefined;
+      expect(announceArgs?.roundOneReply).toBe(finalSummary);
       expect(deps.sendMessageTelegram).not.toHaveBeenCalled();
     });
   });

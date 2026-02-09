@@ -26,5 +26,10 @@ describe("isBillingErrorMessage", () => {
     expect(isBillingErrorMessage("rate limit exceeded")).toBe(false);
     expect(isBillingErrorMessage("invalid api key")).toBe(false);
     expect(isBillingErrorMessage("context length exceeded")).toBe(false);
+    expect(
+      isBillingErrorMessage(
+        "Firebase downgraded us to the free Spark plan; check whether we need to re-enable billing.",
+      ),
+    ).toBe(false);
   });
 });

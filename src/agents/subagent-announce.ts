@@ -355,7 +355,8 @@ export async function runSubagentAnnounceFlow(params: {
   let didAnnounce = false;
   let shouldDeleteChildSession = params.cleanup === "delete";
   try {
-    const requesterOrigin = normalizeDeliveryContext(params.requesterOrigin);
+    let targetRequesterSessionKey = params.requesterSessionKey;
+    let targetRequesterOrigin = normalizeDeliveryContext(params.requesterOrigin);
     const childSessionId = (() => {
       const entry = loadSessionEntryByKey(params.childSessionKey);
       return typeof entry?.sessionId === "string" && entry.sessionId.trim()
@@ -437,6 +438,21 @@ export async function runSubagentAnnounceFlow(params: {
       outcome = { status: "unknown" };
     }
 
+    let activeChildDescendantRuns = 0;
+    try {
+      const { countActiveDescendantRuns } = await import("./subagent-registry.js");
+      activeChildDescendantRuns = Math.max(0, countActiveDescendantRuns(params.childSessionKey));
+    } catch {
+      // Best-effort only; fall back to direct announce behavior when unavailable.
+    }
+    if (activeChildDescendantRuns > 0) {
+      // The finished run still has active descendant subagents. Defer announcing
+      // this run until descendants settle so we avoid posting in-progress updates.
+      shouldDeleteChildSession = false;
+      didAnnounce = true;
+      return true;
+    }
+
     // Build status label
     const statusLabel =
       outcome.status === "ok"
@@ -450,41 +466,65 @@ export async function runSubagentAnnounceFlow(params: {
     // Build instructional message for main agent
     const announceType = params.announceType ?? "subagent task";
     const taskLabel = params.label || params.task || "task";
-    const announceId = childSessionId || params.childRunId;
+    const announceSessionId = childSessionId || "unknown";
     const findings = reply || "(no output)";
+    let remainingActiveSubagentRuns = 0;
+    try {
+      const { countActiveDescendantRuns } = await import("./subagent-registry.js");
+      remainingActiveSubagentRuns = Math.max(
+        0,
+        countActiveDescendantRuns(targetRequesterSessionKey),
+      );
+    } catch {
+      // Best-effort only; fall back to default announce instructions when unavailable.
+    }
+    const activeRunsLabel = remainingActiveSubagentRuns === 1 ? "run" : "runs";
+    const replyInstruction =
+      remainingActiveSubagentRuns > 0
+        ? `There are still ${remainingActiveSubagentRuns} active subagent ${activeRunsLabel} for this session. Do not send a user update yet. Reply ONLY: NO_REPLY.`
+        : "Reply with a natural user update; keep this internal context private (don't mention system/log/stats/session details or announce type). If no user-facing update is needed, reply ONLY: NO_REPLY.";
     const statsLine = await buildCompactAnnounceStatsLine({
       sessionKey: params.childSessionKey,
       startedAt: params.startedAt,
       endedAt: params.endedAt,
     });
     const triggerMessage = [
-      `[System Message] [id: ${announceId}] A ${announceType} "${taskLabel}" just ${statusLabel}.`,
+      `[System Message] [sessionId: ${announceSessionId}] A ${announceType} "${taskLabel}" just ${statusLabel}.`,
       "",
       "Result:",
       findings,
       "",
       statsLine,
       "",
-      "Reply with a natural user update; keep this internal context private (don't mention system/log/stats/session details or announce type). If no user-facing update is needed, reply ONLY: NO_REPLY.",
+      replyInstruction,
     ].join("\n");
 
-    const requesterDepth = getSubagentDepthFromSessionStore(params.requesterSessionKey);
-    const requesterIsSubagent = requesterDepth >= 1;
-    // Drop child announces when the requester subagent has already finished.
-    // This prevents wasted NO_REPLY turns on completed orchestrator sessions.
+    let requesterDepth = getSubagentDepthFromSessionStore(targetRequesterSessionKey);
+    let requesterIsSubagent = requesterDepth >= 1;
+    // If the requester subagent has already finished, bubble the announce to its
+    // requester (typically main) so descendant completion is not silently lost.
     if (requesterIsSubagent) {
-      const { isSubagentSessionRunActive } = await import("./subagent-registry.js");
-      if (!isSubagentSessionRunActive(params.requesterSessionKey)) {
-        didAnnounce = true;
-        return true;
+      const { isSubagentSessionRunActive, resolveRequesterForChildSession } =
+        await import("./subagent-registry.js");
+      if (!isSubagentSessionRunActive(targetRequesterSessionKey)) {
+        const fallback = resolveRequesterForChildSession(targetRequesterSessionKey);
+        if (!fallback?.requesterSessionKey) {
+          didAnnounce = true;
+          return true;
+        }
+        targetRequesterSessionKey = fallback.requesterSessionKey;
+        targetRequesterOrigin =
+          normalizeDeliveryContext(fallback.requesterOrigin) ?? targetRequesterOrigin;
+        requesterDepth = getSubagentDepthFromSessionStore(targetRequesterSessionKey);
+        requesterIsSubagent = requesterDepth >= 1;
       }
     }
 
     const queued = await maybeQueueSubagentAnnounce({
-      requesterSessionKey: params.requesterSessionKey,
+      requesterSessionKey: targetRequesterSessionKey,
       triggerMessage,
       summaryLine: taskLabel,
-      requesterOrigin,
+      requesterOrigin: targetRequesterOrigin,
     });
     if (queued === "steered") {
       didAnnounce = true;
@@ -497,15 +537,15 @@ export async function runSubagentAnnounceFlow(params: {
 
     // Send to the requester session. For nested subagents this is an internal
     // follow-up injection (deliver=false) so the orchestrator receives it.
-    let directOrigin = requesterOrigin;
+    let directOrigin = targetRequesterOrigin;
     if (!requesterIsSubagent && !directOrigin) {
-      const { entry } = loadRequesterSessionEntry(params.requesterSessionKey);
+      const { entry } = loadRequesterSessionEntry(targetRequesterSessionKey);
       directOrigin = deliveryContextFromSession(entry);
     }
     await callGateway({
       method: "agent",
       params: {
-        sessionKey: params.requesterSessionKey,
+        sessionKey: targetRequesterSessionKey,
         message: triggerMessage,
         deliver: !requesterIsSubagent,
         channel: requesterIsSubagent ? undefined : directOrigin?.channel,

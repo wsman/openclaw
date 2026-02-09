@@ -143,4 +143,54 @@ describe("subagent registry steer restarts", () => {
     expect(run?.cleanupHandled).toBe(true);
     expect(typeof run?.cleanupCompletedAt).toBe("number");
   });
+
+  it("retries deferred parent cleanup after a descendant announces", async () => {
+    const mod = await import("./subagent-registry.js");
+    let parentAttempts = 0;
+    announceSpy.mockImplementation(async (params: unknown) => {
+      const typed = params as { childRunId?: string };
+      if (typed.childRunId === "run-parent") {
+        parentAttempts += 1;
+        return parentAttempts >= 2;
+      }
+      return true;
+    });
+
+    mod.registerSubagentRun({
+      runId: "run-parent",
+      childSessionKey: "agent:main:subagent:parent",
+      requesterSessionKey: "agent:main:main",
+      requesterDisplayKey: "main",
+      task: "parent task",
+      cleanup: "keep",
+    });
+    mod.registerSubagentRun({
+      runId: "run-child",
+      childSessionKey: "agent:main:subagent:parent:subagent:child",
+      requesterSessionKey: "agent:main:subagent:parent",
+      requesterDisplayKey: "parent",
+      task: "child task",
+      cleanup: "keep",
+    });
+
+    lifecycleHandler?.({
+      stream: "lifecycle",
+      runId: "run-parent",
+      data: { phase: "end" },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    lifecycleHandler?.({
+      stream: "lifecycle",
+      runId: "run-child",
+      data: { phase: "end" },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const childRunIds = announceSpy.mock.calls.map(
+      (call) => (call[0] as { childRunId?: string }).childRunId,
+    );
+    expect(childRunIds.filter((id) => id === "run-parent")).toHaveLength(2);
+    expect(childRunIds.filter((id) => id === "run-child")).toHaveLength(1);
+  });
 });
