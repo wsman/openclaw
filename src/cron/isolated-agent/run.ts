@@ -28,7 +28,9 @@ import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
 import { buildWorkspaceSkillSnapshot } from "../../agents/skills.js";
 import { getSkillsSnapshotVersion } from "../../agents/skills/refresh.js";
 import { runSubagentAnnounceFlow } from "../../agents/subagent-announce.js";
+import { countActiveDescendantRuns } from "../../agents/subagent-registry.js";
 import { resolveAgentTimeoutMs } from "../../agents/timeout.js";
+import { readLatestAssistantReply } from "../../agents/tools/agent-step.js";
 import { deriveSessionTotalTokens, hasNonzeroUsage } from "../../agents/usage.js";
 import { ensureAgentWorkspace } from "../../agents/workspace.js";
 import {
@@ -36,6 +38,7 @@ import {
   normalizeVerboseLevel,
   supportsXHighThinking,
 } from "../../auto-reply/thinking.js";
+import { SILENT_REPLY_TOKEN } from "../../auto-reply/tokens.js";
 import { createOutboundSendDeps, type CliDeps } from "../../cli/outbound-send-deps.js";
 import {
   resolveAgentMainSessionKey,
@@ -91,6 +94,82 @@ function resolveCronDeliveryBestEffort(job: CronJob): boolean {
     return job.payload.bestEffortDeliver;
   }
   return false;
+}
+
+const CRON_SUBAGENT_WAIT_POLL_MS = 500;
+const CRON_SUBAGENT_WAIT_MIN_MS = 30_000;
+const CRON_SUBAGENT_FINAL_REPLY_GRACE_MS = 5_000;
+
+function isLikelyInterimCronMessage(value: string): boolean {
+  const text = value.trim();
+  if (!text) {
+    return true;
+  }
+  const normalized = text.toLowerCase().replace(/\s+/g, " ");
+  const words = normalized.split(" ").filter(Boolean).length;
+  const interimHints = [
+    "on it",
+    "pulling everything together",
+    "give me a few",
+    "give me a few min",
+    "few minutes",
+    "let me compile",
+    "i'll gather",
+    "i will gather",
+    "working on it",
+    "retrying now",
+    "should be about",
+    "should have your summary",
+  ];
+  return words <= 45 && interimHints.some((hint) => normalized.includes(hint));
+}
+
+async function waitForDescendantSubagentSummary(params: {
+  sessionKey: string;
+  initialReply?: string;
+  timeoutMs: number;
+  observedActiveDescendants?: boolean;
+}): Promise<string | undefined> {
+  const initialReply = params.initialReply?.trim();
+  const deadline = Date.now() + Math.max(CRON_SUBAGENT_WAIT_MIN_MS, Math.floor(params.timeoutMs));
+  let sawActiveDescendants = params.observedActiveDescendants === true;
+  let drainedAtMs: number | undefined;
+  while (Date.now() < deadline) {
+    const activeDescendants = countActiveDescendantRuns(params.sessionKey);
+    if (activeDescendants > 0) {
+      sawActiveDescendants = true;
+      drainedAtMs = undefined;
+      await new Promise((resolve) => setTimeout(resolve, CRON_SUBAGENT_WAIT_POLL_MS));
+      continue;
+    }
+    if (!sawActiveDescendants) {
+      return initialReply;
+    }
+    if (!drainedAtMs) {
+      drainedAtMs = Date.now();
+    }
+    const latest = (await readLatestAssistantReply({ sessionKey: params.sessionKey }))?.trim();
+    if (
+      latest &&
+      latest.toUpperCase() !== SILENT_REPLY_TOKEN.toUpperCase() &&
+      (latest !== initialReply || !isLikelyInterimCronMessage(latest))
+    ) {
+      return latest;
+    }
+    if (Date.now() - drainedAtMs >= CRON_SUBAGENT_FINAL_REPLY_GRACE_MS) {
+      return undefined;
+    }
+    await new Promise((resolve) => setTimeout(resolve, CRON_SUBAGENT_WAIT_POLL_MS));
+  }
+  const latest = (await readLatestAssistantReply({ sessionKey: params.sessionKey }))?.trim();
+  if (
+    latest &&
+    latest.toUpperCase() !== SILENT_REPLY_TOKEN.toUpperCase() &&
+    (latest !== initialReply || !isLikelyInterimCronMessage(latest))
+  ) {
+    return latest;
+  }
+  return undefined;
 }
 
 export type RunCronAgentTurnResult = {
@@ -460,11 +539,11 @@ export async function runCronIsolatedAgentTurn(params: {
     await persistSessionEntry();
   }
   const firstText = payloads[0]?.text ?? "";
-  const summary = pickSummaryFromPayloads(payloads) ?? pickSummaryFromOutput(firstText);
-  const outputText = pickLastNonEmptyTextFromPayloads(payloads);
-  const synthesizedText = outputText?.trim() || summary?.trim() || undefined;
+  let summary = pickSummaryFromPayloads(payloads) ?? pickSummaryFromOutput(firstText);
+  let outputText = pickLastNonEmptyTextFromPayloads(payloads);
+  let synthesizedText = outputText?.trim() || summary?.trim() || undefined;
   const deliveryPayload = pickLastDeliverablePayload(payloads);
-  const deliveryPayloads =
+  let deliveryPayloads =
     deliveryPayload !== undefined
       ? [deliveryPayload]
       : synthesizedText
@@ -544,9 +623,45 @@ export async function runCronIsolatedAgentTurn(params: {
         typeof params.job.name === "string" && params.job.name.trim()
           ? params.job.name.trim()
           : `cron:${params.job.id}`;
+      const initialSynthesizedText = synthesizedText.trim();
+      let activeSubagentRuns = countActiveDescendantRuns(agentSessionKey);
+      const hadActiveDescendants = activeSubagentRuns > 0;
+      if (activeSubagentRuns > 0) {
+        const finalReply = await waitForDescendantSubagentSummary({
+          sessionKey: agentSessionKey,
+          initialReply: initialSynthesizedText,
+          timeoutMs,
+          observedActiveDescendants: true,
+        });
+        activeSubagentRuns = countActiveDescendantRuns(agentSessionKey);
+        if (finalReply && activeSubagentRuns === 0) {
+          outputText = finalReply;
+          summary = pickSummaryFromOutput(finalReply) ?? summary;
+          synthesizedText = finalReply;
+          deliveryPayloads = [{ text: finalReply }];
+        }
+      }
+      if (activeSubagentRuns > 0) {
+        // Parent orchestration is still in progress; avoid announcing a partial
+        // update to the main requester.
+        return withRunSession({ status: "ok", summary, outputText });
+      }
+      if (
+        hadActiveDescendants &&
+        synthesizedText.trim() === initialSynthesizedText &&
+        isLikelyInterimCronMessage(initialSynthesizedText) &&
+        initialSynthesizedText.toUpperCase() !== SILENT_REPLY_TOKEN.toUpperCase()
+      ) {
+        // Descendants existed but no post-orchestration synthesis arrived, so
+        // suppress stale parent text like "on it, pulling everything together".
+        return withRunSession({ status: "ok", summary, outputText });
+      }
+      if (synthesizedText.toUpperCase() === SILENT_REPLY_TOKEN.toUpperCase()) {
+        return withRunSession({ status: "ok", summary, outputText });
+      }
       try {
         const didAnnounce = await runSubagentAnnounceFlow({
-          childSessionKey: runSessionKey,
+          childSessionKey: agentSessionKey,
           childRunId: `${params.job.id}:${runSessionId}`,
           requesterSessionKey: announceSessionKey,
           requesterOrigin: {

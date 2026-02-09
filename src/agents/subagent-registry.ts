@@ -268,16 +268,38 @@ function finalizeSubagentCleanup(runId: string, cleanup: "delete" | "keep", didA
   if (!didAnnounce) {
     // Allow retry on the next wake if announce was deferred or failed.
     entry.cleanupHandled = false;
+    resumedRuns.delete(runId);
     persistSubagentRuns();
     return;
   }
   if (cleanup === "delete") {
     subagentRuns.delete(runId);
     persistSubagentRuns();
+    retryDeferredCompletedAnnounces(runId);
     return;
   }
   entry.cleanupCompletedAt = Date.now();
   persistSubagentRuns();
+  retryDeferredCompletedAnnounces(runId);
+}
+
+function retryDeferredCompletedAnnounces(excludeRunId?: string) {
+  for (const [runId, entry] of subagentRuns.entries()) {
+    if (excludeRunId && runId === excludeRunId) {
+      continue;
+    }
+    if (typeof entry.endedAt !== "number") {
+      continue;
+    }
+    if (entry.cleanupCompletedAt || entry.cleanupHandled) {
+      continue;
+    }
+    if (suppressAnnounceForSteerRestart(entry)) {
+      continue;
+    }
+    resumedRuns.delete(runId);
+    resumeSubagentRun(runId);
+  }
 }
 
 function beginSubagentCleanup(runId: string) {
@@ -550,6 +572,52 @@ function findRunIdsByChildSessionKey(childSessionKey: string): string[] {
   return runIds;
 }
 
+function getRunsSnapshotForRead(): Map<string, SubagentRunRecord> {
+  const merged = new Map<string, SubagentRunRecord>();
+  const shouldReadDisk = !(process.env.VITEST || process.env.NODE_ENV === "test");
+  if (shouldReadDisk) {
+    try {
+      // Registry state is persisted to disk so other worker processes (for
+      // example cron runners) can observe active children spawned elsewhere.
+      for (const [runId, entry] of loadSubagentRegistryFromDisk().entries()) {
+        merged.set(runId, entry);
+      }
+    } catch {
+      // Ignore disk read failures and fall back to local memory state.
+    }
+  }
+  for (const [runId, entry] of subagentRuns.entries()) {
+    merged.set(runId, entry);
+  }
+  return merged;
+}
+
+export function resolveRequesterForChildSession(childSessionKey: string): {
+  requesterSessionKey: string;
+  requesterOrigin?: DeliveryContext;
+} | null {
+  const key = childSessionKey.trim();
+  if (!key) {
+    return null;
+  }
+  let best: SubagentRunRecord | undefined;
+  for (const entry of getRunsSnapshotForRead().values()) {
+    if (entry.childSessionKey !== key) {
+      continue;
+    }
+    if (!best || entry.createdAt > best.createdAt) {
+      best = entry;
+    }
+  }
+  if (!best) {
+    return null;
+  }
+  return {
+    requesterSessionKey: best.requesterSessionKey,
+    requesterOrigin: normalizeDeliveryContext(best.requesterOrigin),
+  };
+}
+
 export function isSubagentSessionRunActive(childSessionKey: string): boolean {
   const runIds = findRunIdsByChildSessionKey(childSessionKey);
   for (const runId of runIds) {
@@ -620,7 +688,7 @@ export function countActiveRunsForSession(requesterSessionKey: string): number {
     return 0;
   }
   let count = 0;
-  for (const entry of subagentRuns.values()) {
+  for (const entry of getRunsSnapshotForRead().values()) {
     if (entry.requesterSessionKey !== key) {
       continue;
     }
@@ -628,6 +696,38 @@ export function countActiveRunsForSession(requesterSessionKey: string): number {
       continue;
     }
     count += 1;
+  }
+  return count;
+}
+
+export function countActiveDescendantRuns(rootSessionKey: string): number {
+  const root = rootSessionKey.trim();
+  if (!root) {
+    return 0;
+  }
+  const runs = getRunsSnapshotForRead();
+  const pending = [root];
+  const visited = new Set<string>([root]);
+  let count = 0;
+  while (pending.length > 0) {
+    const requester = pending.shift();
+    if (!requester) {
+      continue;
+    }
+    for (const entry of runs.values()) {
+      if (entry.requesterSessionKey !== requester) {
+        continue;
+      }
+      if (typeof entry.endedAt !== "number") {
+        count += 1;
+      }
+      const childKey = entry.childSessionKey.trim();
+      if (!childKey || visited.has(childKey)) {
+        continue;
+      }
+      visited.add(childKey);
+      pending.push(childKey);
+    }
   }
   return count;
 }

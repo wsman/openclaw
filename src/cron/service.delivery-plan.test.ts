@@ -54,7 +54,7 @@ describe("CronService delivery plan consistency", () => {
     await store.cleanup();
   });
 
-  it("treats delivery object without mode as announce", async () => {
+  it("treats delivery object without mode as announce without enqueuing cron summary", async () => {
     const store = await makeStorePath();
     const enqueueSystemEvent = vi.fn();
     const cron = new CronService({
@@ -84,7 +84,7 @@ describe("CronService delivery plan consistency", () => {
 
     const result = await cron.run(job.id, "force");
     expect(result).toEqual({ ok: true, ran: true });
-    expect(enqueueSystemEvent).toHaveBeenCalledWith("Cron: done", { agentId: undefined });
+    expect(enqueueSystemEvent).not.toHaveBeenCalled();
 
     cron.stop();
     await store.cleanup();

@@ -11,6 +11,8 @@ const embeddedRunMock = {
 };
 const subagentRegistryMock = {
   isSubagentSessionRunActive: vi.fn(() => true),
+  countActiveDescendantRuns: vi.fn(() => 0),
+  resolveRequesterForChildSession: vi.fn(() => null),
 };
 let sessionStore: Record<string, Record<string, unknown>> = {};
 let configOverride: ReturnType<(typeof import("../config/config.js"))["loadConfig"]> = {
@@ -74,6 +76,8 @@ describe("subagent announce formatting", () => {
     embeddedRunMock.queueEmbeddedPiMessage.mockReset().mockReturnValue(false);
     embeddedRunMock.waitForEmbeddedPiRunEnd.mockReset().mockResolvedValue(true);
     subagentRegistryMock.isSubagentSessionRunActive.mockReset().mockReturnValue(true);
+    subagentRegistryMock.countActiveDescendantRuns.mockReset().mockReturnValue(0);
+    subagentRegistryMock.resolveRequesterForChildSession.mockReset().mockReturnValue(null);
     readLatestAssistantReplyMock.mockReset().mockResolvedValue("raw subagent reply");
     sessionStore = {};
     configOverride = {
@@ -86,6 +90,11 @@ describe("subagent announce formatting", () => {
 
   it("sends instructional message to main agent with status and findings", async () => {
     const { runSubagentAnnounceFlow } = await import("./subagent-announce.js");
+    sessionStore = {
+      "agent:main:subagent:test": {
+        sessionId: "child-session-123",
+      },
+    };
     await runSubagentAnnounceFlow({
       childSessionKey: "agent:main:subagent:test",
       childRunId: "run-123",
@@ -106,7 +115,7 @@ describe("subagent announce formatting", () => {
     const msg = call?.params?.message as string;
     expect(call?.params?.sessionKey).toBe("agent:main:main");
     expect(msg).toContain("[System Message]");
-    expect(msg).toContain("[id: run-123]");
+    expect(msg).toContain("[sessionId: child-session-123]");
     expect(msg).toContain("subagent task");
     expect(msg).toContain("failed");
     expect(msg).toContain("boom");
@@ -173,7 +182,7 @@ describe("subagent announce formatting", () => {
     expect(msg).toContain("Stats:");
     expect(msg).toContain("tokens 1.0k (in 12 / out 1.0k)");
     expect(msg).toContain("prompt/cache 197.0k");
-    expect(msg).toContain("[id: child-session-usage]");
+    expect(msg).toContain("[sessionId: child-session-usage]");
     expect(msg).toContain("Reply with a natural user update");
     expect(msg).toContain("ONLY: NO_REPLY");
     expect(msg).toContain("step-0");
@@ -509,6 +518,87 @@ describe("subagent announce formatting", () => {
     const call = agentSpy.mock.calls[0]?.[0] as { params?: { message?: string } };
     expect(call?.params?.message).toContain("Read #12 complete.");
     expect(call?.params?.message).not.toContain("(no output)");
+  });
+
+  it("forces NO_REPLY guidance when sibling subagents are still active", async () => {
+    const { runSubagentAnnounceFlow } = await import("./subagent-announce.js");
+    subagentRegistryMock.countActiveDescendantRuns.mockImplementation((sessionKey: string) =>
+      sessionKey === "agent:main:main" ? 2 : 0,
+    );
+
+    await runSubagentAnnounceFlow({
+      childSessionKey: "agent:main:subagent:test",
+      childRunId: "run-child",
+      requesterSessionKey: "agent:main:main",
+      requesterDisplayKey: "main",
+      task: "do thing",
+      timeoutMs: 1000,
+      cleanup: "keep",
+      waitForCompletion: false,
+      startedAt: 10,
+      endedAt: 20,
+      outcome: { status: "ok" },
+    });
+
+    const call = agentSpy.mock.calls[0]?.[0] as { params?: { message?: string } };
+    const msg = call?.params?.message as string;
+    expect(msg).toContain("There are still 2 active subagent runs for this session.");
+    expect(msg).toContain("Reply ONLY: NO_REPLY.");
+  });
+
+  it("suppresses announce while the finished run still has active descendants", async () => {
+    const { runSubagentAnnounceFlow } = await import("./subagent-announce.js");
+    subagentRegistryMock.countActiveDescendantRuns.mockImplementation((sessionKey: string) =>
+      sessionKey === "agent:main:subagent:parent" ? 1 : 0,
+    );
+
+    const didAnnounce = await runSubagentAnnounceFlow({
+      childSessionKey: "agent:main:subagent:parent",
+      childRunId: "run-parent",
+      requesterSessionKey: "agent:main:main",
+      requesterDisplayKey: "main",
+      task: "do thing",
+      timeoutMs: 1000,
+      cleanup: "keep",
+      waitForCompletion: false,
+      startedAt: 10,
+      endedAt: 20,
+      outcome: { status: "ok" },
+    });
+
+    expect(didAnnounce).toBe(true);
+    expect(agentSpy).not.toHaveBeenCalled();
+  });
+
+  it("bubbles child announce to parent requester when requester subagent already ended", async () => {
+    const { runSubagentAnnounceFlow } = await import("./subagent-announce.js");
+    subagentRegistryMock.isSubagentSessionRunActive.mockReturnValue(false);
+    subagentRegistryMock.resolveRequesterForChildSession.mockReturnValue({
+      requesterSessionKey: "agent:main:main",
+      requesterOrigin: { channel: "whatsapp", to: "+1555", accountId: "acct-main" },
+    });
+
+    const didAnnounce = await runSubagentAnnounceFlow({
+      childSessionKey: "agent:main:subagent:leaf",
+      childRunId: "run-leaf",
+      requesterSessionKey: "agent:main:subagent:orchestrator",
+      requesterDisplayKey: "agent:main:subagent:orchestrator",
+      task: "do thing",
+      timeoutMs: 1000,
+      cleanup: "keep",
+      waitForCompletion: false,
+      startedAt: 10,
+      endedAt: 20,
+      outcome: { status: "ok" },
+    });
+
+    expect(didAnnounce).toBe(true);
+    const call = agentSpy.mock.calls[0]?.[0] as { params?: Record<string, unknown> };
+    expect(call?.params?.sessionKey).toBe("agent:main:main");
+    expect(call?.params?.deliver).toBe(true);
+    expect(call?.params?.channel).toBe("whatsapp");
+    expect(call?.params?.to).toBe("+1555");
+    expect(call?.params?.accountId).toBe("acct-main");
   });
 
   it("defers announce when child run is still active after wait timeout", async () => {
