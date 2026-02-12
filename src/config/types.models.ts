@@ -40,6 +40,7 @@ export type ModelProviderConfig = {
   api?: ModelApi;
   headers?: Record<string, string>;
   authHeader?: boolean;
+  timeoutMs?: number;
   models: ModelDefinitionConfig[];
 };
 
