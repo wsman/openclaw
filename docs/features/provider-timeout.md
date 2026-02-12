@@ -14,7 +14,7 @@ This feature allows configuring custom timeout settings for LLM model providers,
 
 ### Schema Changes
 
-Added `timeoutMs` field to `ModelProviderSchema` in `src/config/zod-schema.core.ts`:
+Added `timeoutMs` field (recommended) and deprecated `timeout` field to `ModelProviderSchema` in `src/config/zod-schema.core.ts`:
 
 ```typescript
 export const ModelProviderSchema = z
@@ -25,7 +25,10 @@ export const ModelProviderSchema = z
     api: ModelApiSchema.optional(),
     headers: z.record(z.string(), z.string()).optional(),
     authHeader: z.boolean().optional(),
-    timeoutMs: z.number().int().positive().optional(), // New field
+    /** Request timeout in milliseconds */
+    timeoutMs: z.number().int().positive().optional(), // Recommended
+    /** @deprecated Use timeoutMs instead */
+    timeout: z.number().int().positive().optional(), // For backward compatibility
     models: z.array(ModelDefinitionSchema),
   })
   .strict();
@@ -33,7 +36,7 @@ export const ModelProviderSchema = z
 
 ### Type Definition
 
-Added `timeoutMs` field to `ModelProviderConfig` in `src/config/types.models.ts`:
+Added `timeoutMs` field (recommended) and deprecated `timeout` field to `ModelProviderConfig` in `src/config/types.models.ts`:
 
 ```typescript
 export type ModelProviderConfig = {
@@ -43,7 +46,10 @@ export type ModelProviderConfig = {
   api?: ModelApi;
   headers?: Record<string, string>;
   authHeader?: boolean;
-  timeoutMs?: number; // New field
+  /** Request timeout in milliseconds */
+  timeoutMs?: number; // Recommended
+  /** @deprecated Use timeoutMs instead */
+  timeout?: number; // For backward compatibility
   models: ModelDefinitionConfig[];
 };
 ```
