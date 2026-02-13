@@ -15,7 +15,8 @@ This feature allows configuring custom timeout settings for LLM model providers,
 
 - **Added**: 2026-02-12
 - **Version**: OpenClaw 2026.2.12+
-- **Status**: Active
+- **Status**: Implemented
+- **Runtime Enforcement**: Yes (src/agents/timeout.ts)
 
 ## Configuration
 

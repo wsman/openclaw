@@ -83,6 +83,36 @@ function validateIdentityAvatar(config: OpenClawConfig): ConfigValidationIssue[]
   return issues;
 }
 
+function validateTimeoutConfig(config: OpenClawConfig): ConfigValidationIssue[] {
+  const issues: ConfigValidationIssue[] = [];
+  const providers = config.models?.providers;
+
+  if (providers && typeof providers === "object") {
+    for (const [providerName, providerConfig] of Object.entries(providers)) {
+      if (providerConfig && typeof providerConfig === "object") {
+        const hasTimeout = providerConfig.timeout !== undefined;
+        const hasTimeoutMs = providerConfig.timeoutMs !== undefined;
+
+        if (hasTimeout && hasTimeoutMs) {
+          issues.push({
+            path: `models.providers.${providerName}`,
+            message: `Both 'timeout' (deprecated) and 'timeoutMs' fields are set; 'timeoutMs' will be used. Consider removing the deprecated 'timeout' field.`,
+            level: "warning",
+          });
+        } else if (hasTimeout) {
+          issues.push({
+            path: `models.providers.${providerName}`,
+            message: `The 'timeout' field is deprecated, please use 'timeoutMs' instead.`,
+            level: "warning",
+          });
+        }
+      }
+    }
+  }
+
+  return issues;
+}
+
 /**
  * Validates config without applying runtime defaults.
  * Use this when you need the raw validated config (e.g., for writing back to file).
@@ -126,6 +156,11 @@ export function validateConfigObjectRaw(
   if (avatarIssues.length > 0) {
     return { ok: false, issues: avatarIssues };
   }
+
+  // Validate timeout configuration (warnings only)
+  const _timeoutIssues = validateTimeoutConfig(validated.data as OpenClawConfig);
+  // Note: timeoutIssues are warnings, not errors, so we don't fail validation
+
   return {
     ok: true,
     config: validated.data as OpenClawConfig,
@@ -395,6 +430,10 @@ function validateConfigObjectWithPluginsBase(
       });
     }
   }
+
+  // Add timeout warnings to warnings array
+  const timeoutWarnings = validateTimeoutConfig(config);
+  warnings.push(...timeoutWarnings);
 
   if (issues.length > 0) {
     return { ok: false, issues, warnings };

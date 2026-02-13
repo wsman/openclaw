@@ -466,6 +466,10 @@ export const AgentEntrySchema = z
           ])
           .optional(),
         thinking: z.string().optional(),
+        maxConcurrent: z.number().int().positive().optional(),
+        /** Maximum depth of nested sub-agents (default: 2) */
+        maxSpawnDepth: z.number().int().min(1).max(10).optional(),
+        archiveAfterMinutes: z.number().int().positive().optional(),
       })
       .strict()
       .optional(),

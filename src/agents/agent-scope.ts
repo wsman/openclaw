@@ -24,7 +24,12 @@ type ResolvedAgentConfig = {
   heartbeat?: AgentEntry["heartbeat"];
   identity?: AgentEntry["identity"];
   groupChat?: AgentEntry["groupChat"];
-  subagents?: AgentEntry["subagents"];
+  subagents?: AgentEntry["subagents"] & {
+    maxSpawnDepth?: number;
+    maxConcurrent?: number;
+    archiveAfterMinutes?: number;
+    thinking?: string;
+  };
   sandbox?: AgentEntry["sandbox"];
   tools?: AgentEntry["tools"];
 };
@@ -104,6 +109,10 @@ export function resolveAgentConfig(
   if (!entry) {
     return undefined;
   }
+  const subagentsConfig = entry.subagents;
+  const subagentsResolved =
+    typeof subagentsConfig === "object" && subagentsConfig ? subagentsConfig : undefined;
+
   return {
     name: typeof entry.name === "string" ? entry.name : undefined,
     workspace: typeof entry.workspace === "string" ? entry.workspace : undefined,
@@ -118,7 +127,26 @@ export function resolveAgentConfig(
     heartbeat: entry.heartbeat,
     identity: entry.identity,
     groupChat: entry.groupChat,
-    subagents: typeof entry.subagents === "object" && entry.subagents ? entry.subagents : undefined,
+    subagents: subagentsResolved
+      ? {
+          allowAgents: subagentsResolved.allowAgents,
+          model: subagentsResolved.model,
+          maxSpawnDepth:
+            typeof subagentsResolved.maxSpawnDepth === "number"
+              ? subagentsResolved.maxSpawnDepth
+              : undefined,
+          maxConcurrent:
+            typeof subagentsResolved.maxConcurrent === "number"
+              ? subagentsResolved.maxConcurrent
+              : undefined,
+          archiveAfterMinutes:
+            typeof subagentsResolved.archiveAfterMinutes === "number"
+              ? subagentsResolved.archiveAfterMinutes
+              : undefined,
+          thinking:
+            typeof subagentsResolved.thinking === "string" ? subagentsResolved.thinking : undefined,
+        }
+      : undefined,
     sandbox: entry.sandbox,
     tools: entry.tools,
   };

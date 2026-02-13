@@ -15,7 +15,8 @@ This feature allows fine-grained control over sub-agent spawning behavior, inclu
 
 - **Added**: 2026-02-12
 - **Version**: OpenClaw 2026.2.12+
-- **Status**: Active
+- **Status**: Implemented
+- **Runtime Enforcement**: Yes (src/agents/tools/sessions-spawn-tool.ts)
 
 ## Configuration
 

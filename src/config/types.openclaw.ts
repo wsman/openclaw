@@ -102,6 +102,7 @@ export type OpenClawConfig = {
 export type ConfigValidationIssue = {
   path: string;
   message: string;
+  level?: "error" | "warning";
 };
 
 export type LegacyConfigIssue = {

@@ -81,3 +81,27 @@ export function resolveThreadParentSessionKey(
   const parent = raw.slice(0, idx).trim();
   return parent ? parent : null;
 }
+
+/**
+ * Calculate the nesting depth of a sub-agent session.
+ * Returns 0 for main sessions, 1 for direct sub-agents, 2 for sub-sub-agents, etc.
+ *
+ * Examples:
+ * - "agent:main:main" -> 0
+ * - "agent:main:subagent:abc" -> 1
+ * - "agent:main:subagent:abc:subagent:def" -> 2
+ */
+export function getSubagentDepth(sessionKey: string | undefined | null): number {
+  const raw = (sessionKey ?? "").trim();
+  if (!raw) {
+    return 0;
+  }
+  const parsed = parseAgentSessionKey(raw);
+  if (!parsed) {
+    return 0;
+  }
+  // Count the number of "subagent:" segments in the rest part
+  const rest = parsed.rest.toLowerCase();
+  const matches = rest.match(/:subagent:/g);
+  return matches ? matches.length : 0;
+}

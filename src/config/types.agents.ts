@@ -39,6 +39,14 @@ export type AgentConfig = {
     allowAgents?: string[];
     /** Per-agent default model for spawned sub-agents (string or {primary,fallbacks}). */
     model?: string | { primary?: string; fallbacks?: string[] };
+    /** Per-agent maximum depth of nested sub-agents (overrides defaults.maxSpawnDepth). */
+    maxSpawnDepth?: number;
+    /** Per-agent maximum concurrent sub-agent runs (overrides defaults.maxConcurrent). */
+    maxConcurrent?: number;
+    /** Per-agent auto-archive sub-agent sessions after N minutes (overrides defaults.archiveAfterMinutes). */
+    archiveAfterMinutes?: number;
+    /** Per-agent default thinking level for spawned sub-agents. */
+    thinking?: string;
   };
   sandbox?: {
     mode?: "off" | "non-main" | "all";

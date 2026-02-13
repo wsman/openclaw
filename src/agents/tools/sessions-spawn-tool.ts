@@ -6,6 +6,7 @@ import { formatThinkingLevels, normalizeThinkLevel } from "../../auto-reply/thin
 import { loadConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
 import {
+  getSubagentDepth,
   isSubagentSessionKey,
   normalizeAgentId,
   parseAgentSessionKey,
@@ -141,6 +142,19 @@ export function createSessionsSpawnTool(opts?: {
       const requesterAgentId = normalizeAgentId(
         opts?.requesterAgentIdOverride ?? parseAgentSessionKey(requesterInternalKey)?.agentId,
       );
+
+      // Check maxSpawnDepth limit
+      const currentDepth = getSubagentDepth(requesterSessionKey);
+      const maxSpawnDepth =
+        cfg.agents?.defaults?.subagents?.maxSpawnDepth ??
+        resolveAgentConfig(cfg, requesterAgentId)?.subagents?.maxSpawnDepth ??
+        2;
+      if (currentDepth >= maxSpawnDepth) {
+        return jsonResult({
+          status: "forbidden",
+          error: `Maximum spawn depth (${maxSpawnDepth}) exceeded. Current depth: ${currentDepth}. Increase agents.defaults.subagents.maxSpawnDepth or use a shallower hierarchy.`,
+        });
+      }
       const targetAgentId = requestedAgentId
         ? normalizeAgentId(requestedAgentId)
         : requesterAgentId;
