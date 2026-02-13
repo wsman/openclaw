@@ -157,10 +157,6 @@ export function validateConfigObjectRaw(
     return { ok: false, issues: avatarIssues };
   }
 
-  // Validate timeout configuration (warnings only)
-  const _timeoutIssues = validateTimeoutConfig(validated.data as OpenClawConfig);
-  // Note: timeoutIssues are warnings, not errors, so we don't fail validation
-
   return {
     ok: true,
     config: validated.data as OpenClawConfig,
