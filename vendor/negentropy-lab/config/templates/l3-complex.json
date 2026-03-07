@@ -1,0 +1,45 @@
+{
+  "templateVersion": "1.0.0",
+  "templateId": "l3-complex",
+  "description": "L3复杂任务配置模板 - 适合系统集成、架构设计、复杂业务逻辑",
+  "taskComplexity": "L3",
+  "createdAt": "2026-02-12T17:10:00.000Z",
+  "updatedAt": "2026-02-12T17:10:00.000Z",
+  "model": "google-antigravity/gemini-3-pro-high",
+  "runTimeoutSeconds": 2700,
+  "maxSpawnDepth": 5,
+  "tags": ["complex", "system-integration", "architecture", "business-logic"],
+  "author": "Technology Ministry",
+  "category": "standard",
+  "environmentVariables": {
+    "NODE_ENV": "staging",
+    "LOG_LEVEL": "debug",
+    "ENABLE_METRICS": "true",
+    "ENABLE_DEBUGGING": "true",
+    "DATA_SOURCE": "production",
+    "CACHE_ENABLED": "true",
+    "BACKUP_ENABLED": "true",
+    "MONITORING_ENABLED": "true"
+  },
+  "configValidation": {
+    "model": {
+      "required": true,
+      "type": "string"
+    },
+    "taskComplexity": {
+      "required": true,
+      "type": "string",
+      "enum": ["L1", "L2", "L3", "L4"]
+    },
+    "runTimeoutSeconds": {
+      "type": "number",
+      "min": 1800,
+      "max": 5400
+    },
+    "maxSpawnDepth": {
+      "type": "number",
+      "min": 3,
+      "max": 8
+    }
+  }
+}

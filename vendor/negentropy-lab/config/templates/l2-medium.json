@@ -1,0 +1,42 @@
+{
+  "templateVersion": "1.0.0",
+  "templateId": "l2-medium",
+  "description": "L2中等任务配置模板 - 适合中等复杂度的数据处理和分析",
+  "taskComplexity": "L2",
+  "createdAt": "2026-02-12T17:10:00.000Z",
+  "updatedAt": "2026-02-12T17:10:00.000Z",
+  "model": "google-antigravity/gemini-3-pro-high",
+  "runTimeoutSeconds": 1800,
+  "maxSpawnDepth": 4,
+  "tags": ["medium", "data-processing", "analysis", "multi-agent"],
+  "author": "Technology Ministry",
+  "category": "standard",
+  "environmentVariables": {
+    "NODE_ENV": "staging",
+    "LOG_LEVEL": "debug",
+    "ENABLE_METRICS": "true",
+    "DATA_SOURCE": "mixed",
+    "CACHE_ENABLED": "true"
+  },
+  "configValidation": {
+    "model": {
+      "required": true,
+      "type": "string"
+    },
+    "taskComplexity": {
+      "required": true,
+      "type": "string",
+      "enum": ["L1", "L2", "L3", "L4"]
+    },
+    "runTimeoutSeconds": {
+      "type": "number",
+      "min": 900,
+      "max": 5400
+    },
+    "maxSpawnDepth": {
+      "type": "number",
+      "min": 2,
+      "max": 8
+    }
+  }
+}

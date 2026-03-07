@@ -1,0 +1,43 @@
+name: Gateway Contract Nightly Guard
+
+on:
+  schedule:
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  contract-nightly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: Contract guard (strict)
+        run: npm run check:contract:strict
+
+      - name: Contract test suite
+        run: npx vitest run tests/contract/gateway-rpc-contract.test.ts tests/contract/gateway-event-contract.test.ts
+
+      - name: Drift audit
+        run: npm run check:contract:drift
+
+      - name: Upload contract report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-contract-nightly
+          path: |
+            reports/contract-count-report.json
+            reports/contract-drift-audit.json
+          if-no-files-found: warn

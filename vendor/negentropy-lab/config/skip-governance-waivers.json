@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-03-02T11:20:00+08:00",
+  "waivers": [
+    {
+      "id": "waiver-perf-benchmark-conditional-skip-2026q2",
+      "file": "tests/performance/benchmark.test.ts",
+      "line": 224,
+      "type": "conditional-describe-skip-alias",
+      "owner": "科技部",
+      "reason": "性能专项测试仅在 ENABLE_PERF_TESTS=true 的性能专线执行，主干默认以快速回归优先；已由周报与趋势审计持续守护。",
+      "expiresAt": "2026-06-30T23:59:59+08:00"
+    }
+  ]
+}

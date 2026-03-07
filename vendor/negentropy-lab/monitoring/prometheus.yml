@@ -1,0 +1,96 @@
+# Prometheus 监控配置
+# 版本: v1.0.0
+# 宪法依据: §101同步公理、§110协作效率公理、§306零停机协议
+# 设计目标: 实时监控Gateway性能指标和宪法合规状态
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+# 规则文件配置
+rule_files:
+  - "alerts/constitution_alerts.yml"
+  - "alerts/performance_alerts.yml"
+
+# 抓取配置
+scrape_configs:
+  # Gateway服务指标
+  - job_name: 'gateway'
+    static_configs:
+      - targets: ['negentropy-lab-server:4514']
+        labels:
+          layer: '1.0'
+          component: 'gateway'
+          environment: 'production'
+          constitution_compliance: 'true'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # MCP核心服务指标
+  - job_name: 'mcp-core'
+    static_configs:
+      - targets: ['mcp-core:2567']
+        labels:
+          layer: '1.5'
+          component: 'mcp-core'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # 熵计算服务指标
+  - job_name: 'entropy-service'
+    static_configs:
+      - targets: ['entropy-service:8001']
+        labels:
+          layer: '1.6'
+          component: 'entropy-calculation-service'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # Qdrant向量存储指标
+  - job_name: 'qdrant'
+    static_configs:
+      - targets: ['qdrant:6334']
+        labels:
+          layer: '5'
+          component: 'qdrant-vector-store'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # 宪法合规指标采集
+  - job_name: 'constitution-metrics'
+    static_configs:
+      - targets: ['negentropy-lab-server:4514']
+        labels:
+          metric_type: 'constitution'
+          layer: '1.0'
+    metrics_path: '/constitution/metrics'
+    scrape_interval: 30s
+    params:
+      include: ['all']
+  
+  # 性能基准指标
+  - job_name: 'performance-benchmarks'
+    static_configs:
+      - targets: ['negentropy-lab-server:4514']
+        labels:
+          metric_type: 'performance'
+    metrics_path: '/performance/metrics'
+    scrape_interval: 60s
+
+# 远程写入配置（可选）
+remote_write:
+  - url: "http://prometheus-remote-write:9090/api/v1/write"
+    queue_config:
+      max_samples_per_send: 1000
+      capacity: 5000
+
+# 远程读取配置（可选）
+remote_read:
+  - url: "http://prometheus-remote-read:9090/api/v1/read"
+    read_recent: true

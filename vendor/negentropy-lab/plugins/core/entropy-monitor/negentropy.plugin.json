@@ -1,0 +1,50 @@
+{
+  "id": "entropy-monitor",
+  "name": "Entropy Monitor Plugin",
+  "description": "熵值监控插件 - 监控CPU、内存、熵值并支持阈值告警",
+  "version": "1.0.0",
+  "kind": "monitoring",
+  "main": "index.ts",
+  "openclawCompat": true,
+  "negentropy": {
+    "entropyMonitor": {
+      "metrics": ["h_sys", "h_cog", "h_struct", "h_align", "h_bio", "cpu", "memory", "disk"],
+      "thresholds": {
+        "h_sys": 0.7,
+        "h_cog": 0.5,
+        "h_struct": 0.5,
+        "h_align": 0.5,
+        "h_bio": 0.8,
+        "cpu": 80,
+        "memory": 90,
+        "disk": 85
+      },
+      "alertInterval": 60000,
+      "monitorInterval": 5000,
+      "dataRetentionDays": 7
+    },
+    "constitutionalCompliance": {
+      "requiredClauses": ["§101", "§102", "§111", "§112", "§113"],
+      "validationRules": {
+        "type": "object",
+        "rules": [
+          {
+            "name": "Entropy Monitoring",
+            "description": "H_sys must be monitored in real-time (§102)",
+            "type": "required"
+          },
+          {
+            "name": "Resource Monitoring",
+            "description": "CPU and memory must be monitored (§111)",
+            "type": "required"
+          },
+          {
+            "name": "Threshold Alerts",
+            "description": "Threshold alerts must be configured (§113)",
+            "type": "required"
+          }
+        ]
+      }
+    }
+  }
+}

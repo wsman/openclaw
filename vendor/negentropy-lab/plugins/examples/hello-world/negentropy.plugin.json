@@ -1,0 +1,44 @@
+{
+  "id": "hello-world",
+  "name": "Hello World Plugin",
+  "description": "A simple example plugin for Negentropy-Lab",
+  "version": "1.0.0",
+  "kind": "core",
+  "main": "index.ts",
+  "openclawCompat": true,
+  "negentropy": {
+    "agentIntegration": {
+      "model": "google-antigravity/gemini-3-flash",
+      "timeout": 30000,
+      "depth": 5,
+      "permissions": ["read", "write"]
+    },
+    "entropyMonitor": {
+      "metrics": ["cpu", "memory", "disk"],
+      "thresholds": {
+        "cpu": 80,
+        "memory": 90,
+        "disk": 85
+      },
+      "alertLevel": "warn"
+    },
+    "constitutionalCompliance": {
+      "requiredClauses": ["§101", "§102", "§108", "§118", "§306"],
+      "validationRules": {
+        "type": "object",
+        "rules": [
+          {
+            "name": "Model Specification",
+            "description": "Model must be explicitly specified",
+            "type": "required"
+          },
+          {
+            "name": "Timeout Configuration",
+            "description": "Timeout must be configured for L4 tasks",
+            "type": "required"
+          }
+        ]
+      }
+    }
+  }
+}

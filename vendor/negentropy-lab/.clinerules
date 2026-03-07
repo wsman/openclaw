@@ -1,0 +1,274 @@
+# 宪法驱动开发核心索引 (CDD Core Index) - Negentropy-Lab
+
+**版本**: v7.6.0-dev (Phase 13 Final Acceptance 已完成)
+**状态**: ✅ 运行模式 (Runtime Mode)
+**说明**: 本文件是Negentropy-Lab项目的宪法入口索引，依据§152单一真理源公理，提供项目核心架构的快速导航。所有详细宪法内容存储在`memory_bank/t0_core/`目录。Phase 13 Final Acceptance已完成，Phase 14-15为规划阶段（计划窗口: 2026-03-05~2026-03-20）。
+
+---
+
+## 1. 项目核心理念
+
+Negentropy-Lab是一个基于宪法驱动开发(CDD)的多Agent智能协作平台，构建完整的Gateway生态系统：
+
+> 仓库定位（2026-03-03）：本仓库为后端与网关实现（API-only）；前端位于`/home/wsman/OpenDoge/opendoge-ui`（Linux环境）或`D:\Users\WSMAN\Desktop\OpenDoge\opendoge-ui`（Windows环境，需配置外部仓库路径）。
+
+**核心架构**: 双架构体系（七层自治架构 + 四层逻辑架构）
+
+### 1.1 七层自治架构（L0-L5物理分层）
+
+| 层级 | 名称 | 实现状态 | 说明 |
+|------|------|----------|------|
+| **L5** | 接口表现层 | ✅ 已实现 | WebSocket RPC + HTTP REST API |
+| **L4** | 应用逻辑层 | ✅ 已实现 | TypeScript Node.js服务 |
+| **L3** | MCP微内核层 | ✅ 已实现 | Python MCP微内核服务 |
+| **L2.5** | 内部事务局(IAB) | 🟡 功能集成 | 运行时审计功能集成于ConstitutionMonitor/EntropyService |
+| **L2** | 执行代理层 | ✅ 已实现 | 三层架构（L1办公厅主任+L2内阁总理+L3专业Agent） |
+| **L1** | 记忆银行层 | ✅ 已实现 | 法典内核 + 记忆库 |
+| **L0.8** | ToolCallBridge | 🟡 规范完成 | 标准文档DS-23已完成，代码实现待开发 |
+| **L0.5** | Legacy兼容层 | 📋 架构规划 | 架构设计完成，适配器代码待开发 |
+| **L0** | 遗留隔离层 | 📋 架构规划 | 隔离区设计完成，实现待开发 |
+
+### 1.2 四层逻辑架构（T0-T3逻辑分层）
+1. **Gateway生态系统层**: WebSocket + HTTP + 认证 + 插件 + 监控
+2. **Agent三层架构层**: L1入口层(办公厅主任) + L2协调层(内阁总理) + L3专业层(监察/科技/组织)
+3. **LLM集成层**: LLMService + ModelSelectorService + 成本优化
+4. **知识库管理层**: 法典内核 + 记忆库 + 工作流系统
+5. **OpenClaw决策层**: 决策服务 + 策略引擎 + 断路器 + 灰度发布 + 回滚演练
+
+**架构映射**: $S_{7-layer} \cong S_{4-layer}$（七层架构提供物理分层，四层架构提供逻辑分层）
+
+**核心原则**: 熵减优化、单一真理源、宪法驱动开发、Agent协作、七层自治、工具链标准化。
+
+---
+
+## 2. T0-T3分层架构
+
+依据基本法§104功能分层拓扑公理，系统严格遵循T0-T3分层架构：
+
+| 层级 | 名称 | 用途 | 位置 |
+|------|------|------|------|
+| **T0** | 核心意识层 | 常驻内存，系统自我意识 | `memory_bank/t0_core/` |
+| **T1** | 索引与状态层 | 高频检索，系统状态跟踪 | `memory_bank/t1_axioms/` |
+| **T2** | 执行规范层 | 按需加载，开发标准与工作流 | `memory_bank/t2_protocols/`, `memory_bank/t2_standards/` |
+| **T3** | 分析与归档层 | 离线存储，文档与归档 | `memory_bank/t3_documentation/` |
+
+**宪法约束**:
+- **§100 微内核七层自治架构公理**: 系统严格遵循七层自治架构（L0-L5），每层具有独立职责边界
+- **§152单一真理源公理**: `memory_bank/t0_core/`是可执行规范的唯一真理源
+- **§102.3宪法同步公理**: 版本变更必须触发全体系同步
+- **§141熵减验证公理**: 重构必须满足语义保持性和熵减验证
+- **§109 ToolCallBridge标准化架构**: 智能体工具调用标准化接口
+
+---
+
+## 3. CDD流程概览
+
+依据程序法§201，宪法驱动开发遵循五状态工作流：
+
+```mermaid
+graph LR
+    A[State A: 基准摄入] --> B[State B: 文档规划]
+    B -->|用户批准| C[State C: 受控执行]
+    C --> D[State D: 三级验证]
+    D -->|验证通过| E[State E: 收敛纠错]
+    D -->|验证失败| C
+```
+
+**核心原则**: 文档先行，代码随后。严禁直接修改代码，必须先修改文档并获批准。
+
+---
+
+## 4. 核心宪法索引
+
+依据§152单一真理源公理，所有宪法文件集中存储在`memory_bank/t0_core/`目录：
+
+### 4.1 宪法内核 (T0 Core)
+| 文件 | 用途 | 路径 |
+|------|------|------|
+| **活跃上下文** | 当前系统状态与任务（包含移植历史） | `memory_bank/t0_core/active_context.md` |
+| **运行基线** | 运行时架构最小真理源（入口、边界、实现状态） | `memory_bank/t0_core/runtime_architecture_baseline.md` |
+| **基本法索引** | 核心公理与架构约束 | `memory_bank/t0_core/basic_law_index.md` |
+| **程序法索引** | 工作流与操作流程 | `memory_bank/t0_core/procedural_law_index.md` |
+| **技术法索引** | 开发标准与规范（包含L0-L5七层架构） | `memory_bank/t0_core/technical_law_index.md` |
+| **知识图谱** | 系统实体关联导航 | `memory_bank/t0_core/knowledge_graph.md` |
+
+### 4.2 系统公理 (T1 Axioms)
+| 文件 | 用途 | 路径 |
+|------|------|------|
+| **Agent协作模式** | Agent三层架构约束 | `memory_bank/t1_axioms/agent_collaboration_patterns.md` |
+| **系统架构模式** | 系统架构约束 | `memory_bank/t1_axioms/system_patterns.md` |
+| **行为上下文** | Agent行为规范 | `memory_bank/t1_axioms/behavior_context.md` |
+| **技术上下文** | 技术栈约束 | `memory_bank/t1_axioms/tech_context.md` |
+| **概念文档** | 数学公理与核心概念 | `memory_bank/t1_axioms/CONCEPTS.md` |
+| **术语文档** | 项目核心术语定义 | `memory_bank/t1_axioms/GLOSSARY.md` |
+
+### 4.3 协议与标准 (T2 Protocols & Standards)
+| 目录 | 用途 | 路径 |
+|------|------|------|
+| **工作流程** | 执行工作流 | `memory_bank/t2_protocols/`（目录说明见`memory_bank/t2_protocols/workflows/README.md`） |
+| **Agent标准** | Agent接口规范 | `memory_bank/t2_protocols/agent_standards/` |
+| **LLM标准** | LLM集成规范 | `memory_bank/t2_protocols/llm_standards/` |
+| **MCP工具库** | MCP工具文档（5个核心工具） | `memory_bank/t2_standards/` (DS-200~204) |
+| **技术标准** | 开发标准实现 | `memory_bank/t2_standards/` |
+| **文档归档** | 项目文档与归档 | `memory_bank/t3_documentation/` |
+
+> 状态语义说明：`t2_protocols/` 与 `t2_standards/` 文档中的“生产就绪”默认表示“规范定义成熟度”，不等价于“全部运行实现已在当前分支完成默认启用”；运行实现状态以 `t0_core/active_context.md` 与本文件第6.2节为准。T2文档中出现的历史示例路径/跨仓路径不作为当前仓运行态实现断言。
+
+### 4.4 MCP工具库索引
+**来源**: Negentropy-Lab MCP工具链
+**治理体系**: Tier 1-3三级治理体系
+| 工具编号 | 工具名称 | 层级 | 职责 | 对应文档 |
+|----------|----------|------|------|----------|
+| **MC-001** | MCP概览与宪法基础 | Tier 1 | MCP系统基础架构和宪法约束 | `memory_bank/t2_standards/DS-200_mcp_overview.md` |
+| **MC-002** | 监察部工具(IAB) | Tier 1 | 内部事务局工具集 | `memory_bank/t2_standards/DS-201_iab_tools.md` |
+| **MC-003** | 创世协议工具 | Tier 1 | 项目初始化和架构生成工具 | `memory_bank/t2_standards/DS-202_genesis_protocol.md` |
+| **MC-004** | 司法验证工具 | Tier 1 | 司法验证和宪法合规检查工具 | `memory_bank/t2_standards/DS-203_judicial_verification.md` |
+| **MC-005** | MCP服务器配置与运维 | Tier 3 | MCP服务器部署和运维工具 | `memory_bank/t2_standards/DS-204_mcp_server_ops.md` |
+
+### 4.5 索引导航
+- **快速启动**: 加载`memory_bank/t0_core/active_context.md` + `memory_bank/t0_core/runtime_architecture_baseline.md` → 查阅相关索引 → 执行对应工作流
+- **开发需求**: 查阅`memory_bank/t0_core/technical_law_index.md` → 找到对应标准（包含L0-L5七层架构） → 按规范实施
+- **流程执行**: 查阅`memory_bank/t0_core/procedural_law_index.md` → 找到对应工作流 → 按步骤执行
+- **架构问题**: 查阅`memory_bank/t0_core/knowledge_graph.md` → 图谱导航 → 找到解决方案
+- **Agent协作**: 查阅`memory_bank/t1_axioms/agent_collaboration_patterns.md` → 了解三层架构（L1+L2+L3）和IAB（L2.5） → 协调处理
+- **MCP工具使用**: 查阅`memory_bank/t2_standards/DS-200_mcp_overview.md` → 找到对应MCP工具（MC-001到MC-005） → 按规范调用
+- **七层架构参考**: 查阅`memory_bank/t0_core/technical_law_index.md` 第零章（§100-§109）→ 了解L0-L5层职责 → 架构设计
+- **阶段报告**: 查阅`reports/2026-03-02_mdgs-final-acceptance.md` → 了解最新分批次开发与验收结果
+- **OpenClaw决策模块**: 查阅`server/gateway/openclaw-decision/` → 了解决策服务、策略引擎、断路器实现
+
+### 4.6 工作流索引 (T2 Protocols)
+| 编号 | 工作流名称 | 用途 | 路径 |
+|------|-----------|------|------|
+| **WF-00** | CDD工作流 | 宪法驱动开发主流程 | `memory_bank/t2_protocols/WF-00_cdd_workflow.md` |
+| **WF-01** | 澄清工作流 | 需求澄清与确认 | `memory_bank/t2_protocols/WF-01_clarify_workflow.md` |
+| **WF-02** | 修订工作流 | 文档修订流程 | `memory_bank/t2_protocols/WF-02_amend.md` |
+| **WF-03** | 分析工作流 | 问题分析流程 | `memory_bank/t2_protocols/WF-03_analyze.md` |
+| **WF-04** | 审查工作流 | 代码审查流程 | `memory_bank/t2_protocols/WF-04_review.md` |
+| **WF-05** | 同步问题 | 问题同步流程 | `memory_bank/t2_protocols/WF-05_sync_issues.md` |
+| **WF-20** | CDD工作流v2 | 增强版CDD流程 | `memory_bank/t2_protocols/WF-20_cdd_workflow.md` |
+| **WF-30** | 简单路由 | 简单任务路由 | `memory_bank/t2_protocols/WF-30_simple_routing.md` |
+| **WF-31** | 并行协作 | 并行任务协作 | `memory_bank/t2_protocols/WF-31_parallel_collaboration.md` |
+| **WF-32** | 级联审查 | 级联审查流程 | `memory_bank/t2_protocols/WF-32_cascade_review.md` |
+| **WF-60** | 危机处理 | 紧急问题处理 | `memory_bank/t2_protocols/WF-60_crisis_handling.md` |
+| **WF-61** | 版本发布 | 版本发布流程 | `memory_bank/t2_protocols/WF-61_version_release.md` |
+| **WF-62** | 房间绑定 | 房间绑定信息管理 | `memory_bank/t2_protocols/WF-62_room_binding_info.md` |
+| **WF-63** | 安全操作 | 安全相关操作流程 | `memory_bank/t2_protocols/WF-63_security_operations.md` |
+| **WF-64** | MCP操作 | MCP服务操作流程 | `memory_bank/t2_protocols/WF-64_mcp_operations.md` |
+
+---
+
+## 5. 宪法引用格式规范
+
+核心业务TypeScript/JavaScript代码文件必须使用`@constitution`注解格式（`scripts/` 与测试文件可按WF-00豁免）：
+
+```typescript
+/**
+ * 🚀 [模块功能描述]
+ * 
+ * @constitution
+ * §101 同步公理：代码变更必须触发文档更新
+ * §102 熵减原则：所有变更必须降低或维持系统熵值
+ * [其他相关宪法条款...]
+ * 
+ * @filename [文件名]
+ * @version [版本号]
+ * @category [分类]
+ * @last_updated [最后更新日期]
+ */
+```
+
+### 5.1 宪法条款映射
+- **Gateway模块**: §101, §102, §107, §108, §152, §306, §110, §507
+- **OpenClaw决策模块**: §109, §501, §504, §102（工具调用桥接、插件系统、监控、熵减原则）
+- **Agent系统**: §106, §109, §110, §152, §190, §192, §193
+- **LLM集成**: §192, §193, §110, §470-§479
+- **插件系统**: §501, §502, §503, §306
+- **监控系统**: §504, §505, §506
+- **七层架构**: §100-§109（微内核七层自治架构公理）
+- **MCP工具链**: §130, §131, §132（MCP微内核神圣公理、绝对冷启动原则、架构原则）
+- **IAB内部事务局**: §104（内部事务局公理）
+- **ToolCallBridge**: §109, §438-§440（工具调用桥接器公理）
+- **Legacy兼容层**: §107（Legacy兼容层公理）
+
+---
+
+## 6. 宪法依据
+
+### 6.1 核心公理引用
+- **§100 微内核七层自治架构公理**: 系统严格遵循七层自治架构（L0-L5），每层具有独立职责边界
+- **§104 内部事务局公理**: L2.5内部事务局(IAB)负责运行时审计和元监督，确保系统熵减趋势
+- **§109 ToolCallBridge标准化架构公理**: L0.8层工具调用桥接器作为智能体工具调用的标准化接口
+- **§107 Legacy兼容层公理**: L0.5层作为Legacy Quarantine Zone与现代系统的双向适配器
+- **§152单一真理源公理**: `memory_bank/t0_core/`是可执行规范的唯一真理源，本文件仅为入口索引
+- **§102.3宪法同步公理**: 版本变更必须触发全体系同步扫描与强制对齐
+- **§141熵减验证公理**: 重构必须满足语义保持性($S' = S$)和熵减验证($H' \leq H$)
+- **§104功能分层拓扑公理**: 系统严格遵循T0-T3分层架构，层级间单向依赖
+- **§501插件系统公理**: 所有扩展功能必须通过插件系统实现
+- **§504监控系统公理**: 系统必须实时监控宪法合规状态
+- **§130-§132 MCP微内核公理**: MCP微内核神圣性、绝对冷启动原则、架构原则
+
+### 6.2 项目状态 (基于宪法合规检查与代码实现的实际状态)
+- **架构版本**: Negentropy-Lab v7.6.0-dev（Phase 13 Final Acceptance 已完成）
+- **阶段状态**: ✅ Phase 13 Final Acceptance 已完成 | 📋 Phase 14-15 规划中（计划窗口: 2026-03-05~2026-03-20）
+- **实际宪法合规状态** (基于2026-03-03脚本检查):
+  - **总体合规率**: 100.00% ✅
+  - **代码文件合规率**: 100.00% (186个文件，186合规，0违规) ✅
+  - **文档文件合规率**: 100.00% (73个文件，73合规，0违规) ✅
+  - **目录结构合规率**: 100.00% (0个违规项) ✅
+- **测试验收状态** (2026-03-03 最终验收):
+  - Negentropy-Lab: 15 files / 273 tests ✅
+  - OpenClaw: 114 files / 1118 passed / 3 skipped ✅
+  - UI Web: 1 file / 2 tests ✅
+  - UI Desk: 11 files / 169 tests ✅
+  - 详见 `reports/2026-03-03_phase13-final-acceptance.md`
+- **契约守护**: ✅ 93 RPC / 19 Events 基线已建立，`check:contract:strict`覆盖 `93/93`（canonical）
+- **漂移审计**: ✅ `check:contract:drift` 已接入 PR/nightly/release 三链路守护
+- **月度审计**: ✅ `report:contract:monthly` 已启用，支持契约趋势汇总
+- **运维闭环**: ✅ `ops:preflight:prod` + `ops:deploy:smoke` + live rollback 演练通过
+- **测试治理**: ✅ `report:testdebt:skip` 与 `report:perf:trend` 已纳入持续治理
+- **一致性检查**: ✅ `check:consistency --strict` 得分 `100/100`
+- **跨仓联调状态**: 🟡 需在完整三仓环境验证（Negentropy-Lab / OpenClaw / opendoge-ui，依赖外部仓库路径配置）
+- **七层架构整合**: ✅ 完成（L0-L5 + L0.5/L0.8）
+- **MCP工具库**: ✅ 5个核心工具文档完整（MC-001到MC-005，对应DS-200~204）
+- **系统熵值**: ΔH = -0.15（系统有序度持续提升）
+
+---
+
+## 7. 版本信息（运行基线）
+
+| 组件 | 版本 | 状态 | 说明 |
+|------|------|------|------|
+| **项目版本** | Negentropy-Lab v7.6.0-dev | ✅ 已验收 | Phase 13 Final Acceptance 已完成 |
+| **宪法版本** | v7.5.0-dev | 🟢 已同步 | 宪法合规率100.00% |
+| **CDD框架** | v1.6.1 | 🟢 运行中 | 宪法驱动开发框架就绪 |
+| **Gateway架构** | Phase 10 RC稳定态 | 🟢 已验收 | WebSocket RPC/契约守护/漂移审计/性能流水线/部署与回滚闭环已完成 |
+| **统一启动器** | v1.0.0 | ✅ 已验收 | 双服务编排（Negentropy→OpenClaw）、端口冲突自动切换、PID/状态持久化、统一日志聚合 |
+| **七层架构** | L0-L5完整整合 | ✅ 已完成 | MY-DOGE-DEMO v6.8.0整合完成 |
+| **Agent三层架构** | L1+L2+L2.5+L3 | ✅ 已实现 | 办公厅主任+内阁总理+专业Agent |
+| **插件系统** | PluginType(9)+PluginKind(6) | 🟡 核心可用 | PluginType在`server/gateway/plugins`，PluginKind在`server/plugins/types/plugin-interfaces.ts` |
+| **监控系统** | Operation Panopticon | ✅ 完整实现 | 11个服务：CostTracker/ConstitutionMonitor/EntropyService/UIStateSync/ControlPanel/AgentExecutionVisualizer/StreamingOptimizer/TaskQueueVisualizer/TaskSchedulerEnhanced/PerformanceMetricsEnhanced/CostPerspective |
+| **MCP工具库** | 5个核心工具文档 | ✅ 已完成 | MC-001到MC-005（DS-200~204）完整文档 |
+| **宪法合规实施** | 100.00%合规率 | ✅ 已完成 | 代码/文档/目录三项全通过 |
+| **测试验收** | 15 files/273 tests | ✅ 全部通过 | 全量vitest验收通过 |
+
+**最后更新**: 2026-03-05
+**宪法驱动开发**: 架构即熵减优化，七层自治，工具链标准化。Phase 13 Final Acceptance 已完成，Phase 14-15 规划中（计划窗口: 2026-03-05~2026-03-20）。
+
+### 6.3 新增基线命令
+```bash
+# 集成配置检查（Phase 13 新增）
+# 注意：跨仓检查依赖外部仓库路径配置（OpenClaw/opendoge-ui）
+# 在当前 Linux 环境下，外部 Windows 路径不可达，需在对应环境中运行
+npm run check:integration:config  # 本仓内检查通过；跨仓检查需配置外部仓库路径
+
+# 统一启动器 v2
+npm run launch -- start --openclaw-path=<path> --decision=SHADOW
+npm run launch -- stop
+npm run launch -- status
+```
+
+---
+
+> **重要提示**: 所有详细宪法内容请查阅`memory_bank/t0_core/`目录下的具体文件。本文件仅为入口索引，具体实施必须引用真理源。项目运行和安装相关命令请查阅README.md。
+
+**宪法依据**: §152单一真理源公理、§102.3宪法同步公理、§141熵减验证公理、§100微内核七层自治架构公理、§104内部事务局公理、§109 ToolCallBridge标准化架构公理

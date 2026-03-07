@@ -1,0 +1,66 @@
+{
+  "id": "agent-integration",
+  "name": "Agent Integration Plugin",
+  "description": "Agent集成插件 - 支持LLM服务、任务调度、状态管理和故障转移",
+  "version": "1.0.0",
+  "kind": "agent",
+  "main": "index.ts",
+  "openclawCompat": true,
+  "negentropy": {
+    "agentIntegration": {
+      "model": "zai/glm-4.7",
+      "timeout": 3600000,
+      "depth": 2,
+      "fallback": "zai/glm-4.7-flash",
+      "complexityConfig": {
+        "L1": {
+          "timeout": 900000,
+          "maxDepth": 5,
+          "recommendedModel": "google-antigravity/gemini-3-flash",
+          "batchExecution": false
+        },
+        "L2": {
+          "timeout": 1800000,
+          "maxDepth": 10,
+          "recommendedModel": "google-antigravity/gemini-3-flash",
+          "batchExecution": false
+        },
+        "L3": {
+          "timeout": 3600000,
+          "maxDepth": 15,
+          "recommendedModel": "google-antigravity/gemini-3-pro",
+          "batchExecution": false
+        },
+        "L4": {
+          "timeout": null,
+          "maxDepth": 20,
+          "recommendedModel": "google-antigravity/gemini-3-pro-high",
+          "batchExecution": true
+        }
+      }
+    },
+    "constitutionalCompliance": {
+      "requiredClauses": ["§101", "§108", "§118", "§118.5"],
+      "validationRules": {
+        "type": "object",
+        "rules": [
+          {
+            "name": "Model Specification",
+            "description": "Model must be explicitly specified (§108.1)",
+            "type": "required"
+          },
+          {
+            "name": "Timeout Configuration",
+            "description": "Timeout must be configured based on complexity (§118.2)",
+            "type": "required"
+          },
+          {
+            "name": "Complexity Assessment",
+            "description": "Tasks must be classified by complexity (§118.1)",
+            "type": "required"
+          }
+        ]
+      }
+    }
+  }
+}

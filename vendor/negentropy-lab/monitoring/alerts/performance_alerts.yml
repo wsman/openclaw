@@ -1,0 +1,68 @@
+# 性能与可用性告警规则
+# 版本: v1.0.0
+# 宪法依据: §110协作效率公理、§190网络韧性公理、§306零停机协议
+# 设计目标: 对关键性能链路和可用性链路提供可执行告警规则
+
+groups:
+  - name: gateway_performance_alerts
+    interval: 30s
+    rules:
+      - alert: GatewayLatencyP95High
+        expr: gateway_response_time_p95 > 3
+        for: 5m
+        labels:
+          severity: warning
+          domain: performance
+          slo: p95_latency
+        annotations:
+          summary: "Gateway P95 延迟超过阈值"
+          description: "P95 响应时间超过 3 秒，当前值: {{ $value }}s"
+          remediation: "检查慢请求、模型降级路径与连接池负载"
+
+      - alert: GatewayErrorRateHigh
+        expr: gateway_error_rate > 0.02
+        for: 3m
+        labels:
+          severity: critical
+          domain: availability
+          slo: error_rate
+        annotations:
+          summary: "Gateway 错误率异常"
+          description: "错误率超过 2%，当前值: {{ $value }}"
+          remediation: "检查上游依赖、熔断状态与最近发布变更"
+
+      - alert: GatewayHealthProbeFailing
+        expr: up{job="gateway"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          domain: availability
+          slo: health_probe
+        annotations:
+          summary: "Gateway 健康探针失败"
+          description: "gateway job 连续 2 分钟不可用"
+          remediation: "执行回滚验证并恢复健康探针链路"
+
+      - alert: WebSocketConnectionsAbnormal
+        expr: gateway_active_connections > 10000
+        for: 10m
+        labels:
+          severity: warning
+          domain: websocket
+          slo: connection_capacity
+        annotations:
+          summary: "WebSocket 连接数超过容量阈值"
+          description: "活跃连接数持续超过 10000，当前值: {{ $value }}"
+          remediation: "按容量规划扩容并检查异常连接来源"
+
+      - alert: PerfBaselineDurationRegressing
+        expr: gateway_perf_baseline_duration_sec > 120
+        for: 10m
+        labels:
+          severity: warning
+          domain: performance
+          slo: perf_baseline
+        annotations:
+          summary: "性能基线耗时超阈值"
+          description: "性能基线持续超过 120 秒，当前值: {{ $value }}s"
+          remediation: "执行性能趋势审计并回看最近资源变更"

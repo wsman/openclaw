@@ -1,0 +1,146 @@
+# 宪法合规告警规则
+# 版本: v1.0.0
+# 宪法依据: §101同步公理、§306零停机协议、§108异构模型策略
+# 设计目标: 监控宪法合规状态，及时发现违规
+
+groups:
+  - name: constitution_compliance_alerts
+    interval: 30s
+    rules:
+      # §101同步公理告警
+      - alert: ConstitutionalViolation_101
+        expr: gateway_constitution_compliance_101 == 0
+        for: 5m
+        labels:
+          severity: critical
+          constitution_article: "101"
+          component: "gateway"
+        annotations:
+          summary: "§101同步公理违规: 代码与文档未同步"
+          description: "Gateway服务检测到§101同步公理违规，代码变更未触发文档更新。请立即检查相关提交。"
+          constitution_reference: "§101同步公理: ΔC → ΔD"
+          remediation: "运行宪法合规检查: npm run check:constitution"
+
+      # §108异构模型策略告警
+      - alert: ConstitutionalViolation_108_1
+        expr: gateway_model_params_explicitly_specified == 0
+        for: 2m
+        labels:
+          severity: warning
+          constitution_article: "108.1"
+          component: "gateway"
+        annotations:
+          summary: "§108.1模型参数未显式指定"
+          description: "检测到LLM API调用未显式指定模型参数，违反§108.1异构模型策略。"
+          constitution_reference: "§108.1 模型参数强制指定子原则"
+          remediation: "检查所有LLM调用，确保显式指定model参数"
+
+      # §306零停机协议告警
+      - alert: ConstitutionalViolation_306
+        expr: gateway_zero_downtime_compliance == 0
+        for: 10m
+        labels:
+          severity: critical
+          constitution_article: "306"
+          component: "gateway"
+        annotations:
+          summary: "§306零停机协议违规"
+          description: "Gateway服务检测到服务中断，违反§306零停机协议。当前可用性低于99.9%。"
+          constitution_reference: "§306零停机协议公理"
+          remediation: "检查部署配置和健康检查机制"
+
+      # §152单一真理源告警
+      - alert: ConstitutionalViolation_152
+        expr: gateway_single_source_of_truth_compliance < 0.9
+        for: 15m
+        labels:
+          severity: warning
+          constitution_article: "152"
+          component: "gateway"
+        annotations:
+          summary: "§152单一真理源合规性下降"
+          description: "配置管理统一性下降，检测到冗余配置源。当前合规性: {{ $value }}"
+          constitution_reference: "§152单一真理源公理"
+          remediation: "运行配置统一性检查: npm run check:config-consistency"
+
+      # §110协作效率公理告警
+      - alert: PerformanceViolation_110
+        expr: gateway_response_time_p95 > 3
+        for: 5m
+        labels:
+          severity: warning
+          constitution_article: "110"
+          component: "gateway"
+        annotations:
+          summary: "§110协作效率公理违规: 响应延迟过高"
+          description: "Gateway API响应延迟(p95)超过3秒，违反§110协作效率公理要求。当前延迟: {{ $value }}秒"
+          constitution_reference: "§110协作效率公理"
+          remediation: "检查性能瓶颈，优化数据库查询和LLM调用"
+
+      # §102熵减原则告警
+      - alert: EntropyIncreaseAlert
+        expr: gateway_code_reuse_rate < 0.8
+        for: 1h
+        labels:
+          severity: info
+          constitution_article: "102"
+          component: "gateway"
+        annotations:
+          summary: "§102熵减原则: 代码复用率下降"
+          description: "代码复用率低于80%，技术债务增加。当前复用率: {{ $value }}"
+          constitution_reference: "§102熵减原则"
+          remediation: "审查新代码，优先复用现有组件"
+
+      # 网络韧性告警 (§190)
+      - alert: NetworkResilienceViolation_190
+        expr: gateway_circuit_breaker_open == 1
+        for: 2m
+        labels:
+          severity: warning
+          constitution_article: "190"
+          component: "gateway"
+        annotations:
+          summary: "§190网络韧性公理: 断路器打开"
+          description: "Gateway韧性模块检测到服务故障，断路器已打开状态。"
+          constitution_reference: "§190网络韧性公理"
+          remediation: "检查依赖服务状态，验证故障恢复机制"
+
+      # 安全公理告警 (§381)
+      - alert: SecurityViolation_381
+        expr: gateway_authentication_failure_rate > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          constitution_article: "381"
+          component: "gateway"
+        annotations:
+          summary: "§381安全公理: 认证失败率异常"
+          description: "认证失败率超过10%，可能存在安全攻击。当前失败率: {{ $value }}"
+          constitution_reference: "§381安全公理"
+          remediation: "检查认证日志，验证JWT令牌机制"
+
+      # 整体宪法合规性告警
+      - alert: OverallConstitutionComplianceLow
+        expr: gateway_overall_constitution_compliance < 0.8
+        for: 30m
+        labels:
+          severity: warning
+          constitution_article: "all"
+          component: "gateway"
+        annotations:
+          summary: "整体宪法合规性下降"
+          description: "Gateway整体宪法合规性低于80%。当前合规性: {{ $value }}"
+          remediation: "运行完整宪法合规审计: npm run audit:constitution-full"
+
+      # 宪法合规监控中断告警
+      - alert: ConstitutionMetricsMissing
+        expr: absent(up{job="constitution-metrics"})
+        for: 5m
+        labels:
+          severity: critical
+          constitution_article: "monitoring"
+          component: "monitoring"
+        annotations:
+          summary: "宪法合规指标采集中断"
+          description: "宪法合规指标采集job已停止5分钟以上，无法监控宪法合规状态。"
+          remediation: "检查constitution-metrics job配置和服务状态"

@@ -1,0 +1,58 @@
+{
+  "id": "openclaw-plugin-openai-proxy",
+  "name": "OpenAI Proxy Plugin",
+  "version": "1.0.0",
+  "description": "OpenAI API兼容代理插件，支持标准OpenAI SDK无缝接入",
+  "type": "channel",
+  "author": "wsman",
+  "license": "Apache-2.0",
+  "main": "./dist/index.js",
+  "dependencies": [],
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "routePrefix": {
+        "type": "string",
+        "default": "/v1",
+        "description": "OpenAI API路由前缀"
+      },
+      "models": {
+        "type": "object",
+        "description": "模型映射配置，将OpenAI模型名映射到实际使用的模型",
+        "properties": {
+          "gpt-4": {
+            "type": "string",
+            "default": "google-antigravity/gemini-3-pro-high",
+            "description": "GPT-4模型映射"
+          },
+          "gpt-3.5-turbo": {
+            "type": "string",
+            "default": "google-antigravity/gemini-3-flash",
+            "description": "GPT-3.5 Turbo模型映射"
+          }
+        }
+      },
+      "enableBilling": {
+        "type": "boolean",
+        "default": true,
+        "description": "是否启用计费跟踪"
+      },
+      "enableAuth": {
+        "type": "boolean",
+        "default": true,
+        "description": "是否启用身份验证"
+      }
+    },
+    "required": ["routePrefix", "models"]
+  },
+  "capabilities": {
+    "streaming": true,
+    "functionCalling": false,
+    "vision": false,
+    "audio": false
+  },
+  "services": {
+    "auth": "IAuthService",
+    "costTracker": "ICostTracker"
+  }
+}

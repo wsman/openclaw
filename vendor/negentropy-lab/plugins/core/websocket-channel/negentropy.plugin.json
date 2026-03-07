@@ -1,0 +1,40 @@
+{
+  "id": "websocket-channel",
+  "name": "WebSocket Channel Plugin",
+  "description": "WebSocket通信插件 - 支持WebSocket服务器、消息广播和客户端管理",
+  "version": "1.0.0",
+  "kind": "channel",
+  "main": "index.ts",
+  "openclawCompat": true,
+  "negentropy": {
+    "constitutionalCompliance": {
+      "requiredClauses": ["§401", "§402", "§403", "§404"],
+      "validationRules": {
+        "type": "object",
+        "rules": [
+          {
+            "name": "Environment Anchoring",
+            "description": "Plugin must work within anchored environment (§401-§404)",
+            "type": "required"
+          },
+          {
+            "name": "Agent Communication",
+            "description": "WebSocket must support Agent communication (§118.5)",
+            "type": "required"
+          }
+        ]
+      }
+    },
+    "websocket": {
+      "port": 3001,
+      "path": "/socket",
+      "cors": {
+        "origin": "*",
+        "credentials": true
+      },
+      "heartbeatInterval": 25000,
+      "heartbeatTimeout": 60000,
+      "maxConnections": 100
+    }
+  }
+}

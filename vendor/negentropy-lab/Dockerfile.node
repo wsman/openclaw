@@ -1,0 +1,95 @@
+# 逆熵实验室 - 主Node.js服务器 Dockerfile
+# 版本: v1.0.0
+# 宪法约束: 基础设施宪法第1条 - 容器低熵
+# 设计目标: 开发环境支持热重载，局域网测试友好
+
+# ========== 第一阶段: 构建阶段 (Builder) ==========
+FROM node:22-alpine AS builder
+
+# 宪法约束: 使用中国镜像源加速构建
+RUN npm config set registry https://registry.npmmirror.com
+
+WORKDIR /app
+
+# 复制依赖清单
+COPY package*.json ./
+COPY config/system/tsconfig.json ./config/system/
+
+# 安装所有依赖（包括开发依赖，用于构建和热重载）
+RUN npm ci && npm cache clean --force
+
+# 确保安装jest类型定义，用于TypeScript编译
+RUN npm install --no-save @types/jest
+
+# 复制TypeScript源代码（构建时会覆盖，开发时通过volume挂载）
+COPY server ./server
+COPY config/system/negentropy.yaml ./config/system/
+COPY storage/config ./storage/config
+
+# 构建TypeScript代码（生产环境使用）
+RUN npm run build
+
+# 修复dist目录位置（如果构建输出到了config/system/dist）
+RUN if [ -d "config/system/dist" ]; then \
+    echo "Moving dist directory from config/system/dist to /app/dist" && \
+    mv config/system/dist dist && \
+    rmdir -p config/system 2>/dev/null || true; \
+fi
+
+# ========== 第二阶段: 开发运行阶段 (Development Runner) ==========
+FROM node:22-alpine AS development
+
+# 安装Python 3和相关依赖 (用于Python worker)
+RUN apk add --no-cache python3 py3-pip && \
+    ln -sf python3 /usr/bin/python
+
+# 安装最小化Python依赖（仅支持Python worker的基本功能）
+# 使用--break-system-packages绕过PEP 668限制
+RUN python3 -m pip install --upgrade pip --break-system-packages && \
+    pip3 install --no-cache-dir --break-system-packages \
+        numpy \
+        requests \
+        prometheus-client \
+        python-dotenv \
+        ujson \
+        # 必需的最小依赖，避免复杂依赖链
+        && echo "Python minimal dependencies installed"
+
+# 宪法约束: 创建非root用户，降低权限熵增
+RUN addgroup -g 1001 -S negentropy && \
+    adduser -u 1001 -S negentropy -G negentropy && \
+    mkdir -p /app && \
+    chown -R negentropy:negentropy /app
+
+WORKDIR /app
+
+# 从构建阶段复制依赖和构建产物
+COPY --from=builder --chown=negentropy:negentropy /app/package*.json ./
+COPY --from=builder --chown=negentropy:negentropy /app/node_modules ./node_modules
+COPY --from=builder --chown=negentropy:negentropy /app/dist ./dist
+COPY --from=builder --chown=negentropy:negentropy /app/storage ./storage
+COPY --from=builder --chown=negentropy:negentropy /app/config ./config
+
+# 复制环境配置文件
+COPY --chown=negentropy:negentropy .env.local ./.env
+
+# 切换到非root用户
+USER negentropy
+
+# 暴露服务端口 (宪法约束: 主服务器端口4514，支持局域网访问)
+EXPOSE 4514
+
+# 健康检查 (符合基础设施宪法第2条 - 数据驱动)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD node -e "const http = require('http'); const req = http.request('http://localhost:4514/health', {timeout: 5000}, (res) => {process.exit(res.statusCode === 200 ? 0 : 1)}); req.on('error', () => process.exit(1)); req.end()"
+
+# 开发环境启动命令: 使用ts-node-dev支持热重载
+# 注意: 实际源代码通过docker-compose volume挂载，实现实时重载
+CMD ["npx", "ts-node-dev", "--respawn", "--transpile-only", "--ignore-watch", "node_modules", "--ignore-watch", ".git", "server/index.ts"]
+
+# ========== 构建元数据 ==========
+LABEL org.negentropy.lab.version="1.0.0"
+LABEL org.negentropy.lab.layer="1.0"
+LABEL org.negentropy.lab.component="lab-server"
+LABEL org.negentropy.lab.constitution.compliance="true"
+LABEL org.negentropy.lab.environment="development"

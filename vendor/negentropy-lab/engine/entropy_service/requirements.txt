@@ -1,0 +1,13 @@
+# 熵计算服务依赖包 v2.9.1
+fastapi==0.123.8
+uvicorn[standard]==0.38.0
+pydantic==2.12.4
+circuitbreaker==2.1.3
+radon==6.0.1
+libcst==1.1.0
+numpy>=1.24.0
+prometheus-fastapi-instrumentator==7.1.0
+prometheus-client==0.21.0
+qdrant-client==1.7.0
+scikit-learn>=1.3.0
+python-multipart>=0.0.5

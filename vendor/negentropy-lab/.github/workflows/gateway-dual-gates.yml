@@ -1,0 +1,96 @@
+name: Gateway Dual Gates
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 2 * * *'
+
+jobs:
+  level-a-mainline:
+    name: Level A Mainline Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: Contract guard (strict)
+        run: npm run check:contract:strict
+
+      - name: Contract drift audit
+        run: npm run check:contract:drift
+
+      - name: Mainline gateway regression
+        run: >-
+          npx vitest run
+          tests/unit/gateway/WebSocketHandler.batch1-rpc.test.ts
+          tests/unit/gateway/WebSocketHandler.batch2-performance.test.ts
+          tests/unit/gateway/WebSocketHandler.batch3-4.test.ts
+          tests/unit/gateway/WebSocketHandler.batch4-ui.test.ts
+          tests/unit/gateway/WebSocketHandler.batch5-p0-gap.test.ts
+          tests/unit/gateway/WebSocketHandler.batch6-p1-p2-gap.test.ts
+          tests/integration/gateway/gateway-e2e.test.ts
+
+      - name: Constitution
+        run: npm run check:constitution
+
+      - name: Consistency strict
+        run: npm run check:consistency -- --strict --timeout-ms 120000
+
+  level-b-extended:
+    name: Level B Extended Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    if: github.event_name == 'schedule' || startsWith(github.ref, 'refs/heads/main')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: Full regression
+        run: npm test -- --run
+
+      - name: E2E suite
+        run: npx vitest run tests/e2e/*.test.ts
+
+      - name: Soak smoke (1 iteration)
+        run: ./scripts/ws-soak.sh --iterations 1 --interval-sec 1
+
+      - name: Performance baseline
+        run: ./scripts/ws-perf-baseline.sh
+
+      - name: Upload gate artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-dual-gate-artifacts
+          path: |
+            reports/ws-soak-*.log
+            reports/ws-soak-*.json
+            reports/ws-perf-baseline-*.log
+            reports/ws-perf-baseline-*.json
+            reports/consistency-check-report.json
+            reports/consistency-check-report.html
+          if-no-files-found: warn

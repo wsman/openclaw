@@ -1,0 +1,66 @@
+# 依赖
+node_modules/
+dist/
+
+# IDE配置
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 操作系统临时文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日志文件
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# 环境变量
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 构建产物
+build/
+coverage/
+.nyc_output/
+
+# 缓存
+.cache/
+.temp/
+
+# 测试相关
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# 文档生成
+docs/_build/
+site/
+
+# 包管理器特定文件
+yarn.lock
+pnpm-lock.yaml
+
+# 其他
+*.pid
+*.seed
+*.pid.lock
+*.backup
+
+# 报告
+reports/
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3

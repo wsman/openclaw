@@ -1,0 +1,3003 @@
+{
+  "codeFiles": {
+    "total": 186,
+    "checked": 186,
+    "violations": [],
+    "complianceRate": 100
+  },
+  "documentationFiles": {
+    "total": 74,
+    "checked": 74,
+    "violations": [],
+    "complianceRate": 100
+  },
+  "directoryStructure": {
+    "violations": [],
+    "complianceRate": 100
+  },
+  "totalComplianceRate": 100,
+  "details": {
+    "server/gateway/agent-engine.ts": {
+      "path": "server/gateway/agent-engine.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/auth/audit.ts": {
+      "path": "server/gateway/auth/audit.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/auth/index.ts": {
+      "path": "server/gateway/auth/index.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/auth/jwt.ts": {
+      "path": "server/gateway/auth/jwt.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/auth/permissions.ts": {
+      "path": "server/gateway/auth/permissions.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/auth.ts": {
+      "path": "server/gateway/auth.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/browser/adapter.ts": {
+      "path": "server/gateway/browser/adapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/browser/contracts.ts": {
+      "path": "server/gateway/browser/contracts.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/browser/index.ts": {
+      "path": "server/gateway/browser/index.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/channels/core/ChannelManager.ts": {
+      "path": "server/gateway/channels/core/ChannelManager.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/channels/core/PlatformAdapterFactory.ts": {
+      "path": "server/gateway/channels/core/PlatformAdapterFactory.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/channels/index.ts": {
+      "path": "server/gateway/channels/index.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/channels/interfaces/IPlatformAdapter.ts": {
+      "path": "server/gateway/channels/interfaces/IPlatformAdapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/channels/platforms/BasePlatformAdapter.ts": {
+      "path": "server/gateway/channels/platforms/BasePlatformAdapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/channels/platforms/discord/DiscordAdapter.ts": {
+      "path": "server/gateway/channels/platforms/discord/DiscordAdapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/channels/platforms/slack/SlackAdapter.ts": {
+      "path": "server/gateway/channels/platforms/slack/SlackAdapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/channels/platforms/telegram/TelegramAdapter.ts": {
+      "path": "server/gateway/channels/platforms/telegram/TelegramAdapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/channels/types/Message.ts": {
+      "path": "server/gateway/channels/types/Message.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/config.ts": {
+      "path": "server/gateway/config.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/contracts/openclaw-alias-map.ts": {
+      "path": "server/gateway/contracts/openclaw-alias-map.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/contracts/openclaw-contract.ts": {
+      "path": "server/gateway/contracts/openclaw-contract.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/events/gateway-event-bus.ts": {
+      "path": "server/gateway/events/gateway-event-bus.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/index.ts": {
+      "path": "server/gateway/index.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/llm/CapabilityMatcher.ts": {
+      "path": "server/gateway/llm/CapabilityMatcher.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/llm/ModelRegistry.ts": {
+      "path": "server/gateway/llm/ModelRegistry.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/llm/adapters/AnthropicAdapter.ts": {
+      "path": "server/gateway/llm/adapters/AnthropicAdapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/llm/adapters/BaseAdapter.ts": {
+      "path": "server/gateway/llm/adapters/BaseAdapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/llm/adapters/CohereAdapter.ts": {
+      "path": "server/gateway/llm/adapters/CohereAdapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/llm/adapters/DeepSeekAdapter.ts": {
+      "path": "server/gateway/llm/adapters/DeepSeekAdapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/llm/adapters/GLMAdapter.ts": {
+      "path": "server/gateway/llm/adapters/GLMAdapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/llm/adapters/GeminiAdapter.ts": {
+      "path": "server/gateway/llm/adapters/GeminiAdapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/llm/adapters/HuggingFaceAdapter.ts": {
+      "path": "server/gateway/llm/adapters/HuggingFaceAdapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/llm/adapters/MiniMaxAdapter.ts": {
+      "path": "server/gateway/llm/adapters/MiniMaxAdapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/llm/adapters/MistralAdapter.ts": {
+      "path": "server/gateway/llm/adapters/MistralAdapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/llm/adapters/ModelAdapter.ts": {
+      "path": "server/gateway/llm/adapters/ModelAdapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/llm/adapters/OllamaAdapter.ts": {
+      "path": "server/gateway/llm/adapters/OllamaAdapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/llm/adapters/OpenAIAdapter.ts": {
+      "path": "server/gateway/llm/adapters/OpenAIAdapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/llm/adapters/index.ts": {
+      "path": "server/gateway/llm/adapters/index.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/llm/index.ts": {
+      "path": "server/gateway/llm/index.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/llm-service.ts": {
+      "path": "server/gateway/llm-service.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/monitoring/CostPerspective.ts": {
+      "path": "server/gateway/monitoring/CostPerspective.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/monitoring/agent-execution-visualizer.ts": {
+      "path": "server/gateway/monitoring/agent-execution-visualizer.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/monitoring/control-panel-sync.ts": {
+      "path": "server/gateway/monitoring/control-panel-sync.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/monitoring/core/ConstitutionMonitor.ts": {
+      "path": "server/gateway/monitoring/core/ConstitutionMonitor.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/monitoring/core/CostTracker.ts": {
+      "path": "server/gateway/monitoring/core/CostTracker.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/monitoring/core/EntropyService.ts": {
+      "path": "server/gateway/monitoring/core/EntropyService.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/monitoring/index.ts": {
+      "path": "server/gateway/monitoring/index.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/monitoring/performance-metrics-enhanced.ts": {
+      "path": "server/gateway/monitoring/performance-metrics-enhanced.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/monitoring/streaming-optimizer.ts": {
+      "path": "server/gateway/monitoring/streaming-optimizer.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/monitoring/task-queue-visualizer.ts": {
+      "path": "server/gateway/monitoring/task-queue-visualizer.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/monitoring/task-scheduler-enhanced.ts": {
+      "path": "server/gateway/monitoring/task-scheduler-enhanced.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/monitoring/ui-state-sync.ts": {
+      "path": "server/gateway/monitoring/ui-state-sync.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openai-http.ts": {
+      "path": "server/gateway/openai-http.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/api/internal-api.ts": {
+      "path": "server/gateway/openclaw-decision/api/internal-api.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/bridge/decision-bridge-sdk.ts": {
+      "path": "server/gateway/openclaw-decision/bridge/decision-bridge-sdk.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/bridge/openclaw-bridge.ts": {
+      "path": "server/gateway/openclaw-decision/bridge/openclaw-bridge.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/config/grayscale-config.ts": {
+      "path": "server/gateway/openclaw-decision/config/grayscale-config.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/contracts/decision-contract.ts": {
+      "path": "server/gateway/openclaw-decision/contracts/decision-contract.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/controller.ts": {
+      "path": "server/gateway/openclaw-decision/controller.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/index.ts": {
+      "path": "server/gateway/openclaw-decision/index.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/observability/audit-log.ts": {
+      "path": "server/gateway/openclaw-decision/observability/audit-log.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/observability/health.ts": {
+      "path": "server/gateway/openclaw-decision/observability/health.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/observability/metrics.ts": {
+      "path": "server/gateway/openclaw-decision/observability/metrics.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/observability/telemetry.ts": {
+      "path": "server/gateway/openclaw-decision/observability/telemetry.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/policy/policy-engine.ts": {
+      "path": "server/gateway/openclaw-decision/policy/policy-engine.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/policy/policy-rules.ts": {
+      "path": "server/gateway/openclaw-decision/policy/policy-rules.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/resilience/circuit-breaker.ts": {
+      "path": "server/gateway/openclaw-decision/resilience/circuit-breaker.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/resilience/fallback-adapter.ts": {
+      "path": "server/gateway/openclaw-decision/resilience/fallback-adapter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/resilience/retry.ts": {
+      "path": "server/gateway/openclaw-decision/resilience/retry.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/scripts/rollback-drill.ts": {
+      "path": "server/gateway/openclaw-decision/scripts/rollback-drill.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/security/replay-guard.ts": {
+      "path": "server/gateway/openclaw-decision/security/replay-guard.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/security/signature.ts": {
+      "path": "server/gateway/openclaw-decision/security/signature.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/service.ts": {
+      "path": "server/gateway/openclaw-decision/service.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/translator/frame-mapper.ts": {
+      "path": "server/gateway/openclaw-decision/translator/frame-mapper.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/openclaw-decision/translator/handshake-mapper.ts": {
+      "path": "server/gateway/openclaw-decision/translator/handshake-mapper.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/plugins/examples/request-logger/index.js": {
+      "path": "server/gateway/plugins/examples/request-logger/index.js",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/plugins/index.ts": {
+      "path": "server/gateway/plugins/index.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/plugins/loader.ts": {
+      "path": "server/gateway/plugins/loader.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/plugins/monitor.ts": {
+      "path": "server/gateway/plugins/monitor.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/plugins/openai-proxy/src/core/ModelRouter.ts": {
+      "path": "server/gateway/plugins/openai-proxy/src/core/ModelRouter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/plugins/openai-proxy/src/core/RouteHandler.ts": {
+      "path": "server/gateway/plugins/openai-proxy/src/core/RouteHandler.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/plugins/openai-proxy/src/core/StreamHandler.ts": {
+      "path": "server/gateway/plugins/openai-proxy/src/core/StreamHandler.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/plugins/openai-proxy/src/index.ts": {
+      "path": "server/gateway/plugins/openai-proxy/src/index.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/plugins/registry.ts": {
+      "path": "server/gateway/plugins/registry.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/plugins/types.ts": {
+      "path": "server/gateway/plugins/types.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/plugins/validator.ts": {
+      "path": "server/gateway/plugins/validator.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/protocol/event-alias-mapping.ts": {
+      "path": "server/gateway/protocol/event-alias-mapping.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/redundancy/RedundancyManager.ts": {
+      "path": "server/gateway/redundancy/RedundancyManager.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/resilience/CircuitBreaker.ts": {
+      "path": "server/gateway/resilience/CircuitBreaker.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/resilience/DegradationStrategy.ts": {
+      "path": "server/gateway/resilience/DegradationStrategy.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/resilience/ErrorHandler.ts": {
+      "path": "server/gateway/resilience/ErrorHandler.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/resilience/FailoverManager.ts": {
+      "path": "server/gateway/resilience/FailoverManager.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/resilience/FailureDetector.ts": {
+      "path": "server/gateway/resilience/FailureDetector.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/resilience/HealthChecker.ts": {
+      "path": "server/gateway/resilience/HealthChecker.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/resilience/HealthMonitor.ts": {
+      "path": "server/gateway/resilience/HealthMonitor.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/resilience/RateLimiter.ts": {
+      "path": "server/gateway/resilience/RateLimiter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/resilience/RequestValidator.ts": {
+      "path": "server/gateway/resilience/RequestValidator.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/resilience/index.ts": {
+      "path": "server/gateway/resilience/index.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/server-channels.ts": {
+      "path": "server/gateway/server-channels.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/server.impl-with-ws.ts": {
+      "path": "server/gateway/server.impl-with-ws.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/server.impl.ts": {
+      "path": "server/gateway/server.impl.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/usage-example.ts": {
+      "path": "server/gateway/usage-example.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/utils/logger.ts": {
+      "path": "server/gateway/utils/logger.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/websocket/ConnectionPool.ts": {
+      "path": "server/gateway/websocket/ConnectionPool.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/websocket/MessageCompressor.ts": {
+      "path": "server/gateway/websocket/MessageCompressor.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/websocket/example.ts": {
+      "path": "server/gateway/websocket/example.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/websocket/index.ts": {
+      "path": "server/gateway/websocket/index.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/websocket-handler-fixed.ts": {
+      "path": "server/gateway/websocket-handler-fixed.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/gateway/websocket-handler.ts": {
+      "path": "server/gateway/websocket-handler.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/agents/BaseAgent.ts": {
+      "path": "server/agents/BaseAgent.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/agents/OfficeDirectorAgent.ts": {
+      "path": "server/agents/OfficeDirectorAgent.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/agents/OrganizationMinistryAgent.ts": {
+      "path": "server/agents/OrganizationMinistryAgent.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/agents/PrimeMinisterAgent.ts": {
+      "path": "server/agents/PrimeMinisterAgent.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/agents/SuperAgentCoordinationProtocol.ts": {
+      "path": "server/agents/SuperAgentCoordinationProtocol.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/agents/SupervisionMinistryAgent.ts": {
+      "path": "server/agents/SupervisionMinistryAgent.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/agents/TechnologyMinistryAgent.ts": {
+      "path": "server/agents/TechnologyMinistryAgent.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/agents/resilience/RateLimiter.ts": {
+      "path": "server/agents/resilience/RateLimiter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/agents/resilience/RequestValidator.ts": {
+      "path": "server/agents/resilience/RequestValidator.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/agents/resilience/index.ts": {
+      "path": "server/agents/resilience/index.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/api/agent.ts": {
+      "path": "server/api/agent.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/api/discovery.ts": {
+      "path": "server/api/discovery.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/api/llm.ts": {
+      "path": "server/api/llm.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/api/openclaw.ts": {
+      "path": "server/api/openclaw.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/api/vectorRoutes.ts": {
+      "path": "server/api/vectorRoutes.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/services/AgentRegistryService.ts": {
+      "path": "server/services/AgentRegistryService.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/services/ConstitutionalGuard.ts": {
+      "path": "server/services/ConstitutionalGuard.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/services/ContextInjector.ts": {
+      "path": "server/services/ContextInjector.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/services/DecisionEnhancer.ts": {
+      "path": "server/services/DecisionEnhancer.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/services/EmbeddingService.ts": {
+      "path": "server/services/EmbeddingService.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/services/EntropyCalculator.ts": {
+      "path": "server/services/EntropyCalculator.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/services/FactExtractor.ts": {
+      "path": "server/services/FactExtractor.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/services/ILLMService.ts": {
+      "path": "server/services/ILLMService.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/services/IntelligentRouter.ts": {
+      "path": "server/services/IntelligentRouter.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/services/KnowledgeGraphBuilder.ts": {
+      "path": "server/services/KnowledgeGraphBuilder.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/services/LLMService.ts": {
+      "path": "server/services/LLMService.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/services/ModelSelectorService.ts": {
+      "path": "server/services/ModelSelectorService.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/services/QdrantService.ts": {
+      "path": "server/services/QdrantService.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/services/VectorizationPipeline.ts": {
+      "path": "server/services/VectorizationPipeline.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "server/middleware/auth.ts": {
+      "path": "server/middleware/auth.ts",
+      "type": "code",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_annotation": {
+          "required": true,
+          "found": true,
+          "description": "宪法注解检查",
+          "scope": "code"
+        }
+      }
+    },
+    "memory_bank/DEVELOPMENT_STANDARDS.md": {
+      "path": "memory_bank/DEVELOPMENT_STANDARDS.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/DEVELOPMENT_WORKFLOW.md": {
+      "path": "memory_bank/DEVELOPMENT_WORKFLOW.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/agent_reference_index.md": {
+      "path": "memory_bank/agent_reference_index.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/mcp_reference_index.md": {
+      "path": "memory_bank/mcp_reference_index.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t0_core/active_context.md": {
+      "path": "memory_bank/t0_core/active_context.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t0_core/basic_law_index.md": {
+      "path": "memory_bank/t0_core/basic_law_index.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t0_core/knowledge_graph.md": {
+      "path": "memory_bank/t0_core/knowledge_graph.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t0_core/procedural_law_index.md": {
+      "path": "memory_bank/t0_core/procedural_law_index.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t0_core/project_readme.md": {
+      "path": "memory_bank/t0_core/project_readme.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t0_core/runtime_architecture_baseline.md": {
+      "path": "memory_bank/t0_core/runtime_architecture_baseline.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t0_core/technical_law_index.md": {
+      "path": "memory_bank/t0_core/technical_law_index.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t0_core/transplant_history.md": {
+      "path": "memory_bank/t0_core/transplant_history.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t1_axioms/CONCEPTS.md": {
+      "path": "memory_bank/t1_axioms/CONCEPTS.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t1_axioms/GLOSSARY.md": {
+      "path": "memory_bank/t1_axioms/GLOSSARY.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t1_axioms/agent_collaboration_patterns.md": {
+      "path": "memory_bank/t1_axioms/agent_collaboration_patterns.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t1_axioms/behavior_context.md": {
+      "path": "memory_bank/t1_axioms/behavior_context.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t1_axioms/system_patterns.md": {
+      "path": "memory_bank/t1_axioms/system_patterns.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t1_axioms/tech_context.md": {
+      "path": "memory_bank/t1_axioms/tech_context.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/WF-00_cdd_workflow.md": {
+      "path": "memory_bank/t2_protocols/WF-00_cdd_workflow.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/WF-01_clarify_workflow.md": {
+      "path": "memory_bank/t2_protocols/WF-01_clarify_workflow.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/WF-02_amend.md": {
+      "path": "memory_bank/t2_protocols/WF-02_amend.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/WF-03_analyze.md": {
+      "path": "memory_bank/t2_protocols/WF-03_analyze.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/WF-04_review.md": {
+      "path": "memory_bank/t2_protocols/WF-04_review.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/WF-05_sync_issues.md": {
+      "path": "memory_bank/t2_protocols/WF-05_sync_issues.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/WF-20_cdd_workflow.md": {
+      "path": "memory_bank/t2_protocols/WF-20_cdd_workflow.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/WF-30_simple_routing.md": {
+      "path": "memory_bank/t2_protocols/WF-30_simple_routing.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/WF-31_parallel_collaboration.md": {
+      "path": "memory_bank/t2_protocols/WF-31_parallel_collaboration.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/WF-32_cascade_review.md": {
+      "path": "memory_bank/t2_protocols/WF-32_cascade_review.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/WF-60_crisis_handling.md": {
+      "path": "memory_bank/t2_protocols/WF-60_crisis_handling.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/WF-61_version_release.md": {
+      "path": "memory_bank/t2_protocols/WF-61_version_release.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/WF-62_room_binding_info.md": {
+      "path": "memory_bank/t2_protocols/WF-62_room_binding_info.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/WF-63_security_operations.md": {
+      "path": "memory_bank/t2_protocols/WF-63_security_operations.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/WF-64_mcp_operations.md": {
+      "path": "memory_bank/t2_protocols/WF-64_mcp_operations.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/agent_standards/README.md": {
+      "path": "memory_bank/t2_protocols/agent_standards/README.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/llm_standards/README.md": {
+      "path": "memory_bank/t2_protocols/llm_standards/README.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_protocols/workflows/README.md": {
+      "path": "memory_bank/t2_protocols/workflows/README.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-01_frontend_architecture_refactoring.md": {
+      "path": "memory_bank/t2_standards/DS-01_frontend_architecture_refactoring.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-02_colyseus_integration.md": {
+      "path": "memory_bank/t2_standards/DS-02_colyseus_integration.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-03_high_performance_rendering.md": {
+      "path": "memory_bank/t2_standards/DS-03_high_performance_rendering.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-04_websocket_communication_optimization.md": {
+      "path": "memory_bank/t2_standards/DS-04_websocket_communication_optimization.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-05_workflow_json_architecture.md": {
+      "path": "memory_bank/t2_standards/DS-05_workflow_json_architecture.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-06_mcp_tool_strategy.md": {
+      "path": "memory_bank/t2_standards/DS-06_mcp_tool_strategy.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-07_mcp_service.md": {
+      "path": "memory_bank/t2_standards/DS-07_mcp_service.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-08_dependency_injection_config.md": {
+      "path": "memory_bank/t2_standards/DS-08_dependency_injection_config.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-09_utf8_output_config.md": {
+      "path": "memory_bank/t2_standards/DS-09_utf8_output_config.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-100_agent_interface.md": {
+      "path": "memory_bank/t2_standards/DS-100_agent_interface.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-101_prime_minister_agent_interface.md": {
+      "path": "memory_bank/t2_standards/DS-101_prime_minister_agent_interface.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-102_director_general_agent_interface.md": {
+      "path": "memory_bank/t2_standards/DS-102_director_general_agent_interface.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-103_intelligent_routing.md": {
+      "path": "memory_bank/t2_standards/DS-103_intelligent_routing.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-10_atomic_file_write.md": {
+      "path": "memory_bank/t2_standards/DS-10_atomic_file_write.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-11_resilient_communication.md": {
+      "path": "memory_bank/t2_standards/DS-11_resilient_communication.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-12_knowledge_drift_detection.md": {
+      "path": "memory_bank/t2_standards/DS-12_knowledge_drift_detection.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-14_visual_entropy_reduction.md": {
+      "path": "memory_bank/t2_standards/DS-14_visual_entropy_reduction.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-15_progressive_enhancement.md": {
+      "path": "memory_bank/t2_standards/DS-15_progressive_enhancement.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-16_automated_refactoring_security.md": {
+      "path": "memory_bank/t2_standards/DS-16_automated_refactoring_security.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-17_three_stage_entropy_audit.md": {
+      "path": "memory_bank/t2_standards/DS-17_three_stage_entropy_audit.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-18_architecture_isomorphism_verification.md": {
+      "path": "memory_bank/t2_standards/DS-18_architecture_isomorphism_verification.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-19_dual_store_bijection.md": {
+      "path": "memory_bank/t2_standards/DS-19_dual_store_bijection.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-200_mcp_overview.md": {
+      "path": "memory_bank/t2_standards/DS-200_mcp_overview.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-201_iab_tools.md": {
+      "path": "memory_bank/t2_standards/DS-201_iab_tools.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-202_genesis_protocol.md": {
+      "path": "memory_bank/t2_standards/DS-202_genesis_protocol.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-203_judicial_verification.md": {
+      "path": "memory_bank/t2_standards/DS-203_judicial_verification.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-204_mcp_server_ops.md": {
+      "path": "memory_bank/t2_standards/DS-204_mcp_server_ops.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-20_automated_architecture_sync.md": {
+      "path": "memory_bank/t2_standards/DS-20_automated_architecture_sync.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-21_dual_store_isomorphism.md": {
+      "path": "memory_bank/t2_standards/DS-21_dual_store_isomorphism.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-22_health_check_service.md": {
+      "path": "memory_bank/t2_standards/DS-22_health_check_service.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-23_tool_call_bridge.md": {
+      "path": "memory_bank/t2_standards/DS-23_tool_call_bridge.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-24_modern_model_selector.md": {
+      "path": "memory_bank/t2_standards/DS-24_modern_model_selector.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-25_interface_contract_verification.md": {
+      "path": "memory_bank/t2_standards/DS-25_interface_contract_verification.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-26_cyclomatic_complexity.md": {
+      "path": "memory_bank/t2_standards/DS-26_cyclomatic_complexity.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-27_context_management.md": {
+      "path": "memory_bank/t2_standards/DS-27_context_management.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-28_feature_specification.md": {
+      "path": "memory_bank/t2_standards/DS-28_feature_specification.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t2_standards/DS-45_model_selector_interface.md": {
+      "path": "memory_bank/t2_standards/DS-45_model_selector_interface.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    },
+    "memory_bank/t3_documentation/README.md": {
+      "path": "memory_bank/t3_documentation/README.md",
+      "type": "documentation",
+      "violations": [],
+      "compliant": true,
+      "rules": {
+        "constitution_reference": {
+          "required": true,
+          "found": true,
+          "description": "宪法依据检查",
+          "scope": "documentation"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,202 @@
+import { ChildProcess, spawn } from 'child_process';
+import { logger } from '../../utils/logger';
+import { StringDecoder } from 'string_decoder';
+
+/**
+ * Python Worker 通信桥接器 (v2.5 Streaming Support)
+ * 宪法依据: §130 (MCP微内核), §114 (双存储同构)
+ * 职责: 管理 Python 守护进程，支持 Request-Response 和 Streaming 模式
+ */
+export class PythonWorkerBridge {
+    private static instance: PythonWorkerBridge;
+    private workerProcess: ChildProcess | null = null;
+    private isReady: boolean = false;
+    
+    private decoder: StringDecoder;
+    private buffer: string = '';
+    
+    private requestQueue: Array<{
+        id: string;
+        method: string;
+        params: any;
+        resolve: (value: any) => void;
+        reject: (reason: any) => void;
+        onProgress?: (chunk: any) => void;  // [v2.5] 流式回调
+    }> = [];
+    private pendingRequests: Map<string, any> = new Map();
+
+    private constructor() {
+        this.decoder = new StringDecoder('utf8');
+        this.startWorker();
+    }
+
+    static getInstance(): PythonWorkerBridge {
+        if (!PythonWorkerBridge.instance) {
+            PythonWorkerBridge.instance = new PythonWorkerBridge();
+        }
+        return PythonWorkerBridge.instance;
+    }
+
+    private startWorker(): void {
+        // 使用绝对路径，确保在Docker容器中能找到
+        const pythonScript = process.env.NODE_ENV === 'production' ? 
+            '/app/engine/negentropy_engine_simple.py' : 
+            'engine/negentropy_engine_simple.py';
+        
+        // 在Alpine Linux中使用python3，其他平台使用python
+        const pythonCmd = process.platform === 'linux' ? 'python3' : 'python';
+        
+        logger.info(`[Bridge] Starting Python worker: ${pythonScript} using command: ${pythonCmd}`);
+
+        this.workerProcess = spawn(pythonCmd, [pythonScript], {
+            stdio: ['pipe', 'pipe', 'pipe'],
+            env: { 
+                ...process.env,
+                PYTHONUTF8: '1',
+                PYTHONIOENCODING: 'utf-8',
+                // 确保Python路径正确
+                PATH: process.env.PATH || '/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin'
+            }
+        });
+
+        this.workerProcess.stdout?.on('data', (chunk) => {
+            const textChunk = this.decoder.write(chunk);
+            this.buffer += textChunk;
+            
+            if (this.buffer.includes('\n')) {
+                const lines = this.buffer.split('\n');
+                this.buffer = lines.pop() || '';
+                
+                for (const line of lines) {
+                    if (line.trim()) {
+                        this.handleWorkerOutput(line);
+                    }
+                }
+            }
+        });
+
+        this.workerProcess.stderr?.on('data', (data) => {
+            const msg = data.toString().trim();
+            logger.debug(`[Python stderr] ${msg}`);
+        });
+
+        this.workerProcess.on('close', (code) => {
+            logger.warn(`[Bridge] Python worker exited with code ${code}`);
+            this.isReady = false;
+            this.buffer = '';
+            this.decoder = new StringDecoder('utf8');
+            setTimeout(() => this.startWorker(), 5000);
+        });
+
+        this.workerProcess.on('error', (err) => {
+            logger.error(`[Bridge] Failed to start Python worker: ${err.message}`);
+            this.isReady = false;
+        });
+    }
+
+    private handleWorkerOutput(output: string): void {
+        try {
+            const response = JSON.parse(output);
+            const { id, result, error, chunk, done } = response; // [v2.5] 支持 chunk
+            
+            if (id === "init") {
+                if (result === "ready") {
+                    logger.info("[Bridge] Python worker initialized and ready");
+                    this.isReady = true;
+                    this.processQueue();
+                }
+                return;
+            }
+            
+            const request = this.pendingRequests.get(id);
+            if (request) {
+                // [v2.5] 流式处理逻辑
+                if (chunk !== undefined && request.onProgress) {
+                    request.onProgress(chunk);
+                    return; // 流继续，不结束请求
+                }
+
+                if (error) {
+                    request.reject(new Error(error));
+                } else if (done || result !== undefined) {
+                    request.resolve(result || { done: true });
+                }
+                this.pendingRequests.delete(id);
+                this.processQueue();
+            }
+        } catch (error) {
+            logger.error(`[Bridge Error] JSON Parse Failed: ${output.substring(0, 100)}`);
+        }
+    }
+
+    /**
+     * 执行一次性命令 (兼容旧 API)
+     */
+    public async exec(method: string, params: any): Promise<any> {
+        return new Promise((resolve, reject) => {
+            const id = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            this.requestQueue.push({ id, method, params, resolve, reject });
+            this.processQueue();
+        });
+    }
+
+    /**
+     * [v2.5 New] 执行流式命令
+     * @param method Python 方法名
+     * @param params 参数数组
+     * @param onProgress 流式回调，接收 chunk 数据
+     */
+    public async stream(
+        method: string, 
+        params: any[], 
+        onProgress?: (chunk: any) => void
+    ): Promise<any> {
+        return new Promise((resolve, reject) => {
+            const id = `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            this.requestQueue.push({ 
+                id, 
+                method, 
+                params, 
+                resolve, 
+                reject,
+                onProgress  // [v2.5] 保存回调
+            });
+            this.processQueue();
+        });
+    }
+
+    private processQueue(): void {
+        if (!this.isReady || !this.workerProcess || !this.workerProcess.stdin) return;
+        while (this.requestQueue.length > 0) {
+            const request = this.requestQueue.shift()!;
+            this.pendingRequests.set(request.id, request);
+            
+            const message = JSON.stringify({ id: request.id, method: request.method, params: request.params });
+            
+            try {
+                const success = this.workerProcess.stdin.write(message + '\n');
+                if (!success) {
+                    logger.warn(`[Bridge] Stdin buffer full.`);
+                }
+            } catch (e) {
+                logger.error(`[Bridge] Write failed: ${e}`);
+                request.reject(e);
+                this.pendingRequests.delete(request.id);
+            }
+        }
+    }
+    
+    public stop(): void {
+        if (this.workerProcess) {
+            this.workerProcess.kill();
+            this.workerProcess = null;
+            this.isReady = false;
+        }
+    }
+    
+    public ready(): boolean { return this.isReady; }
+    
+    public async healthCheck(): Promise<boolean> {
+        try { await this.exec('health', {}); return true; } catch { return false; }
+    }
+}

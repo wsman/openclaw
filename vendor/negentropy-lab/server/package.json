@@ -1,0 +1,52 @@
+{
+  "name": "websocket-performance-optimization",
+  "version": "1.0.0",
+  "description": "WebSocket性能优化实现 - 支持高并发、低延迟、高吞吐量",
+  "main": "server/gateway/websocket/ConnectionPool.ts",
+  "scripts": {
+    "start": "node server/gateway/websocket/example.ts",
+    "test": "python tests/performance/websocket_stress_test.py",
+    "test-basic": "python tests/performance/websocket_stress_test.py --concurrent 100 --duration 30",
+    "test-stress": "python tests/performance/websocket_stress_test.py --concurrent 1000 --duration 60",
+    "test-compression": "python tests/performance/websocket_stress_test.py --size 2048",
+    "build": "tsc",
+    "lint": "eslint server/**/*.ts",
+    "format": "prettier --write server/**/*.ts"
+  },
+  "keywords": [
+    "websocket",
+    "connection-pool",
+    "performance",
+    "compression",
+    "permessage-deflate",
+    "high-concurrency"
+  ],
+  "author": "Technology Ministry",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.14.2",
+    "eventemitter3": "^5.0.1",
+    "zlib": "^1.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.0",
+    "@types/ws": "^8.5.5",
+    "typescript": "^5.2.2",
+    "eslint": "^8.48.0",
+    "@typescript-eslint/eslint-plugin": "^6.7.5",
+    "@typescript-eslint/parser": "^6.7.5",
+    "prettier": "^3.0.3"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OpenDoge/technology/websocket-performance-optimization.git"
+  },
+  "bugs": {
+    "url": "https://github.com/OpenDoge/technology/issues"
+  },
+  "homepage": "https://github.com/OpenDoge/technology#readme"
+}

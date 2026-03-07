@@ -1,0 +1,97 @@
+{
+  "id": "request-logger",
+  "name": "HTTP请求日志插件",
+  "version": "1.0.0",
+  "type": "http_middleware",
+  "description": "记录所有HTTP请求的详细日志，包括请求方法、路径、响应状态码和处理时间",
+  "author": "科技部插件系统团队",
+  "license": "MIT",
+  "homepage": "https://github.com/wsman/OpenDoge",
+  "repository": "https://github.com/wsman/OpenDoge/tree/main/projects/Negentropy-Lab/server/gateway/plugins/examples/request-logger",
+  
+  "constitutionCompliance": {
+    "article101": true,
+    "article102": true,
+    "article108": true,
+    "article152": true,
+    "article306": true,
+    "article110": true,
+    "article381": true
+  },
+  
+  "constitutionalReferences": {
+    "primary": ["§101", "§102", "§108", "§152", "§306", "§110", "§381"]
+  },
+  
+  "dependencies": {
+    "required": [],
+    "optional": ["metrics-collector"]
+  },
+  
+  "entryPoint": "./index.js",
+  
+  "configSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "description": "是否启用请求日志记录",
+        "default": true
+      },
+      "logLevel": {
+        "type": "string",
+        "enum": ["debug", "info", "warn", "error"],
+        "description": "日志级别",
+        "default": "info"
+      },
+      "includeHeaders": {
+        "type": "boolean",
+        "description": "是否记录请求头信息",
+        "default": false
+      },
+      "excludePaths": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "排除的路径模式",
+        "default": ["/health", "/metrics"]
+      },
+      "maxBodySize": {
+        "type": "number",
+        "description": "最大请求体大小（字节）",
+        "default": 1024
+      }
+    },
+    "required": ["enabled"]
+  },
+  
+  "defaultConfig": {
+    "enabled": true,
+    "logLevel": "info",
+    "includeHeaders": false,
+    "excludePaths": ["/health", "/metrics"],
+    "maxBodySize": 1024
+  },
+  
+  "lifecycle": {
+    "onLoad": "用于初始化日志记录器",
+    "onUnload": "用于清理日志资源",
+    "onConfigChange": "用于动态更新配置"
+  },
+  
+  "performanceMetrics": {
+    "maxMemoryMB": 50,
+    "maxCpuPercent": 5,
+    "maxResponseTimeMs": 10,
+    "maxStartupTimeMs": 1000
+  },
+  
+  "permissions": {
+    "network": ["localhost:*"],
+    "filesystem": ["./logs"],
+    "environment": ["NODE_ENV"],
+    "api": ["http://localhost:4514/health"]
+  }
+}

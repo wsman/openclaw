@@ -1,0 +1,97 @@
+# 性能配置
+
+## 缓存配置
+
+cache:
+  # L1内存缓存
+  l1:
+    enabled: true
+    maxSize: 1000           # 最大条目数
+    defaultTTL: 300         # 默认TTL（秒）
+    evictionPolicy: lru     # 淘汰策略：lru, lfu, fifo
+    cleanupInterval: 60     # 清理间隔（秒）
+
+  # L2 Redis缓存
+  l2:
+    enabled: true
+    host: localhost
+    port: 6379
+    db: 0
+    password: null
+    keyPrefix: "negentropy:"
+    maxSize: 10000
+    defaultTTL: 3600        # 1小时
+    reconnectOnError: true
+    maxRetriesPerRequest: 3
+
+## 资源监控配置
+
+monitoring:
+  # 资源监控
+  resource:
+    enabled: true
+    interval: 1000          # 监控间隔（毫秒）
+    cpuThreshold: 80        # CPU告警阈值（%）
+    memoryThreshold: 85     # 内存告警阈值（%）
+    enableNetworkMonitor: true
+    enableDiskMonitor: false
+    historyRetention: 3600  # 历史保留时长（秒）
+
+## 性能优化配置
+
+performance:
+  # 目标性能指标
+  targets:
+    cpuIdle: 5              # 空闲CPU使用率（%）
+    memoryUsage: 100        # 内存使用（MB）
+    startupTime: 3          # 启动时间（秒）
+    eventLoopLagThreshold: 100  # 事件循环延迟阈值（ms）
+
+  # 自动优化
+  autoOptimize: false
+
+  # GC配置
+  gc:
+    enabled: true
+    interval: 300000        # GC间隔（毫秒）
+    exposureGc: true        # 暴露global.gc
+
+## WebSocket性能配置
+
+websocket:
+  # 连接池
+  connectionPool:
+    maxConnections: 1000
+    timeout: 300000         # 连接超时（毫秒）
+    
+  # 消息压缩
+  compression:
+    enabled: true
+    threshold: 1024         # 压缩阈值（字节）
+    level: 6                # 压缩级别（0-9）
+    batchSize: 100
+    batchTimeout: 100       # 批处理超时（毫秒）
+
+## 启动优化
+
+startup:
+  # 懒加载模块
+  lazyLoad:
+    - monitoring
+    - cache
+    - analytics
+
+  # 并行初始化
+  parallelInit: true
+  
+  # 预热缓存
+  cacheWarmup: false
+
+## 日志配置
+
+logging:
+  level: info
+  performance:
+    enabled: true
+    sampleRate: 0.1         # 10%采样率
+    slowThreshold: 100      # 慢操作阈值（ms）

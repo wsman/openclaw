@@ -1,0 +1,46 @@
+name: Gateway Contract Release Gate
+
+on:
+  release:
+    types: [published, prereleased]
+  workflow_dispatch:
+
+jobs:
+  release-contract-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: Contract guard (strict)
+        run: npm run check:contract:strict
+
+      - name: Contract test suite
+        run: npx vitest run tests/contract/gateway-rpc-contract.test.ts tests/contract/gateway-event-contract.test.ts
+
+      - name: Contract drift audit
+        run: npm run check:contract:drift
+
+      - name: Constitution
+        run: npm run check:constitution
+
+      - name: Upload release contract artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-contract-release-gate
+          path: |
+            reports/contract-count-report.json
+            reports/contract-drift-audit.json
+          if-no-files-found: warn

@@ -1,0 +1,90 @@
+# Negentropy-Lab Gateway 生产级Dockerfile
+# 版本: v1.0.0
+# 宪法依据: §102熵减原则、§306零停机协议、§108异构模型策略
+# 设计目标: 生产环境部署，最小化镜像体积，支持零停机部署
+
+# ========== 第一阶段: 依赖构建阶段 ==========
+FROM node:22-alpine AS deps
+RUN apk add --no-cache python3 make g++
+
+WORKDIR /app
+
+# 宪法依据: §102熵减原则 - 使用缓存层加速构建
+COPY package.json package-lock.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# ========== 第二阶段: 构建阶段 ==========
+FROM node:22-alpine AS builder
+RUN apk add --no-cache python3 make g++
+
+WORKDIR /app
+
+# 复制依赖
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# 安装TypeScript和构建工具（仅构建时使用）
+RUN npm install --no-save typescript @types/node @types/jest
+
+# 构建TypeScript代码
+RUN npm run build
+
+# ========== 第三阶段: 运行时阶段 ==========
+FROM node:22-alpine AS runner
+
+# 宪法依据: §381安全公理 - 使用非root用户运行
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -u 1001 -S nodejs -G nodejs && \
+    mkdir -p /app && \
+    chown -R nodejs:nodejs /app
+
+WORKDIR /app
+
+# 设置NODE_ENV为生产环境
+ENV NODE_ENV production
+ENV HOST 0.0.0.0
+ENV PORT 4514
+
+# 宪法依据: §108异构模型策略 - 环境变量显式指定模型参数
+ENV LLM_PROVIDER deepseek
+ENV LLM_MODEL deepseek-chat
+ENV LLM_TEMPERATURE 0.7
+ENV LLM_MAX_TOKENS 2048
+
+# 从构建阶段复制必要文件
+COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nodejs:nodejs /app/config ./config
+COPY --from=builder --chown=nodejs:nodejs /app/storage ./storage
+
+# 宪法依据: §152单一真理源 - 确保配置文件存在
+RUN if [ ! -f "./config/system/negentropy.yaml" ]; then \
+    mkdir -p ./config/system && \
+    echo "# Negentropy Lab 生产环境配置" > ./config/system/negentropy.yaml && \
+    echo "gateway:" >> ./config/system/negentropy.yaml && \
+    echo "  port: 4514" >> ./config/system/negentropy.yaml && \
+    echo "  host: 0.0.0.0" >> ./config/system/negentropy.yaml; \
+fi
+
+# 切换到非root用户
+USER nodejs
+
+# 宪法依据: §306零停机协议 - 健康检查配置
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD node -e "const http = require('http'); const req = http.request('http://localhost:4514/health', {timeout: 5000}, (res) => {process.exit(res.statusCode === 200 ? 0 : 1)}); req.on('error', () => process.exit(1)); req.end()"
+
+# 暴露端口
+EXPOSE 4514
+
+# 宪法依据: §110协作效率公理 - 启动时预加载优化
+CMD ["node", "--max-old-space-size=512", "dist/server/index.js"]
+
+# ========== 构建元数据 ==========
+LABEL org.negentropy.lab.version="1.0.0"
+LABEL org.negentropy.lab.layer="1.0"
+LABEL org.negentropy.lab.component="gateway-production"
+LABEL org.negentropy.lab.constitution.compliance="true"
+LABEL org.negentropy.lab.environment="production"
+LABEL maintainer="tech@negentropy-lab.org"
+LABEL description="Negentropy-Lab Gateway 生产级容器镜像"

@@ -1,0 +1,57 @@
+# 逆熵实验室 - 熵计算服务 Dockerfile
+# 版本: v3.2.0 (修正版)
+# 宪法约束: 基础设施宪法第1条 - 容器低熵
+# 构建策略: Root Context Build (需在根目录执行 docker build)
+
+# ========== 第一阶段: 构建阶段 (Builder) ==========
+FROM python:3.10-slim AS builder
+
+RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
+WORKDIR /app
+
+# 复制依赖清单 (假设构建上下文为项目根目录)
+# 路径调整为 engine/entropy_service/requirements.txt
+COPY engine/entropy_service/requirements.txt .
+
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# ========== 第二阶段: 运行阶段 (Runner) ==========
+FROM python:3.10-slim AS runner
+
+# 安装curl用于健康检查
+RUN apt-get update && apt-get install -y curl && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# 创建非root用户
+RUN useradd -m -u 1000 negentropy && \
+    mkdir -p /app && \
+    chown -R negentropy:negentropy /app
+
+WORKDIR /app
+
+# 复制Python依赖
+COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# 关键修正: 复制 engine 包结构到 /app/engine
+# 这确保了 'from engine.entropy_service import ...' 和 'from engine.code_artisan import ...' 有效
+COPY --chown=negentropy:negentropy engine /app/engine
+
+# 设置 PYTHONPATH 包含 /app，使 engine 成为顶级包
+ENV PYTHONPATH=/app
+
+USER negentropy
+
+EXPOSE 8001
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8001/health || exit 1
+
+# 启动命令调整为模块化启动路径
+CMD ["uvicorn", "engine.entropy_service.app:app", "--host", "0.0.0.0", "--port", "8001", "--log-level", "info"]
+
+# ========== 构建元数据 ==========
+LABEL org.negentropy.lab.version="3.2.0"
+LABEL org.negentropy.lab.component="entropy-calculation-service"
+LABEL org.negentropy.lab.build_strategy="root-context"

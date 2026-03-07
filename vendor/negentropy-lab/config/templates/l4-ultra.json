@@ -1,0 +1,45 @@
+{
+  "templateVersion": "1.0.0",
+  "templateId": "l4-ultra",
+  "description": "L4超复杂任务配置模板 - 适合长期项目、大规模开发、战略级任务",
+  "taskComplexity": "L4",
+  "createdAt": "2026-02-12T17:10:00.000Z",
+  "updatedAt": "2026-02-12T17:10:00.000Z",
+  "model": "google-antigravity/gemini-3-pro-high",
+  "maxSpawnDepth": 6,
+  "tags": ["ultra-complex", "long-term", "strategic", "large-scale"],
+  "author": "Technology Ministry",
+  "category": "standard",
+  "environmentVariables": {
+    "NODE_ENV": "production",
+    "LOG_LEVEL": "info",
+    "ENABLE_METRICS": "true",
+    "MONITORING_ENABLED": "true",
+    "SECURITY_ENABLED": "true",
+    "BACKUP_ENABLED": "true",
+    "LOAD_BALANCING": "true",
+    "REPLICA_ENABLED": "true",
+    "CACHE_ENABLED": "true",
+    "COMPRESS_ENABLED": "true"
+  },
+  "configValidation": {
+    "model": {
+      "required": true,
+      "type": "string"
+    },
+    "taskComplexity": {
+      "required": true,
+      "type": "string",
+      "enum": ["L1", "L2", "L3", "L4"]
+    },
+    "maxSpawnDepth": {
+      "type": "number",
+      "min": 4,
+      "max": 10
+    },
+    "runTimeoutSeconds": {
+      "type": "number",
+      "max": 7200
+    }
+  }
+}

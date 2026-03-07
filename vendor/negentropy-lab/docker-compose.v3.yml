@@ -1,0 +1,218 @@
+# 逆熵实验室 v3.1 基础设施编排
+# 版本: v3.1.1
+# 宪法约束: 基础设施宪法第1条、第2条
+# 网络拓扑: Layer 1.5 + Layer 1.6 + Layer 5
+
+# 自定义网络，确保服务间低延迟通信
+networks:
+  negentropy-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+services:
+  # ========== Layer 1.6: 熵计算服务 ==========
+  entropy-service:
+    build:
+      context: .
+      dockerfile: engine/entropy_service/Dockerfile.entropy_service
+      args:
+        - BUILD_TIMESTAMP=${BUILD_TIMESTAMP}
+    container_name: negentropy-entropy-service
+    hostname: entropy-service
+    ports:
+      - "8001:8001"
+    networks:
+      - negentropy-network
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
+      - CIRCUIT_BREAKER_ENABLED=true
+      - ENABLE_METRICS=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    labels:
+      - "org.negentropy.lab.layer=1.6"
+      - "org.negentropy.lab.component=entropy-calculation-service"
+      - "org.negentropy.lab.constitution.compliance=true"
+
+  # ========== Layer 1.5: MCP 感知层核心 ==========
+  mcp-core:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    container_name: negentropy-mcp-core
+    hostname: mcp-core
+    ports:
+      - "2567:2567"
+    networks:
+      - negentropy-network
+    environment:
+      - NODE_ENV=production
+      - ENTROPY_SERVICE_URL=http://entropy-service:8001
+      - QDRANT_URL=http://qdrant:6333
+      - MEMORY_BANK_PATH=/app/memory_bank
+      - CORPUS_PATH=/app/storage/corpus
+      - LOG_LEVEL=info
+    volumes:
+      - memory-bank-storage:/app/memory_bank
+      - corpus-storage:/app/storage/corpus
+    depends_on:
+      entropy-service:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"const http = require('http'); const req = http.request('http://localhost:2567/health', {timeout: 5000}, (res) => {process.exit(res.statusCode === 200 ? 0 : 1)}); req.on('error', () => process.exit(1)); req.end()\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    labels:
+      - "org.negentropy.lab.layer=1.5"
+      - "org.negentropy.lab.component=mcp-core"
+      - "org.negentropy.lab.constitution.compliance=true"
+
+  # ========== Layer 5: 向量存储层 ==========
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: negentropy-qdrant
+    hostname: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    networks:
+      - negentropy-network
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+      - QDRANT__LOG_LEVEL=INFO
+      - QDRANT__STORAGE__STORAGE_PATH=/qdrant/storage
+    volumes:
+      - qdrant-storage:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1 bash -c 'cat < /dev/null > /dev/tcp/localhost/6333' || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    labels:
+      - "org.negentropy.lab.layer=5"
+      - "org.negentropy.lab.component=qdrant-vector-store"
+      - "org.negentropy.lab.constitution.compliance=true"
+
+  # ========== 监控栈 (可选) ==========
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: negentropy-prometheus
+    hostname: prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - negentropy-network
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=200h'
+    restart: unless-stopped
+    labels:
+      - "org.negentropy.lab.component=monitoring"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: negentropy-grafana
+    hostname: grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - negentropy-network
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/dashboards:/etc/grafana/provisioning/dashboards
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    labels:
+      - "org.negentropy.lab.component=monitoring"
+
+  # ========== Layer 1.0: 主Node.js服务器 (开发环境) ==========
+  negentropy-lab-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.node
+      target: development
+    container_name: negentropy-lab-server
+    hostname: lab-server
+    ports:
+      - "4514:4514"
+    networks:
+      - negentropy-network
+    environment:
+      - NODE_ENV=development
+      - HOST=0.0.0.0
+      - PORT=4514
+      - ENTROPY_SERVICE_URL=http://entropy-service:8001
+      - QDRANT_URL=http://qdrant:6333
+      - MCP_PORT=2567
+      - CORS_ORIGIN=http://localhost:3000,http://192.168.2.*:*
+      - LOG_LEVEL=debug
+      - DEBUG=true
+    volumes:
+      - ./server:/app/server
+      - ./config:/app/config
+      - ./storage:/app/storage
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
+    depends_on:
+      entropy-service:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      mcp-core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4514/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    labels:
+      - "org.negentropy.lab.layer=1.0"
+      - "org.negentropy.lab.component=lab-server"
+      - "org.negentropy.lab.constitution.compliance=true"
+      - "org.negentropy.lab.environment=development"
+
+volumes:
+  qdrant-storage:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./storage/vector_db/qdrant_storage
+  memory-bank-storage:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./memory_bank
+  corpus-storage:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./storage/corpus
+  prometheus-data:
+  grafana-data:

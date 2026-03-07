@@ -1,0 +1,314 @@
+{
+  "version": "1.0.0",
+  "description": "Negentropy-Lab 文档-代码一致性检查规则",
+  "report": {
+    "json": "reports/consistency-check-report.json",
+    "html": "reports/consistency-check-report.html"
+  },
+  "execution": {
+    "timeoutMs": 120000
+  },
+  "thresholds": {
+    "pass": 90,
+    "warn": 75
+  },
+  "weights": {
+    "seven_layer_architecture": 0.2,
+    "agent_three_tier_architecture": 0.15,
+    "gateway_ecosystem": 0.2,
+    "mcp_tool_library": 0.1,
+    "plugin_system": 0.1,
+    "core_document_alignment": 0.25
+  },
+  "sevenLayerArchitecture": {
+    "docSources": [
+      ".clinerules",
+      "memory_bank/t0_core/technical_law_index.md"
+    ],
+    "requiredLayerIds": [
+      "L5",
+      "L4",
+      "L3",
+      "L2.5",
+      "L2",
+      "L1",
+      "L0.5",
+      "L0",
+      "L0.8"
+    ],
+    "layers": [
+      {
+        "id": "L5",
+        "name": "接口表现层",
+        "required": true,
+        "anyOfPaths": [
+          "server/gateway",
+          "src/websocket"
+        ]
+      },
+      {
+        "id": "L4",
+        "name": "应用逻辑层",
+        "required": true,
+        "anyOfPaths": [
+          "server/services",
+          "server/middleware"
+        ]
+      },
+      {
+        "id": "L3",
+        "name": "MCP微内核层",
+        "required": true,
+        "anyOfPaths": [
+          "engine/mcp",
+          "engine/mcp_core"
+        ]
+      },
+      {
+        "id": "L2.5",
+        "name": "内部事务局",
+        "required": true,
+        "anyOfPaths": [
+          "server/monitoring",
+          "server/gateway/monitoring"
+        ]
+      },
+      {
+        "id": "L2",
+        "name": "执行代理层",
+        "required": true,
+        "anyOfPaths": [
+          "server/agents"
+        ]
+      },
+      {
+        "id": "L1",
+        "name": "记忆银行层",
+        "required": true,
+        "anyOfPaths": [
+          "memory_bank/t0_core"
+        ]
+      },
+      {
+        "id": "L0.5",
+        "name": "Legacy兼容层",
+        "required": true,
+        "anyOfPaths": [
+          "server/adapters"
+        ]
+      },
+      {
+        "id": "L0",
+        "name": "遗留隔离层",
+        "required": false,
+        "anyOfPaths": [
+          "legacy_quarantine"
+        ]
+      },
+      {
+        "id": "L0.8",
+        "name": "ToolCallBridge层",
+        "required": true,
+        "anyOfPaths": [
+          "server/infrastructure"
+        ]
+      }
+    ]
+  },
+  "agentThreeTierArchitecture": {
+    "docSources": [
+      ".clinerules",
+      "memory_bank/t0_core/basic_law_index.md",
+      "memory_bank/t1_axioms/behavior_context.md"
+    ],
+    "agents": [
+      {
+        "name": "OfficeDirectorAgent",
+        "file": "server/agents/OfficeDirectorAgent.ts",
+        "classPattern": "class OfficeDirectorAgent"
+      },
+      {
+        "name": "PrimeMinisterAgent",
+        "file": "server/agents/PrimeMinisterAgent.ts",
+        "classPattern": "class PrimeMinisterAgent"
+      },
+      {
+        "name": "SupervisionMinistryAgent",
+        "file": "server/agents/SupervisionMinistryAgent.ts",
+        "classPattern": "class SupervisionMinistryAgent"
+      },
+      {
+        "name": "TechnologyMinistryAgent",
+        "file": "server/agents/TechnologyMinistryAgent.ts",
+        "classPattern": "class TechnologyMinistryAgent"
+      },
+      {
+        "name": "OrganizationMinistryAgent",
+        "file": "server/agents/OrganizationMinistryAgent.ts",
+        "classPattern": "class OrganizationMinistryAgent"
+      }
+    ],
+    "terminologyMappingFile": "server/utils/OfficialAgentTerminology.ts"
+  },
+  "gatewayEcosystem": {
+    "docSources": [
+      ".clinerules",
+      "memory_bank/t1_axioms/tech_context.md",
+      "memory_bank/t0_core/active_context.md"
+    ],
+    "components": [
+      {
+        "name": "WebSocket RPC Handler",
+        "file": "server/gateway/websocket-handler.ts",
+        "mustContain": [
+          "auth.login",
+          "session.create",
+          "health.check",
+          "gateway.switch"
+        ]
+      },
+      {
+        "name": "Gateway Server WS Integration",
+        "file": "server/gateway/server.impl-with-ws.ts",
+        "mustContain": [
+          "GatewayWebSocketHandler",
+          "startGatewayServer"
+        ]
+      },
+      {
+        "name": "HTTP OpenAI Compatible Endpoint",
+        "file": "server/gateway/openai-http.ts",
+        "mustContain": [
+          "chat/completions"
+        ]
+      },
+      {
+        "name": "Gateway Auth Module",
+        "file": "server/gateway/auth/index.ts",
+        "mustContain": [
+          "UnifiedAuthManager",
+          "createDefaultJWTAuthManager"
+        ]
+      },
+      {
+        "name": "Gateway Channels",
+        "file": "server/gateway/channels/index.ts",
+        "mustContain": [
+          "ChannelManager"
+        ]
+      },
+      {
+        "name": "Monitoring Core",
+        "files": [
+          "server/gateway/monitoring/core/ConstitutionMonitor.ts",
+          "server/gateway/monitoring/core/EntropyService.ts",
+          "server/gateway/monitoring/core/CostTracker.ts"
+        ]
+      }
+    ]
+  },
+  "mcpToolLibrary": {
+    "docSources": [
+      ".clinerules",
+      "memory_bank/t1_axioms/tech_context.md"
+    ],
+    "requiredDocs": [
+      "memory_bank/t2_standards/DS-200_mcp_overview.md",
+      "memory_bank/t2_standards/DS-201_iab_tools.md",
+      "memory_bank/t2_standards/DS-202_genesis_protocol.md",
+      "memory_bank/t2_standards/DS-203_judicial_verification.md",
+      "memory_bank/t2_standards/DS-204_mcp_server_ops.md"
+    ],
+    "minNonWhitespaceChars": 500
+  },
+  "pluginSystem": {
+    "docSources": [
+      ".clinerules",
+      "memory_bank/t1_axioms/tech_context.md"
+    ],
+    "pluginTypeFile": "server/gateway/plugins/types.ts",
+    "pluginKindFile": "server/plugins/types/plugin-interfaces.ts",
+    "expectedPluginTypes": [
+      "HTTP_MIDDLEWARE",
+      "WEBSOCKET_MIDDLEWARE",
+      "EVENT_HANDLER",
+      "SCHEDULED_TASK",
+      "DATA_TRANSFORMER",
+      "EXTERNAL_INTEGRATION",
+      "MONITORING",
+      "LOGGING",
+      "SECURITY"
+    ],
+    "expectedPluginKinds": [
+      "core",
+      "agent",
+      "monitoring",
+      "channel",
+      "gateway",
+      "memory"
+    ],
+    "pluginManagerFile": "server/gateway/plugins/index.ts",
+    "hotReloadMethods": [
+      "startHotReloadWatcher",
+      "stopHotReloadWatcher"
+    ]
+  },
+  "coreDocumentAlignment": {
+    "coreFiles": [
+      ".clinerules",
+      "memory_bank/t0_core/runtime_architecture_baseline.md",
+      "memory_bank/t0_core/active_context.md",
+      "memory_bank/t0_core/basic_law_index.md",
+      "memory_bank/t0_core/technical_law_index.md",
+      "memory_bank/t1_axioms/tech_context.md"
+    ],
+    "requiredTokensByFile": {
+      ".clinerules": [
+        "memory_bank/t0_core/runtime_architecture_baseline.md",
+        "外部仓库路径",
+        "核心业务TypeScript/JavaScript代码文件必须使用`@constitution`"
+      ],
+      "memory_bank/t0_core/runtime_architecture_baseline.md": [
+        "可执行入口",
+        "七层架构实现映射",
+        "架构精简原则"
+      ],
+      "memory_bank/t0_core/technical_law_index.md": [
+        "Phase 13 Final Acceptance 已完成",
+        "Phase 14-15 规划中"
+      ],
+      "memory_bank/t0_core/basic_law_index.md": [
+        "`memory_bank/t0_core/`为宪法内核真理源",
+        "`.clinerules`为入口索引"
+      ],
+      "memory_bank/t0_core/active_context.md": [
+        "runtime_architecture_baseline.md"
+      ]
+    },
+    "forbiddenTokensByFile": {
+      "memory_bank/t0_core/technical_law_index.md": [
+        "Phase 15 Final Acceptance 完成"
+      ],
+      "memory_bank/t0_core/basic_law_index.md": [
+        "所有修改必须同步到.clinerules文件"
+      ]
+    },
+    "frontendPathDualEnvDocs": [
+      {
+        "file": ".clinerules",
+        "linuxPath": "/home/wsman/OpenDoge/opendoge-ui",
+        "windowsPath": "D:\\Users\\WSMAN\\Desktop\\OpenDoge\\opendoge-ui"
+      },
+      {
+        "file": "memory_bank/t0_core/active_context.md",
+        "linuxPath": "/home/wsman/OpenDoge/opendoge-ui",
+        "windowsPath": "D:\\Users\\WSMAN\\Desktop\\OpenDoge\\opendoge-ui"
+      },
+      {
+        "file": "memory_bank/t1_axioms/tech_context.md",
+        "linuxPath": "/home/wsman/OpenDoge/opendoge-ui",
+        "windowsPath": "D:\\Users\\WSMAN\\Desktop\\OpenDoge\\opendoge-ui"
+      }
+    ]
+  }
+}
