@@ -50,6 +50,11 @@ apps/ios/.swiftpm/
 apps/ios/.derivedData/
 apps/ios/.local-signing.xcconfig
 vendor/
+!vendor/
+vendor/*
+!vendor/negentropy-lab/
+!vendor/negentropy-lab/**
+vendor/negentropy-lab/.openclaw-vendor.json
 apps/ios/Clawdbot.xcodeproj/
 apps/ios/Clawdbot.xcodeproj/**
 apps/macos/.build/**
@@ -82,6 +87,11 @@ apps/ios/*.mobileprovision
 .local/
 docs/.local/
 tmp/
+reports/
+
+# Local custom stack wiring
+custom/*.local.json
+custom/backups/
 IDENTITY.md
 USER.md
 .tgz

@@ -1,0 +1,14 @@
+{
+  "negentropy": {
+    "sourceRoot": "../Negentropy-Lab",
+    "vendorRoot": "vendor/negentropy-lab"
+  },
+  "opendogeUi": {
+    "root": "../OpenDoge/opendoge-ui",
+    "webAppDir": "apps/control-ui-web",
+    "gatewayDir": "apps/gateway",
+    "webBasePath": "/",
+    "gatewayBaseUrl": "http://127.0.0.1:3000",
+    "gatewayWsUrl": "ws://127.0.0.1:3000/ws"
+  }
+}
