@@ -1,6 +1,11 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  initializeGlobalHookRunner,
+  resetGlobalHookRunner,
+} from "../plugins/hook-runner-global.js";
+import { createMockPluginRegistry } from "../plugins/hooks.test-helpers.js";
 
 const TEST_GATEWAY_TOKEN = "test-gateway-token-1234567890";
 
@@ -41,6 +46,10 @@ vi.mock("./auth.js", () => ({
 vi.mock("../logger.js", () => ({
   logWarn: () => {},
 }));
+
+afterEach(() => {
+  resetGlobalHookRunner();
+});
 
 vi.mock("../plugins/config-state.js", () => ({
   isTestDefaultMemorySlotDisabled: () => false,
@@ -594,5 +603,53 @@ describe("POST /tools/invoke", () => {
     const body = await expectOkInvokeResponse(res);
     expect(body.result?.observedFormat).toBe("pdf");
     expect(body.result?.observedFileFormat).toBeUndefined();
+  });
+
+  it("applies gateway_request plugin reject/rewrite for HTTP tools invoke", async () => {
+    try {
+      const gatewayRequestHook = vi
+        .fn()
+        .mockResolvedValueOnce({
+          block: true,
+          reason: "tool denied by decision",
+          traceId: "trace-reject",
+          errorCode: "PERMISSION_DENIED",
+        })
+        .mockResolvedValueOnce({
+          method: "http.tools.invoke",
+          params: {
+            tool: "agents_list",
+            action: "json",
+            args: {},
+            sessionKey: "main",
+          },
+          traceId: "trace-rewrite",
+        });
+      initializeGlobalHookRunner(
+        createMockPluginRegistry([{ hookName: "gateway_request", handler: gatewayRequestHook }]),
+      );
+
+      allowAgentsListForMain();
+      const rejected = await invokeAgentsListAuthed({ sessionKey: "main" });
+      expect(rejected.status).toBe(403);
+      const rejectedBody = await rejected.json();
+      expect(rejectedBody.ok).toBe(false);
+      expect(rejectedBody.error?.type).toBe("permission_denied");
+      expect(rejectedBody.error?.message).toContain("tool denied by decision");
+      expect(rejectedBody.error?.traceId).toBeTruthy();
+
+      allowAgentsListForMain();
+      const rewritten = await invokeToolAuthed({
+        tool: "tools_invoke_test",
+        args: { mode: "input" },
+        sessionKey: "main",
+      });
+      expect(rewritten.status).toBe(200);
+      const rewrittenBody = await rewritten.json();
+      expect(rewrittenBody.ok).toBe(true);
+      expect(rewrittenBody).toHaveProperty("result");
+    } finally {
+      resetGlobalHookRunner();
+    }
   });
 });

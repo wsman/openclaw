@@ -1,7 +1,12 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { HISTORY_CONTEXT_MARKER } from "../auto-reply/reply/history.js";
 import { CURRENT_MESSAGE_MARKER } from "../auto-reply/reply/mentions.js";
 import { emitAgentEvent } from "../infra/agent-events.js";
+import {
+  initializeGlobalHookRunner,
+  resetGlobalHookRunner,
+} from "../plugins/hook-runner-global.js";
+import { createMockPluginRegistry } from "../plugins/hooks.test-helpers.js";
 import { buildAssistantDeltaResult } from "./test-helpers.agent-results.js";
 import {
   agentCommand,
@@ -25,6 +30,10 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await enabledServer.close({ reason: "openai http enabled suite done" });
+});
+
+afterEach(() => {
+  resetGlobalHookRunner();
 });
 
 async function startServerWithDefaultConfig(port: number) {
@@ -745,6 +754,61 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
       }
     } finally {
       // shared server
+    }
+  });
+
+  it("applies gateway_request plugin reject/rewrite for OpenAI HTTP requests", async () => {
+    const port = enabledPort;
+
+    try {
+      const gatewayRequestHook = vi
+        .fn()
+        .mockResolvedValueOnce({
+          block: true,
+          reason: "policy blocked",
+          traceId: "trace-reject",
+          errorCode: "PERMISSION_DENIED",
+        })
+        .mockResolvedValueOnce({
+          method: "http.openai.chat.completions",
+          params: {
+            model: "openclaw",
+            messages: [{ role: "user", content: "rewritten prompt" }],
+          },
+          traceId: "trace-rewrite",
+        });
+      initializeGlobalHookRunner(
+        createMockPluginRegistry([{ hookName: "gateway_request", handler: gatewayRequestHook }]),
+      );
+
+      agentCommand.mockClear();
+      const rejected = await postChatCompletions(port, {
+        model: "openclaw",
+        messages: [{ role: "user", content: "hello" }],
+      });
+      expect(rejected.status).toBe(403);
+      const rejectedJson = (await rejected.json()) as {
+        error?: { type?: string; message?: string; trace_id?: string };
+      };
+      expect(rejectedJson.error?.type).toBe("permission_denied");
+      expect(rejectedJson.error?.message).toContain("policy blocked");
+      expect(rejectedJson.error?.trace_id).toBeTruthy();
+      expect(agentCommand).not.toHaveBeenCalled();
+
+      agentCommand.mockClear();
+      agentCommand.mockResolvedValueOnce({ payloads: [{ text: "rewritten-ok" }] } as never);
+      const rewritten = await postChatCompletions(port, {
+        model: "openclaw",
+        messages: [{ role: "user", content: "ignored-by-rewrite" }],
+      });
+      expect(rewritten.status).toBe(200);
+      const call = (agentCommand.mock.calls[0] as unknown[] | undefined)?.[0] as
+        | { message?: string }
+        | undefined;
+      expect(call?.message).toBe("rewritten prompt");
+      await rewritten.text();
+    } finally {
+      resetGlobalHookRunner();
     }
   });
 });

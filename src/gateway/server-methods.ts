@@ -2,6 +2,10 @@ import { withPluginRuntimeGatewayRequestScope } from "../plugins/runtime/gateway
 import { formatControlPlaneActor, resolveControlPlaneActor } from "./control-plane-audit.js";
 import { consumeControlPlaneWriteBudget } from "./control-plane-rate-limit.js";
 import { ADMIN_SCOPE, authorizeOperatorScopesForMethod } from "./method-scopes.js";
+import {
+  buildGatewayWsRequestAuth,
+  evaluateGatewayRequestPolicy,
+} from "./plugin-request-policy.js";
 import { ErrorCodes, errorShape } from "./protocol/index.js";
 import { isRoleAuthorizedForMethod, parseGatewayRole } from "./role-policy.js";
 import { agentHandlers } from "./server-methods/agent.js";
@@ -36,6 +40,7 @@ import { webHandlers } from "./server-methods/web.js";
 import { wizardHandlers } from "./server-methods/wizard.js";
 
 const CONTROL_PLANE_WRITE_METHODS = new Set(["config.apply", "config.patch", "update.run"]);
+
 function authorizeGatewayMethod(method: string, client: GatewayRequestOptions["client"]) {
   if (!client?.connect) {
     return null;
@@ -63,6 +68,53 @@ function authorizeGatewayMethod(method: string, client: GatewayRequestOptions["c
     return errorShape(ErrorCodes.INVALID_REQUEST, `missing scope: ${scopeAuth.missingScope}`);
   }
   return null;
+}
+
+function resolveGatewayPolicyErrorCode(errorCode: string | undefined): keyof typeof ErrorCodes {
+  if (
+    errorCode === ErrorCodes.INVALID_REQUEST ||
+    errorCode === ErrorCodes.PERMISSION_DENIED ||
+    errorCode === ErrorCodes.UNAVAILABLE
+  ) {
+    return errorCode;
+  }
+  return ErrorCodes.PERMISSION_DENIED;
+}
+
+function enforceControlPlaneWriteBudget(params: {
+  method: string;
+  client: GatewayRequestOptions["client"];
+  context: GatewayRequestOptions["context"];
+  respond: GatewayRequestOptions["respond"];
+}): boolean {
+  if (!CONTROL_PLANE_WRITE_METHODS.has(params.method)) {
+    return true;
+  }
+  const budget = consumeControlPlaneWriteBudget({ client: params.client });
+  if (budget.allowed) {
+    return true;
+  }
+  const actor = resolveControlPlaneActor(params.client);
+  params.context.logGateway.warn(
+    `control-plane write rate-limited method=${params.method} ${formatControlPlaneActor(actor)} retryAfterMs=${budget.retryAfterMs} key=${budget.key}`,
+  );
+  params.respond(
+    false,
+    undefined,
+    errorShape(
+      ErrorCodes.UNAVAILABLE,
+      `rate limit exceeded for ${params.method}; retry after ${Math.ceil(budget.retryAfterMs / 1000)}s`,
+      {
+        retryable: true,
+        retryAfterMs: budget.retryAfterMs,
+        details: {
+          method: params.method,
+          limit: "3 per 60s",
+        },
+      },
+    ),
+  );
+  return false;
 }
 
 export const coreGatewayHandlers: GatewayRequestHandlers = {
@@ -106,52 +158,97 @@ export async function handleGatewayRequest(
     respond(false, undefined, authError);
     return;
   }
-  if (CONTROL_PLANE_WRITE_METHODS.has(req.method)) {
-    const budget = consumeControlPlaneWriteBudget({ client });
-    if (!budget.allowed) {
-      const actor = resolveControlPlaneActor(client);
-      context.logGateway.warn(
-        `control-plane write rate-limited method=${req.method} ${formatControlPlaneActor(actor)} retryAfterMs=${budget.retryAfterMs} key=${budget.key}`,
-      );
-      respond(
-        false,
-        undefined,
-        errorShape(
-          ErrorCodes.UNAVAILABLE,
-          `rate limit exceeded for ${req.method}; retry after ${Math.ceil(budget.retryAfterMs / 1000)}s`,
-          {
-            retryable: true,
-            retryAfterMs: budget.retryAfterMs,
-            details: {
-              method: req.method,
-              limit: "3 per 60s",
-            },
-          },
-        ),
-      );
+
+  const policyDecision = await evaluateGatewayRequestPolicy({
+    transport: "ws",
+    method: req.method,
+    params: ((req.params ?? {}) as Record<string, unknown>) ?? {},
+    connId: client?.connId,
+    auth: buildGatewayWsRequestAuth(client),
+  });
+  if (!policyDecision.allowed) {
+    const details =
+      policyDecision.traceId !== undefined && policyDecision.details !== undefined
+        ? {
+            traceId: policyDecision.traceId,
+            plugin: policyDecision.details,
+          }
+        : policyDecision.traceId !== undefined
+          ? { traceId: policyDecision.traceId }
+          : policyDecision.details;
+    respond(
+      false,
+      undefined,
+      errorShape(
+        resolveGatewayPolicyErrorCode(policyDecision.errorCode),
+        policyDecision.reason || "Request rejected by plugin policy",
+        {
+          ...(policyDecision.retryable !== undefined
+            ? { retryable: policyDecision.retryable }
+            : {}),
+          ...(policyDecision.retryAfterMs !== undefined
+            ? { retryAfterMs: policyDecision.retryAfterMs }
+            : {}),
+          ...(details !== undefined ? { details } : {}),
+        },
+      ),
+    );
+    return;
+  }
+
+  const resolvedMethod = policyDecision.method;
+  const resolvedParams = policyDecision.params;
+  if (resolvedMethod !== req.method) {
+    const rewrittenAuthError = authorizeGatewayMethod(resolvedMethod, client);
+    if (rewrittenAuthError) {
+      respond(false, undefined, rewrittenAuthError);
       return;
     }
   }
-  const handler = opts.extraHandlers?.[req.method] ?? coreGatewayHandlers[req.method];
+
+  if (
+    !enforceControlPlaneWriteBudget({
+      method: resolvedMethod,
+      client,
+      context,
+      respond,
+    })
+  ) {
+    return;
+  }
+
+  const handler = opts.extraHandlers?.[resolvedMethod] ?? coreGatewayHandlers[resolvedMethod];
   if (!handler) {
     respond(
       false,
       undefined,
-      errorShape(ErrorCodes.INVALID_REQUEST, `unknown method: ${req.method}`),
+      errorShape(ErrorCodes.INVALID_REQUEST, `unknown method: ${resolvedMethod}`),
     );
     return;
   }
-  const invokeHandler = () =>
-    handler({
-      req,
-      params: (req.params ?? {}) as Record<string, unknown>,
-      client,
-      isWebchatConnect,
-      respond,
-      context,
-    });
-  // All handlers run inside a request scope so that plugin runtime
-  // subagent methods (e.g. context engine tools spawning sub-agents
-  // during tool execution) can dispatch back into the gateway.
-  await withPluginRuntimeGatewayRequestScope({ context, isWebchatConnect }, invokeHandler);
+
+  const invokeHandler = (
+    selectedHandler: typeof handler,
+    method: string,
+    params: Record<string, unknown>,
+  ) =>
+    withPluginRuntimeGatewayRequestScope({ context, isWebchatConnect }, () =>
+      selectedHandler({
+        req:
+          method === req.method && params === req.params
+            ? req
+            : {
+                ...req,
+                method,
+                params,
+              },
+        params,
+        client,
+        isWebchatConnect,
+        respond,
+        context,
+      }),
+    );
+
+  await invokeHandler(handler, resolvedMethod, resolvedParams);
 }

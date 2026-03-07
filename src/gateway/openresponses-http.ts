@@ -45,6 +45,7 @@ import {
   type Usage,
 } from "./open-responses.schema.js";
 import { buildAgentPrompt } from "./openresponses-prompt.js";
+import { evaluateGatewayHttpRequestPolicy } from "./plugin-request-policy.js";
 
 type OpenResponsesHttpOptions = {
   auth: ResolvedGatewayAuth;
@@ -57,6 +58,7 @@ type OpenResponsesHttpOptions = {
 
 const DEFAULT_BODY_BYTES = 20 * 1024 * 1024;
 const DEFAULT_MAX_URL_PARTS = 8;
+const OPENRESPONSES_HTTP_DECISION_METHOD = "http.openresponses.create";
 
 function writeSseEvent(res: ServerResponse, event: StreamingEvent) {
   res.write(`event: ${event.type}\n`);
@@ -288,8 +290,37 @@ export async function handleOpenResponsesHttpRequest(
     return true;
   }
 
+  const policyDecision = await evaluateGatewayHttpRequestPolicy({
+    req,
+    path: "/v1/responses",
+    method: OPENRESPONSES_HTTP_DECISION_METHOD,
+    requestParams: handled.body as Record<string, unknown>,
+  });
+  if (!policyDecision.allowed) {
+    sendJson(res, 403, {
+      error: {
+        message: policyDecision.reason || "Request rejected by plugin policy",
+        type: "permission_denied",
+        ...(policyDecision.traceId ? { trace_id: policyDecision.traceId } : {}),
+      },
+    });
+    return true;
+  }
+
+  if (policyDecision.method !== OPENRESPONSES_HTTP_DECISION_METHOD) {
+    sendJson(res, 400, {
+      error: {
+        message: `rewritten method not supported: ${policyDecision.method}`,
+        type: "invalid_request_error",
+      },
+    });
+    return true;
+  }
+
+  const decisionPayload = policyDecision.params;
+
   // Validate request body with Zod
-  const parseResult = CreateResponseBodySchema.safeParse(handled.body);
+  const parseResult = CreateResponseBodySchema.safeParse(decisionPayload);
   if (!parseResult.success) {
     const issue = parseResult.error.issues[0];
     const message = issue ? `${issue.path.join(".")}: ${issue.message}` : "Invalid request body";

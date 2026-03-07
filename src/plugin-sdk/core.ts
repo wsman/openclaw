@@ -2,6 +2,8 @@ export type {
   AnyAgentTool,
   OpenClawPluginApi,
   OpenClawPluginService,
+  PluginHookGatewayRequestEvent,
+  PluginHookGatewayRequestResult,
   ProviderAuthContext,
   ProviderAuthResult,
 } from "../plugins/types.js";
