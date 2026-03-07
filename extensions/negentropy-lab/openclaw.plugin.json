@@ -1,0 +1,78 @@
+{
+  "id": "negentropy-lab",
+  "name": "Negentropy Lab",
+  "description": "Gateway request policy bridge backed by an external Negentropy decision service.",
+  "uiHints": {
+    "mode": {
+      "label": "Decision Mode",
+      "help": "OFF disables enforcement, SHADOW logs/replays decisions, ENFORCE blocks or rewrites live traffic."
+    },
+    "serviceUrl": {
+      "label": "Decision Service URL",
+      "placeholder": "http://127.0.0.1:3000/internal/openclaw/decision"
+    },
+    "timeoutMs": {
+      "label": "Timeout (ms)",
+      "advanced": true
+    },
+    "bypassMethods": {
+      "label": "Bypass Methods",
+      "advanced": true
+    },
+    "healthPaths": {
+      "label": "Health Paths",
+      "advanced": true
+    },
+    "enforceFailClosed": {
+      "label": "Fail Closed",
+      "advanced": true
+    },
+    "enableRollbackSwitch": {
+      "label": "Enable Rollback Switch",
+      "advanced": true
+    },
+    "signingKey": {
+      "label": "Signing Key",
+      "advanced": true,
+      "sensitive": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "mode": {
+        "type": "string",
+        "enum": ["OFF", "SHADOW", "ENFORCE"]
+      },
+      "serviceUrl": {
+        "type": "string"
+      },
+      "timeoutMs": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "bypassMethods": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "healthPaths": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "enforceFailClosed": {
+        "type": "boolean"
+      },
+      "enableRollbackSwitch": {
+        "type": "boolean"
+      },
+      "signingKey": {
+        "type": "string"
+      }
+    }
+  }
+}
