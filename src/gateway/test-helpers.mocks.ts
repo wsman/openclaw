@@ -209,7 +209,7 @@ export const testTailnetIPv4 = hoisted.testTailnetIPv4;
 export const testTailscaleWhois = hoisted.testTailscaleWhois;
 export const piSdkMock = hoisted.piSdkMock;
 export const cronIsolatedRun = hoisted.cronIsolatedRun;
-export const agentCommand: Mock<() => void> = hoisted.agentCommand;
+export const agentCommand: Mock<(...args: unknown[]) => void> = hoisted.agentCommand;
 export const getReplyFromConfig: Mock<GetReplyFromConfigFn> = hoisted.getReplyFromConfig;
 
 export const testState = {
@@ -581,7 +581,8 @@ vi.mock("../channels/web/index.js", async () => {
 });
 vi.mock("../commands/agent.js", () => ({
   agentCommand,
-  agentCommandFromIngress: agentCommand,
+  agentCommandFromIngress: (opts: unknown, _runtime: unknown, _deps: unknown) =>
+    agentCommand(opts as never),
 }));
 vi.mock("../auto-reply/reply.js", () => ({
   getReplyFromConfig,

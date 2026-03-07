@@ -32,6 +32,8 @@ const mocks = vi.hoisted(() => ({
   fsRealpath: vi.fn(async (p: string) => p),
   fsOpen: vi.fn(async () => ({}) as unknown),
   writeFileWithinRoot: vi.fn(async () => {}),
+  fsRename: vi.fn(async () => undefined),
+  fsRm: vi.fn(async () => undefined),
 }));
 
 vi.mock("../../config/config.js", () => ({
@@ -102,6 +104,8 @@ vi.mock("node:fs/promises", async () => {
     lstat: mocks.fsLstat,
     realpath: mocks.fsRealpath,
     open: mocks.fsOpen,
+    rename: mocks.fsRename,
+    rm: mocks.fsRm,
   };
   return { ...patched, default: patched };
 });
@@ -576,7 +580,7 @@ describe("agents.files.get/set symlink safety", () => {
     },
   );
 
-  it("allows in-workspace symlink reads but rejects writes through symlink aliases", async () => {
+  it("allows in-workspace symlink reads and writes when the target stays inside workspace", async () => {
     const workspace = "/workspace/test-agent";
     const candidate = path.resolve(workspace, "AGENTS.md");
     const target = path.resolve(workspace, "policies", "AGENTS.md");
@@ -635,12 +639,22 @@ describe("agents.files.get/set symlink safety", () => {
       content: "updated\n",
     });
     await setCall.promise;
-    expect(setCall.respond).toHaveBeenCalledWith(
-      false,
-      undefined,
+    expect(mocks.writeFileWithinRoot).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: expect.stringContaining('unsafe workspace file "AGENTS.md"'),
+        rootDir: workspace,
+        relativePath: path.join("policies", "AGENTS.md"),
+        data: "updated\n",
       }),
+    );
+    expect(setCall.respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        file: expect.objectContaining({
+          missing: false,
+          content: "updated\n",
+        }),
+      }),
+      undefined,
     );
   });
 
