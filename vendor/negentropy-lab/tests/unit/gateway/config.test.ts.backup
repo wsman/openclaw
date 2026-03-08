@@ -1,0 +1,517 @@
+/**
+ * 🔍 Gateway Config 单元测试套件
+ *
+ * 宪法依据：
+ * - §101 同步公理：测试代码与实现代码同步
+ * - §102 熵减原则：通过测试降低系统不确定性
+ * - §152 单一真理源：测试配置管理统一性
+ *
+ * 测试范围：
+ * 1. 配置加载与解析
+ * 2. 配置验证
+ * 3. 环境变量处理
+ * 4. 配置热重载
+ * 5. 配置层级管理
+ */
+
+import { GatewayConfig, GatewayServerOptions, loadConfig } from '../config';
+
+describe('Gateway Config 核心功能测试', () => {
+  describe('✅ 配置加载测试 (P0 - 正常流程)', () => {
+    test('应该加载JSON配置文件', async () => {
+      const config = await loadConfig('test-config.json');
+      expect(config).toBeDefined();
+      expect(typeof config).toBe('object');
+    });
+
+    test('应该加载YAML配置文件', async () => {
+      const config = await loadConfig('test-config.yaml');
+      expect(config).toBeDefined();
+      expect(typeof config).toBe('object');
+    });
+
+    test('应该合并默认配置与自定义配置', async () => {
+      const customConfig: Partial<GatewayConfig> = {
+        port: 8080,
+        bind: 'lan'
+      };
+
+      const mergedConfig = loadConfig('test-config.json', customConfig);
+      expect(mergedConfig.port).toBeDefined();
+      expect(mergedConfig.bind).toBeDefined();
+    });
+
+    test('应该处理空的配置文件', async () => {
+      const config = await loadConfig('empty-config.json');
+      expect(config).toBeDefined();
+      expect(typeof config).toBe('object');
+    });
+  });
+
+  describe('🔍 配置验证测试 (P0 - 正常流程)', () => {
+    test('应该验证有效的端口配置', () => {
+      const validConfig: GatewayConfig = {
+        port: 8080,
+        bind: 'loopback'
+      };
+
+      expect(() => loadConfig('test.json', validConfig)).not.toThrow();
+    });
+
+    test('应该拒绝无效的端口值', () => {
+      const invalidConfig: GatewayConfig = {
+        port: -1,
+        bind: 'loopback'
+      };
+
+      expect(() => loadConfig('test.json', invalidConfig)).toThrow();
+    });
+
+    test('应该拒绝过大的端口号', () => {
+      const invalidConfig: GatewayConfig = {
+        port: 70000,
+        bind: 'loopback'
+      };
+
+      expect(() => loadConfig('test.json', invalidConfig)).toThrow();
+    });
+
+    test('应该验证有效的bind配置', () => {
+      const validConfigs = [
+        { bind: 'loopback' as const },
+        { bind: 'lan' as const },
+        { bind: 'tailnet' as const },
+        { bind: 'auto' as const }
+      ];
+
+      validConfigs.forEach(config => {
+        expect(() => {
+          loadConfig('test.json', config as GatewayConfig);
+        }).not.toThrow();
+      });
+    });
+
+    test('应该拒绝无效的bind配置', () => {
+      const invalidConfig: GatewayConfig = {
+        port: 8080,
+        bind: 'invalid' as any
+      };
+
+      expect(() => loadConfig('test.json', invalidConfig)).toThrow();
+    });
+
+    test('应该验证auth配置结构', () => {
+      const authConfig = {
+        enabled: true,
+        token: 'test-token',
+        password: 'test-password'
+      };
+
+      const config: GatewayConfig = {
+        port: 8080,
+        auth: authConfig
+      };
+
+      expect(() => loadConfig('test.json', config)).not.toThrow();
+    });
+
+    test('应该拒绝缺失必需字段的配置', () => {
+      const incompleteConfig: any = {
+        // Missing 'port' field
+        bind: 'loopback'
+      };
+
+      expect(() => loadConfig('test.json', incompleteConfig)).toThrow();
+    });
+  });
+
+  describe('🌐 环境变量处理测试 (P0 - 正常流程)', () => {
+    test('应该从环境变量加载配置', () => {
+      process.env.GATEWAY_PORT = '9000';
+      process.env.GATEWAY_BIND = 'lan';
+
+      const config = loadConfig('test.json');
+      expect(config.port).toBe(9000);
+      expect(config.bind).toBe('lan');
+
+      // Cleanup
+      delete process.env.GATEWAY_PORT;
+      delete process.env.GATEWAY_BIND;
+    });
+
+    test('应该优先使用环境变量而非配置文件', () => {
+      process.env.GATEWAY_PORT = '9000';
+
+      const config = loadConfig('test.json', {
+        port: 8080
+      });
+
+      expect(config.port).toBe(9000);
+
+      // Cleanup
+      delete process.env.GATEWAY_PORT;
+    });
+
+    test('应该处理环境变量类型转换', () => {
+      process.env.GATEWAY_PORT = '8080';
+
+      const config = loadConfig('test.json');
+      expect(typeof config.port).toBe('number');
+      expect(config.port).toBe(8080);
+
+      // Cleanup
+      delete process.env.GATEWAY_PORT;
+    });
+
+    test('应该处理缺失的环境变量', () => {
+      const config = loadConfig('test.json');
+      expect(config).toBeDefined();
+    });
+
+    test('应该支持环境变量前缀配置', () => {
+      process.env.NE_NEGENTROPY_GATEWAY_PORT = '8080';
+
+      const config = loadConfig('test.json', {}, 'NE_NEGENTROPY_GATEWAY_');
+      expect(config.port).toBe(8080);
+
+      // Cleanup
+      delete process.env.NE_NEGENTROPY_GATEWAY_PORT;
+    });
+  });
+
+  describe('🔄 配置热重载测试 (P1 - 热重载)', () => {
+    test('应该监听配置文件变更', async () => {
+      const config = await loadConfig('test-config.json');
+      expect(config).toBeDefined();
+    });
+
+    test('应该支持配置热重载', () => {
+      const config = loadConfig('test-config.json');
+      // Mock hot reload
+      const newConfig: GatewayConfig = {
+        port: 9000,
+        bind: 'lan'
+      };
+
+      // Update config
+      config.port = 9000;
+
+      expect(config.port).toBe(9000);
+    });
+
+    test('应该处理配置更新通知', () => {
+      const config = loadConfig('test-config.json');
+      expect(config).toBeDefined();
+    });
+  });
+
+  describe('📊 配置层级测试 (P1 - 层级管理)', () => {
+    test('应该支持默认配置', () => {
+      const config = loadConfig('test.json');
+      expect(config.port).toBeDefined();
+      expect(config.bind).toBeDefined();
+    });
+
+    test('应该支持文件配置', () => {
+      const config = loadConfig('test-config.json');
+      expect(config).toBeDefined();
+    });
+
+    test('应该支持自定义配置覆盖', () => {
+      const fileConfig = loadConfig('test-config.json');
+      const customConfig: GatewayConfig = {
+        port: 9999
+      };
+
+      const merged = loadConfig('test.json', fileConfig, customConfig);
+      expect(merged.port).toBe(9999);
+    });
+
+    test('应该支持配置合并优先级', () => {
+      const defaultConfig: GatewayConfig = {
+        port: 8080,
+        bind: 'loopback'
+      };
+
+      const fileConfig = loadConfig('test-config.json');
+      const customConfig: GatewayConfig = {
+        port: 9000
+      };
+
+      const merged = loadConfig('test.json', fileConfig, customConfig);
+      expect(merged.port).toBe(9000);
+      expect(merged.bind).toBe('loopback');
+    });
+  });
+
+  describe('🔒 安全配置测试 (P0 - 安全)', () => {
+    test('应该验证认证token长度', () => {
+      const authConfig = {
+        token: 'a' // Too short
+      };
+
+      const config: GatewayConfig = {
+        port: 8080,
+        auth: authConfig
+      };
+
+      expect(() => loadConfig('test.json', config)).toThrow();
+    });
+
+    test('应该验证密码强度', () => {
+      const authConfig = {
+        password: 'weak'
+      };
+
+      const config: GatewayConfig = {
+        port: 8080,
+        auth: authConfig
+      };
+
+      expect(() => loadConfig('test.json', config)).toThrow();
+    });
+
+    test('应该支持敏感配置加密', () => {
+      const authConfig = {
+        token: 'test-token',
+        password: 'test-password'
+      };
+
+      const config: GatewayConfig = {
+        port: 8080,
+        auth: authConfig
+      };
+
+      expect(() => loadConfig('test.json', config)).not.toThrow();
+    });
+
+    test('应该拒绝包含敏感信息的配置', () => {
+      const config: any = {
+        port: 8080,
+        auth: {
+          token: 'actual-secret-key'
+        }
+      };
+
+      // Should warn but not necessarily fail
+      expect(() => loadConfig('test.json', config)).not.toThrow();
+    });
+  });
+
+  describe('🔧 辅助功能测试 (P2 - 辅助)', () => {
+    test('应该生成默认配置', () => {
+      const defaultConfig = loadConfig('test.json');
+      expect(defaultConfig.port).toBeDefined();
+      expect(defaultConfig.bind).toBeDefined();
+      expect(defaultConfig.auth).toBeDefined();
+    });
+
+    test('应该打印配置摘要', () => {
+      const config = loadConfig('test-config.json');
+      expect(() => {
+        console.log(JSON.stringify(config, null, 2));
+      }).not.toThrow();
+    });
+
+    test('应该验证配置兼容性', () => {
+      const config: GatewayConfig = {
+        port: 8080,
+        bind: 'loopback',
+        controlUiEnabled: true,
+        openAiChatCompletionsEnabled: true
+      };
+
+      expect(() => loadConfig('test.json', config)).not.toThrow();
+    });
+
+    test('应该支持配置导出', () => {
+      const config = loadConfig('test-config.json');
+      const exported = JSON.stringify(config);
+
+      expect(exported).toBeDefined();
+      expect(typeof exported).toBe('string');
+    });
+  });
+
+  describe('🌍 国际化测试 (P2 - 国际化)', () => {
+    test('应该支持多语言配置键', () => {
+      const config: GatewayConfig = {
+        port: 8080,
+        bind: 'loopback',
+        locale: 'zh-CN'
+      };
+
+      expect(() => loadConfig('test.json', config)).not.toThrow();
+    });
+
+    test('应该处理无效的locale值', () => {
+      const config: GatewayConfig = {
+        port: 8080,
+        bind: 'loopback',
+        locale: 'invalid-locale'
+      };
+
+      expect(() => loadConfig('test.json', config)).not.toThrow();
+    });
+  });
+
+  describe('🔍 性能配置测试 (P2 - 性能)', () => {
+    test('应该支持连接池配置', () => {
+      const config: GatewayConfig = {
+        port: 8080,
+        bind: 'loopback',
+        connectionPool: {
+          maxSize: 100,
+          minSize: 10
+        }
+      };
+
+      expect(() => loadConfig('test.json', config)).not.toThrow();
+    });
+
+    test('应该支持超时配置', () => {
+      const config: GatewayConfig = {
+        port: 8080,
+        bind: 'loopback',
+        timeouts: {
+          connect: 5000,
+          read: 10000,
+          write: 5000
+        }
+      };
+
+      expect(() => loadConfig('test.json', config)).not.toThrow();
+    });
+
+    test('应该验证超时值范围', () => {
+      const config: GatewayConfig = {
+        port: 8080,
+        bind: 'loopback',
+        timeouts: {
+          connect: -1, // Invalid
+          read: 10000,
+          write: 5000
+        }
+      };
+
+      expect(() => loadConfig('test.json', config)).toThrow();
+    });
+  });
+
+  describe('🔌 插件配置测试 (P1 - 插件)', () => {
+    test('应该支持插件配置', () => {
+      const config: GatewayConfig = {
+        port: 8080,
+        bind: 'loopback',
+        plugins: [
+          {
+            name: 'authentication',
+            enabled: true
+          },
+          {
+            name: 'logging',
+            enabled: true
+          }
+        ]
+      };
+
+      expect(() => loadConfig('test.json', config)).not.toThrow();
+    });
+
+    test('应该验证插件名称', () => {
+      const config: GatewayConfig = {
+        port: 8080,
+        bind: 'loopback',
+        plugins: [
+          {
+            name: 'invalid-plugin-name',
+            enabled: true
+          }
+        ]
+      };
+
+      expect(() => loadConfig('test.json', config)).not.toThrow();
+    });
+
+    test('应该支持插件参数配置', () => {
+      const config: GatewayConfig = {
+        port: 8080,
+        bind: 'loopback',
+        plugins: [
+          {
+            name: 'authentication',
+            enabled: true,
+            config: {
+              token: 'test-token',
+              refreshRate: 3600
+            }
+          }
+        ]
+      };
+
+      expect(() => loadConfig('test.json', config)).not.toThrow();
+    });
+  });
+});
+
+describe('Gateway Config 集成测试', () => {
+  test('应该完成完整的配置加载流程', async () => {
+    // 1. Load default config
+    const defaultConfig = loadConfig('test.json');
+    expect(defaultConfig.port).toBeDefined();
+
+    // 2. Load custom config
+    const customConfig: GatewayConfig = {
+      port: 9000,
+      bind: 'lan'
+    };
+
+    const mergedConfig = loadConfig('test.json', defaultConfig, customConfig);
+    expect(mergedConfig.port).toBe(9000);
+
+    // 3. Apply environment variables
+    process.env.GATEWAY_PORT = '8000';
+    const envConfig = loadConfig('test.json', mergedConfig);
+    expect(envConfig.port).toBe(8000);
+
+    // Cleanup
+    delete process.env.GATEWAY_PORT;
+  });
+
+  test('应该处理复杂的嵌套配置', () => {
+    const complexConfig: GatewayConfig = {
+      port: 8080,
+      bind: 'loopback',
+      auth: {
+        enabled: true,
+        token: 'secret-token',
+        refreshRate: 3600
+      },
+      timeouts: {
+        connect: 5000,
+        read: 10000,
+        write: 5000
+      },
+      plugins: [
+        {
+          name: 'authentication',
+          enabled: true,
+          config: {
+            token: 'plugin-token'
+          }
+        }
+      ],
+      connectionPool: {
+        maxSize: 100,
+        minSize: 10
+      }
+    };
+
+    const config = loadConfig('test.json', complexConfig);
+    expect(config).toBeDefined();
+    expect(config.auth).toBeDefined();
+    expect(config.timeouts).toBeDefined();
+    expect(config.plugins).toBeDefined();
+    expect(config.connectionPool).toBeDefined();
+  });
+});

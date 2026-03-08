@@ -1,0 +1,580 @@
+/**
+ * 🔍 Gateway Server Channels 单元测试套件
+ *
+ * 宪法依据：
+ * - §101 同步公理：测试代码与实现代码同步
+ * - §102 熵减原则：通过测试降低系统不确定性
+ * - §108 异构模型策略：验证模型参数指定
+ *
+ * 测试范围：
+ * 1. 通道管理器测试
+ * 2. 平台适配器工厂测试
+ * 3. 平台连接管理
+ * 4. 消息路由测试
+ * 5. 错误处理
+ */
+
+import { ChannelManager } from '../channels/core/ChannelManager';
+import { PlatformAdapterFactory } from '../channels/core/PlatformAdapterFactory';
+import { IPlatformAdapter } from '../channels/interfaces/IPlatformAdapter';
+import * as platform from '../channels';
+
+// Mock platform adapters
+jest.mock('../channels/platforms/discord/DiscordAdapter', () => ({
+  DiscordAdapter: jest.fn().mockImplementation(() => ({
+    connect: jest.fn().mockResolvedValue(true),
+    disconnect: jest.fn().mockResolvedValue(true),
+    send: jest.fn().mockResolvedValue(true),
+    receive: jest.fn().mockResolvedValue('message'),
+    getStatus: jest.fn().mockReturnValue('connected')
+  }))
+}));
+
+jest.mock('../channels/platforms/slack/SlackAdapter', () => ({
+  SlackAdapter: jest.fn().mockImplementation(() => ({
+    connect: jest.fn().mockResolvedValue(true),
+    disconnect: jest.fn().mockResolvedValue(true),
+    send: jest.fn().mockResolvedValue(true),
+    receive: jest.fn().mockResolvedValue('message'),
+    getStatus: jest.fn().mockReturnValue('connected')
+  }))
+}));
+
+jest.mock('../channels/platforms/telegram/TelegramAdapter', () => ({
+  TelegramAdapter: jest.fn().mockImplementation(() => ({
+    connect: jest.fn().mockResolvedValue(true),
+    disconnect: jest.fn().mockResolvedValue(true),
+    send: jest.fn().mockResolvedValue(true),
+    receive: jest.fn().mockResolvedValue('message'),
+    getStatus: jest.fn().mockReturnValue('connected')
+  }))
+}));
+
+describe('Gateway Server Channels - 核心功能测试', () => {
+  describe('✅ 初始化测试 (P0 - 正常流程)', () => {
+    test('应该成功初始化通道管理器', () => {
+      const channelManager = new ChannelManager();
+      expect(channelManager).toBeDefined();
+    });
+
+    test('应该加载通道管理器配置', () => {
+      const channelManager = new ChannelManager();
+      expect(channelManager).toBeDefined();
+    });
+
+    test('应该支持平台适配器工厂', () => {
+      const factory = new PlatformAdapterFactory();
+      expect(factory).toBeDefined();
+    });
+
+    test('应该支持所有平台适配器', () => {
+      const adapters = [
+        'discord',
+        'slack',
+        'telegram',
+        'twitter',
+        'facebook'
+      ];
+
+      adapters.forEach(platformName => {
+        const adapter = platform[platformName];
+        expect(adapter).toBeDefined();
+      });
+    });
+  });
+
+  describe('🔍 通道连接测试 (P0 - 正常流程)', () => {
+    test('应该连接到Discord平台', async () => {
+      const adapter = new (platform.discord as any).DiscordAdapter();
+      const isConnected = await adapter.connect();
+
+      expect(isConnected).toBe(true);
+      expect(adapter.getStatus()).toBe('connected');
+    });
+
+    test('应该连接到Slack平台', async () => {
+      const adapter = new (platform.slack as any).SlackAdapter();
+      const isConnected = await adapter.connect();
+
+      expect(isConnected).toBe(true);
+      expect(adapter.getStatus()).toBe('connected');
+    });
+
+    test('应该连接到Telegram平台', async () => {
+      const adapter = new (platform.telegram as any).TelegramAdapter();
+      const isConnected = await adapter.connect();
+
+      expect(isConnected).toBe(true);
+      expect(adapter.getStatus()).toBe('connected');
+    });
+
+    test('应该支持平台连接参数', async () => {
+      const config = {
+        botToken: 'test-token',
+        webhookUrl: 'https://example.com/webhook'
+      };
+
+      const adapter = new (platform.discord as any).DiscordAdapter(config);
+      const isConnected = await adapter.connect();
+
+      expect(isConnected).toBe(true);
+    });
+
+    test('应该处理连接超时', async () => {
+      jest.useFakeTimers();
+
+      const adapter = new (platform.discord as any).DiscordAdapter();
+      jest.spyOn(adapter, 'connect').mockImplementation(
+        () => new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Connection timeout')), 100)
+        )
+      );
+
+      await expect(adapter.connect()).rejects.toThrow('Connection timeout');
+
+      jest.useRealTimers();
+    });
+  });
+
+  describe('📤 消息发送测试 (P0 - 正常流程)', () => {
+    test('应该发送消息到Discord', async () => {
+      const adapter = new (platform.discord as any).DiscordAdapter();
+      await adapter.connect();
+
+      const result = await adapter.send({
+        channel: 'general',
+        content: 'Hello Discord!'
+      });
+
+      expect(result).toBe(true);
+    });
+
+    test('应该发送消息到Slack', async () => {
+      const adapter = new (platform.slack as any).SlackAdapter();
+      await adapter.connect();
+
+      const result = await adapter.send({
+        channel: 'general',
+        text: 'Hello Slack!'
+      });
+
+      expect(result).toBe(true);
+    });
+
+    test('应该发送消息到Telegram', async () => {
+      const adapter = new (platform.telegram as any).TelegramAdapter();
+      await adapter.connect();
+
+      const result = await adapter.send({
+        chatId: '123456',
+        text: 'Hello Telegram!'
+      });
+
+      expect(result).toBe(true);
+    });
+
+    test('应该支持富媒体消息', async () => {
+      const adapter = new (platform.discord as any).DiscordAdapter();
+      await adapter.connect();
+
+      const result = await adapter.send({
+        channel: 'general',
+        embed: {
+          title: 'Test Embed',
+          description: 'This is a test embed',
+          color: 0x00FF00
+        }
+      });
+
+      expect(result).toBe(true);
+    });
+
+    test('应该支持文件上传', async () => {
+      const adapter = new (platform.discord as any).DiscordAdapter();
+      await adapter.connect();
+
+      const result = await adapter.send({
+        channel: 'general',
+        file: 'path/to/file.pdf',
+        filename: 'document.pdf'
+      });
+
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('📥 消息接收测试 (P0 - 正常流程)', () => {
+    test('应该接收Discord消息', async () => {
+      const adapter = new (platform.discord as any).DiscordAdapter();
+      await adapter.connect();
+
+      const message = await adapter.receive();
+      expect(message).toBeDefined();
+      expect(message.content).toBeDefined();
+    });
+
+    test('应该接收Slack消息', async () => {
+      const adapter = new (platform.slack as any).SlackAdapter();
+      await adapter.connect();
+
+      const message = await adapter.receive();
+      expect(message).toBeDefined();
+    });
+
+    test('应该接收Telegram消息', async () => {
+      const adapter = new (platform.telegram as any).TelegramAdapter();
+      await adapter.connect();
+
+      const message = await adapter.receive();
+      expect(message).toBeDefined();
+    });
+
+    test('应该支持消息过滤', async () => {
+      const adapter = new (platform.discord as any).DiscordAdapter();
+      await adapter.connect();
+
+      const message = await adapter.receive({ filter: 'commands' });
+      expect(message).toBeDefined();
+    });
+  });
+
+  describe('❌ 异常处理测试 (P0 - 异常处理)', () => {
+    test('应该处理未连接的适配器', async () => {
+      const adapter = new (platform.discord as any).DiscordAdapter();
+
+      await expect(
+        adapter.send({
+          channel: 'general',
+          content: 'Test'
+        })
+      ).rejects.toThrow('Not connected');
+    });
+
+    test('应该处理连接失败', async () => {
+      const adapter = new (platform.discord as any).DiscordAdapter();
+      jest.spyOn(adapter, 'connect').mockRejectedValue(new Error('Connection failed'));
+
+      await expect(adapter.connect()).rejects.toThrow('Connection failed');
+    });
+
+    test('应该处理发送失败', async () => {
+      const adapter = new (platform.discord as any).DiscordAdapter();
+      await adapter.connect();
+
+      jest.spyOn(adapter, 'send').mockRejectedValue(new Error('Send failed'));
+
+      await expect(
+        adapter.send({
+          channel: 'general',
+          content: 'Test'
+        })
+      ).rejects.toThrow('Send failed');
+    });
+
+    test('应该处理无效的消息格式', async () => {
+      const adapter = new (platform.discord as any).DiscordAdapter();
+      await adapter.connect();
+
+      await expect(adapter.send(null as any)).rejects.toThrow();
+    });
+
+    test('应该处理通道不存在', async () => {
+      const adapter = new (platform.discord as any).DiscordAdapter();
+      await adapter.connect();
+
+      await expect(
+        adapter.send({
+          channel: 'nonexistent-channel',
+          content: 'Test'
+        })
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('🔌 适配器工厂测试 (P0 - 正常流程)', () => {
+    test('应该创建Discord适配器', () => {
+      const adapter = PlatformAdapterFactory.create('discord');
+      expect(adapter).toBeDefined();
+      expect(adapter instanceof (platform.discord as any).DiscordAdapter).toBe(true);
+    });
+
+    test('应该创建Slack适配器', () => {
+      const adapter = PlatformAdapterFactory.create('slack');
+      expect(adapter).toBeDefined();
+      expect(adapter instanceof (platform.slack as any).SlackAdapter).toBe(true);
+    });
+
+    test('应该创建Telegram适配器', () => {
+      const adapter = PlatformAdapterFactory.create('telegram');
+      expect(adapter).toBeDefined();
+      expect(adapter instanceof (platform.telegram as any).TelegramAdapter).toBe(true);
+    });
+
+    test('应该支持适配器配置', () => {
+      const config = {
+        discord: {
+          botToken: 'test-token',
+          webhookUrl: 'https://example.com'
+        }
+      };
+
+      const adapters = PlatformAdapterFactory.createMultiple(config);
+      expect(adapters.discord).toBeDefined();
+      expect(adapters.slack).toBeUndefined();
+    });
+
+    test('应该拒绝不支持的平台', () => {
+      expect(() => {
+        PlatformAdapterFactory.create('unsupported-platform');
+      }).toThrow();
+    });
+  });
+
+  describe('🌐 平台适配器测试 (P1 - 平台)', () => {
+    test('应该验证适配器接口实现', () => {
+      const adapter = new (platform.discord as any).DiscordAdapter();
+      const adapterInstance: IPlatformAdapter = adapter;
+
+      expect(adapterInstance.connect).toBeDefined();
+      expect(adapterInstance.disconnect).toBeDefined();
+      expect(adapterInstance.send).toBeDefined();
+      expect(adapterInstance.receive).toBeDefined();
+      expect(adapterInstance.getStatus).toBeDefined();
+    });
+
+    test('应该支持适配器生命周期管理', async () => {
+      const adapter = new (platform.discord as any).DiscordAdapter();
+
+      // Connect
+      const connected = await adapter.connect();
+      expect(connected).toBe(true);
+
+      // Check status
+      const status = adapter.getStatus();
+      expect(status).toBe('connected');
+
+      // Disconnect
+      const disconnected = await adapter.disconnect();
+      expect(disconnected).toBe(true);
+
+      // Check status after disconnect
+      const statusAfter = adapter.getStatus();
+      expect(statusAfter).toBe('disconnected');
+    });
+
+    test('应该支持重新连接', async () => {
+      const adapter = new (platform.discord as any).DiscordAdapter();
+
+      await adapter.connect();
+      await adapter.disconnect();
+
+      const reconnected = await adapter.connect();
+      expect(reconnected).toBe(true);
+    });
+  });
+
+  describe('📊 通道统计测试 (P1 - 统计)', () => {
+    test('应该跟踪连接统计', () => {
+      const channelManager = new ChannelManager();
+      const stats = channelManager.getStats();
+
+      expect(stats.totalChannels).toBe(0);
+      expect(stats.connectedChannels).toBe(0);
+    });
+
+    test('应该跟踪消息统计', () => {
+      const channelManager = new ChannelManager();
+      const stats = channelManager.getStats();
+
+      expect(stats.messagesSent).toBe(0);
+      expect(stats.messagesReceived).toBe(0);
+    });
+
+    test('应该跟踪错误统计', () => {
+      const channelManager = new ChannelManager();
+      const stats = channelManager.getStats();
+
+      expect(stats.totalErrors).toBe(0);
+    });
+  });
+
+  describe('🔧 辅助功能测试 (P2 - 辅助)', () => {
+    test('应该获取适配器状态', async () => {
+      const adapter = new (platform.discord as any).DiscordAdapter();
+      const status = adapter.getStatus();
+
+      expect(status).toBeDefined();
+      expect(typeof status).toBe('string');
+    });
+
+    test('应该获取适配器信息', () => {
+      const adapter = new (platform.discord as any).DiscordAdapter();
+      const info = adapter.getInfo();
+
+      expect(info).toBeDefined();
+      expect(info.name).toBeDefined();
+      expect(info.platform).toBeDefined();
+    });
+
+    test('应该支持健康检查', async () => {
+      const adapter = new (platform.discord as any).DiscordAdapter();
+      await adapter.connect();
+
+      const healthy = adapter.isHealthy();
+      expect(healthy).toBe(true);
+    });
+
+    test('应该支持调试模式', () => {
+      const adapter = new (platform.discord as any).DiscordAdapter({
+        debug: true
+      });
+
+      expect(adapter).toBeDefined();
+    });
+  });
+
+  describe('🔄 消息路由测试 (P0 - 正常流程)', () => {
+    test('应该路由消息到正确的通道', async () => {
+      const channelManager = new ChannelManager();
+
+      // Mock adapters
+      const discordAdapter = new (platform.discord as any).DiscordAdapter();
+      const slackAdapter = new (platform.slack as any).SlackAdapter();
+
+      channelManager.addAdapter('discord', discordAdapter);
+      channelManager.addAdapter('slack', slackAdapter);
+
+      // Connect adapters
+      await discordAdapter.connect();
+      await slackAdapter.connect();
+
+      // Send message
+      const result1 = await channelManager.send('discord', {
+        channel: 'general',
+        content: 'Hello Discord!'
+      });
+
+      const result2 = await channelManager.send('slack', {
+        channel: 'general',
+        text: 'Hello Slack!'
+      });
+
+      expect(result1).toBe(true);
+      expect(result2).toBe(true);
+    });
+
+    test('应该支持消息路由配置', () => {
+      const channelManager = new ChannelManager();
+      const routingConfig = {
+        discord: {
+          channel: 'general',
+          webhooks: {
+            notifications: 'https://example.com/webhook'
+          }
+        },
+        slack: {
+          channel: 'general',
+          webhooks: {
+            notifications: 'https://example.com/webhook'
+          }
+        }
+      };
+
+      channelManager.configureRouting(routingConfig);
+
+      expect(channelManager.getRoutingConfig()).toEqual(routingConfig);
+    });
+  });
+
+  describe('🔒 安全测试 (P0 - 安全)', () => {
+    test('应该验证API token', async () => {
+      const adapter = new (platform.discord as any).DiscordAdapter({
+        botToken: 'test-token'
+      });
+
+      await adapter.connect();
+      expect(adapter).toBeDefined();
+    });
+
+    test('应该验证webhook签名', async () => {
+      const adapter = new (platform.discord as any).DiscordAdapter({
+        webhookUrl: 'https://example.com/webhook',
+        webhookSecret: 'secret'
+      });
+
+      expect(adapter).toBeDefined();
+    });
+
+    test('应该处理敏感信息泄露', () => {
+      const config = {
+        discord: {
+          botToken: 'actual-secret-token',
+          webhookUrl: 'https://example.com/webhook',
+          webhookSecret: 'actual-secret-key'
+        }
+      };
+
+      const adapter = PlatformAdapterFactory.create('discord', config);
+      expect(adapter).toBeDefined();
+    });
+  });
+});
+
+describe('Gateway Server Channels - 集成测试', () => {
+  test('应该完成完整的通道流程', async () => {
+    // 1. Create channel manager
+    const channelManager = new ChannelManager();
+
+    // 2. Create and add adapters
+    const discordAdapter = new (platform.discord as any).DiscordAdapter();
+    channelManager.addAdapter('discord', discordAdapter);
+
+    // 3. Connect adapters
+    const connected = await discordAdapter.connect();
+    expect(connected).toBe(true);
+
+    // 4. Send message
+    const messageSent = await channelManager.send('discord', {
+      channel: 'general',
+      content: 'Integration test'
+    });
+
+    expect(messageSent).toBe(true);
+
+    // 5. Receive message
+    const messageReceived = await discordAdapter.receive();
+    expect(messageReceived).toBeDefined();
+
+    // 6. Disconnect
+    const disconnected = await discordAdapter.disconnect();
+    expect(disconnected).toBe(true);
+  });
+
+  test('应该支持多平台协同', async () => {
+    const channelManager = new ChannelManager();
+
+    // Add adapters
+    channelManager.addAdapter('discord', new (platform.discord as any).DiscordAdapter());
+    channelManager.addAdapter('slack', new (platform.slack as any).SlackAdapter());
+    channelManager.addAdapter('telegram', new (platform.telegram as any).TelegramAdapter());
+
+    // Connect all
+    await Promise.all([
+      (channelManager.getAdapter('discord') as any).connect(),
+      (channelManager.getAdapter('slack') as any).connect(),
+      (channelManager.getAdapter('telegram') as any).connect()
+    ]);
+
+    // Send to all
+    await channelManager.broadcast({
+      content: 'Broadcast to all platforms!'
+    });
+
+    // Disconnect all
+    await Promise.all([
+      (channelManager.getAdapter('discord') as any).disconnect(),
+      (channelManager.getAdapter('slack') as any).disconnect(),
+      (channelManager.getAdapter('telegram') as any).disconnect()
+    ]);
+  });
+});

@@ -56,7 +56,7 @@ const nodeEnv = process.env.NODE_ENV || 'development';
 export const activeRooms: Set<Room> = new Set();
 
 // 初始化Express应用
-const app: express.Application = express();
+const app = express();
 
 // === 中间件配置（简化版） ===
 

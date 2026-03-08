@@ -17,7 +17,7 @@ import { getVectorizationPipeline } from '../services/VectorizationPipeline';
 import { getQdrantService } from '../services/QdrantService';
 import { getOpenClawLogAdapter } from '../adapters/OpenClawLogAdapter';
 
-const router: Router = Router();
+const router = Router();
 const pipeline = getVectorizationPipeline();
 const qdrantService = getQdrantService();
 const logAdapter = getOpenClawLogAdapter();
@@ -134,7 +134,7 @@ router.get('/collections', async (req: Request, res: Response) => {
  */
 router.get('/collections/:name', async (req: Request, res: Response) => {
   try {
-    const name = String(req.params.name);
+    const { name } = req.params;
     const info = await qdrantService.getCollectionInfo(name);
 
     if (!info) {
@@ -166,7 +166,7 @@ router.get('/collections/:name', async (req: Request, res: Response) => {
  */
 router.delete('/collections/:name', async (req: Request, res: Response) => {
   try {
-    const name = String(req.params.name);
+    const { name } = req.params;
     const client = qdrantService.getClient();
     await client.deleteCollection(name);
 
@@ -252,8 +252,7 @@ router.post('/logs/search', async (req: Request, res: Response) => {
  */
 router.get('/logs/high-entropy', async (req: Request, res: Response) => {
   try {
-    const limitParam = req.query.limit;
-    const limit = parseInt(typeof limitParam === 'string' ? limitParam : '20') || 20;
+    const limit = parseInt(req.query.limit as string) || 20;
     const logs = await logAdapter.getHighEntropyLogs(limit);
 
     res.json({

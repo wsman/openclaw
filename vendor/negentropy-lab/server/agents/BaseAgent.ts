@@ -6,7 +6,7 @@
  * 状态: 🟢 活跃
  */
 
-import { AgentConfig } from '../modules/agent/types';
+import { AgentConfig } from '../api/agent';
 import { logger } from '../utils/logger';
 
 /**

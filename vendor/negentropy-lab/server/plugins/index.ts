@@ -1,73 +1,80 @@
 /**
- * 🚀 插件系统入口 - 兼容层
+ * Negentropy-Lab Plugin System - Main Entry Point
  * 
- * @constitution
- * §102 熵减原则：消除冗余代码，统一插件接口
- * §152 单一真理源公理：插件逻辑集中在 gateway/plugins
+ * 宪法依据:
+ * - §101 同步公理: 代码与文档必须原子性同步
+ * - §102 熵减原则: 复用OpenClaw已有架构，避免重复实现
+ * - §108 异构模型策略: 明确模型参数配置
+ * - §118 长时间任务执行公理: 支持超时配置
+ * - §306 零停机协议: 支持热加载/热卸载
  * 
- * 整合说明：
- * - 所有插件逻辑已迁移到 server/gateway/plugins/
- * - 此文件提供向后兼容的接口
- * - 新代码请直接从 '../gateway/plugins' 导入
+ * @version 1.0.0
+ * @created 2026-02-12
+ * @maintainer 科技部后端分队
  * 
- * @deprecated 请直接从 '../gateway/plugins' 导入
- * @see server/gateway/plugins/index.ts
+ * 概述:
+ * 本模块提供Negentropy-Lab的插件系统核心功能，包括:
+ * - 插件管理器 (PluginManager)
+ * - 插件CLI工具 (PluginCLI)
+ * - 插件接口定义 (Plugin Interfaces)
+ * - 插件注册表 (Plugin Registry)
+ * 
+ * OpenClaw兼容性:
+ * - 支持OpenClaw插件格式 (openclaw.plugin.json)
+ * - 扩展Negentropy-Lab特定功能 (negentropy.plugin.json)
+ * - 复用OpenClaw插件架构60%
  */
 
-// 发出废弃警告（非生产环境）
-if (process.env.NODE_ENV !== 'production') {
-  console.warn('⚠️  DEPRECATED: plugins/index.ts 已废弃，请直接从 gateway/plugins 导入');
-}
+// =============================================================================
+// Core Exports
+// =============================================================================
 
-// ==========================================
-// 重新导出 gateway/plugins 内容
-// ==========================================
+export { PluginManager } from './core/PluginManager';
+export { PluginManagerConfig } from './core/PluginManager';
 
-export * from '../gateway/plugins';
+// =============================================================================
+// CLI Exports
+// =============================================================================
 
-// 导出主要类和错误类型
-export {
-  PluginManager,
-  PluginManagerError,
-  PluginNotFoundError,
-  PluginValidationError,
-  PluginDependencyError,
-  PluginLifecycleError
-} from '../gateway/plugins';
+export { PluginCLI } from './cli/PluginCLI';
+export { PluginCLIConfig } from './cli/PluginCLI';
 
-// 导出类型（便于类型检查）
-export type {
-  PluginType,
-  PluginStatus,
-  PluginManifest,
-  LoadedPlugin,
-  PluginManagerOptions,
-  PluginEvent,
-  PluginEventType,
-  PluginApiResponse
-} from '../gateway/plugins/types';
+// =============================================================================
+// Type Exports
+// =============================================================================
 
-// ==========================================
-// 向后兼容的工厂函数
-// ==========================================
+export * from './types/plugin-interfaces';
 
-import { PluginManager } from '../gateway/plugins';
-import type { PluginManagerOptions } from '../gateway/plugins/types';
+// =============================================================================
+// Utilities
+// =============================================================================
+
+import { PluginManager as PluginManagerClass, PluginManagerConfig } from './core/PluginManager';
+import { PluginCLI as PluginCLIClass, PluginCLIConfig as PluginCLIConfigType } from './cli/PluginCLI';
 
 /**
  * 创建插件管理器实例
  * 
  * @param config - 插件管理器配置
  * @returns 插件管理器实例
- * @deprecated 使用 new PluginManager(config) 替代
  */
-export function createPluginManager(config?: Partial<PluginManagerOptions>) {
-  return new PluginManager(config);
+export function createPluginManager(config?: PluginManagerConfig) {
+  return new PluginManagerClass(config);
 }
 
-// ==========================================
-// 插件系统常量（向后兼容）
-// ==========================================
+/**
+ * 创建插件CLI实例
+ * 
+ * @param config - 插件CLI配置
+ * @returns 插件CLI实例
+ */
+export function createPluginCLI(config: PluginCLIConfigType) {
+  return new PluginCLIClass(config);
+}
+
+// =============================================================================
+// Plugin System Constants
+// =============================================================================
 
 /**
  * 插件系统版本

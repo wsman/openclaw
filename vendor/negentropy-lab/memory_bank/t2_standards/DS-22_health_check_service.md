@@ -5,7 +5,7 @@
 **宪法依据**: §181 (类型公理优先原则), §307 (可观测性标准), §336 (依赖注入标准)
 **版本**: v6.6.0 (SessionManager Migration & Type Axiom Enhancement)
 **状态**: 🟢 规范定义成熟（实现待开发）
-> **说明**: "规范定义成熟"表示文档定义完整，但实现代码待开发。运行实现状态以 `active_context.md` 为准。
+> **说明**: "规范定义成熟"表示文档定义完整，但实现代码待开发。运行实现状态以 `memory_bank/t0_core/active_context.md` 为准。
 
 ---
 

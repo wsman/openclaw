@@ -16,7 +16,7 @@ tags: [architecture, verification, isomorphism, tier-1]
 **宪法依据**: §122 (质量门控与标准), §141 (自动化重构安全)
 **版本**: v7.0.0 (Negentropy-Lab)
 **状态**: 🟢 规范定义成熟（实现待开发）
-> **说明**: "规范定义成熟"表示文档定义完整，但实现代码待开发。运行实现状态以 `active_context.md` 为准。
+> **说明**: "规范定义成熟"表示文档定义完整，但实现代码待开发。运行实现状态以 `memory_bank/t0_core/active_context.md` 为准。
 
 ---
 

@@ -1,24 +1,72 @@
 /**
- * 🚨 DEPRECATED: 此文件已废弃，仅作为兼容壳
+ * Negentropy-Lab Gateway Server
  * 
- * 新入口请使用: server/index.ts
+ * 主入口文件
  * 
- * 迁移说明：
- * - 主入口已迁移至 server/index.ts (Colyseus 服务器)
- * - 此文件仅保留向后兼容，未来版本将移除
- * - 所有新功能请从 server/ 目录开发
- * 
- * 宪法依据：§102 熵减原则 - 统一入口降低系统熵值
- * 
- * @deprecated 使用 server/index.ts 替代
- * @see server/index.ts
+ * @module index
+ * @version 1.0.0
  */
 
-// 发出废弃警告
-if (process.env.NODE_ENV !== 'production') {
-  console.warn('⚠️  DEPRECATED: src/index.ts 已废弃，请使用 server/index.ts 作为入口');
-}
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import { config } from './config/index.js';
+import { createRouter } from './gateway/router.js';
+import { WebSocketServer } from './websocket/server.js';
+import { logger } from './utils/logger.js';
 
-// 重新导出服务器入口
-export * from '../server/index.js';
-export { app, gameServer, server } from '../server/index.js';
+const app = express();
+
+// 中间件
+app.use(helmet());
+app.use(cors());
+app.use(express.json());
+
+// 请求日志
+app.use((req, res, next) => {
+  logger.info(`${req.method} ${req.path}`);
+  next();
+});
+
+// API路由
+app.use('/api', createRouter());
+
+// 健康检查
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    version: '1.0.0',
+    uptime: process.uptime(),
+    timestamp: Date.now(),
+  });
+});
+
+// 错误处理
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  logger.error('Error:', err);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: err.message,
+  });
+});
+
+// 启动服务器
+const server = app.listen(config.port, () => {
+  logger.info(`Gateway server running on port ${config.port}`);
+  logger.info(`Environment: ${config.env}`);
+});
+
+// WebSocket服务器
+const wsServer = new WebSocketServer(server);
+logger.info('WebSocket server initialized');
+
+// 优雅关闭
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received, shutting down...');
+  server.close(() => {
+    logger.info('Server closed');
+    process.exit(0);
+  });
+});
+
+export { app, server, wsServer };

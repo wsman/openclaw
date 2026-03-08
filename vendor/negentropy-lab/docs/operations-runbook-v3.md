@@ -1,7 +1,7 @@
 # Operations Runbook v3 - 紧急回滚操作手册
 
 **版本**: v3.0.0  
-**日期**: 2026-03-03  
+**日期**: 2026-03-07  
 **适用范围**: Negentropy-Lab + OpenClaw 双服务系统
 
 ---
@@ -29,14 +29,15 @@
 
 ```bash
 # 方法 1：通过 CLI 回滚
-npm run launch -- stop
+npm run launch -- start --decision=OFF
 
 # 方法 2：通过决策服务 API 回滚
-curl -X POST http://localhost:3000/internal/openclaw/decision/emergency-rollback \
+curl -X PUT http://localhost:3000/internal/openclaw/decision/mode \
   -H "Content-Type: application/json" \
-  -d '{"targetMode": "OFF", "reason": "emergency rollback"}'
+  -d '{"mode": "OFF"}'
 
 # 方法 3：直接修改运行时配置
+# 说明: 该文件由 launcher 首次运行后生成
 echo '{"mode": "OFF"}' > storage/runtime/launcher-config.json
 ```
 
@@ -44,10 +45,10 @@ echo '{"mode": "OFF"}' > storage/runtime/launcher-config.json
 
 ```bash
 # 方法 1：通过 CLI
-npm run launch -- start --decision=SHADOW --no-openclaw
+npm run launch -- start --decision=SHADOW
 
 # 方法 2：通过决策服务 API
-curl -X POST http://localhost:3000/internal/openclaw/decision/mode \
+curl -X PUT http://localhost:3000/internal/openclaw/decision/mode \
   -H "Content-Type: application/json" \
   -d '{"mode": "SHADOW"}'
 ```
@@ -142,8 +143,8 @@ kill -9 <PID>
 netstat -ano | findstr :3000
 netstat -ano | findstr :18789
 
-# 4. 强制清理端口
-npm run launch -- clean-ports
+# 4. 重新执行启动前预检
+npm run launch -- preflight
 ```
 
 ### 5.2 端口冲突
@@ -158,8 +159,11 @@ netstat -ano | findstr :3000
 # 2. 终止占用进程
 taskkill /PID <PID> /F
 
-# 3. 使用自动端口切换
-npm run launch -- start --auto-port
+# 3. 默认已启用自动端口解析，直接重试启动
+npm run launch -- start
+
+# 4. 如仍需手动指定备用端口
+npm run launch -- start --port=3100 --openclaw-port=19001
 ```
 
 ---

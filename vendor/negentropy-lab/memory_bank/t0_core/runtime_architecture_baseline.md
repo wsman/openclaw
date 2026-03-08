@@ -1,8 +1,8 @@
 # 运行时架构基线 - Negentropy-Lab v7.6.0-dev
 
 **版本**: v7.6.0-dev (Phase 13 Final Acceptance 已完成)  
-**状态**: ✅ 生效（Phase 14-15 规划中）  
-**最后更新**: 2026-03-06  
+**状态**: ✅ 生效（Phase 14-15 执行中）  
+**最后更新**: 2026-03-07  
 **宪法依据**: §101同步公理、§102熵减原则、§104功能分层拓扑公理、§152单一真理源公理
 
 ---
@@ -26,7 +26,7 @@
 |------|------|----------|----------|
 | 轻量API入口 | 简化HTTP + `/ws` | `src/index.ts` | `npm run dev` |
 | Colyseus主入口 | API-only + 房间/Agent集成 | `server/index.ts` | `npm run dev:colyseus` |
-| Gateway入口 | HTTP + WebSocket RPC + 插件能力 | `server/gateway/index.ts` | `server/gateway/server.impl-with-ws.ts` 被调用 |
+| Gateway入口 | HTTP + WebSocket RPC + 插件能力 | `server/gateway/index.ts` | 由 `scripts/phase14-e2e-integration.ts`、`scripts/phase14-performance-baseline.ts`、`scripts/ops-production-smoke.ts` 通过 `startGatewayServer()` 调用 |
 
 ---
 
@@ -41,7 +41,7 @@
 | L2 执行代理层 | ✅ 已实现 | `server/agents/` |
 | L1 记忆银行层 | ✅ 已实现 | `memory_bank/` |
 | L0.8 ToolCallBridge | 🟡 接口在位 | `server/types/system/IToolCallBridge.ts`（实现待补齐） |
-| L0.5 Legacy兼容层 | 📋 架构规划 | 适配器层仅保留设计与接口 |
+| L0.5 Legacy兼容层 | 🟡 局部实现 | `server/adapters/OpenClawLogAdapter.ts` 已落地，通用兼容适配器仍待补齐 |
 | L0 遗留隔离层 | 📋 架构规划 | 隔离策略存在，代码待建设 |
 
 ---
@@ -63,4 +63,3 @@ npm run check:consistency
 npm run check:contract:strict
 npm test -- --run
 ```
-

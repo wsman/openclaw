@@ -1,0 +1,453 @@
+/**
+ * 🔍 AgentEngine 单元测试套件
+ *
+ * 宪法依据：
+ * - §101 同步公理：测试代码与实现代码同步
+ * - §102 熵减原则：通过测试降低系统不确定性
+ * - §108 异构模型策略：验证模型参数指定
+ * - §109 智能体激活形式宪法区分：验证激活形式规范
+ *
+ * 测试范围：
+ * 1. Agent引擎初始化
+ * 2. Agent加载与管理
+ * 3. Agent路由与分发
+ * 4. Agent健康检查
+ * 5. Agent配置管理
+ */
+
+import { AgentEngine } from '../../gateway/agent-engine';
+import {
+  AgentConfig,
+  AgentStatus,
+  AgentCapabilities,
+  IAgentMessage,
+  AgentHealthStatus
+} from '../../types/agents/IAgentBase';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Mock fs module
+jest.mock('fs', () => ({
+  readFileSync: jest.fn(),
+  existsSync: jest.fn(),
+  mkdirSync: jest.fn()
+}));
+
+// Mock path module
+jest.mock('path', () => ({
+  join: jest.fn((...args: string[]) => args.join('/')),
+  dirname: jest.fn((p: string) => p.substring(0, p.lastIndexOf('/')))
+}));
+
+// Mock agent engine modules
+jest.mock('../../gateway/agent-engine', () => {
+  return {
+    AgentEngine: jest.fn().mockImplementation(() => ({
+      config: {
+        enabled: true,
+        agentsPath: '/storage/config/agents.json',
+        autoInitialize: true,
+        enableHealthChecks: true,
+        maxAgents: 100
+      },
+      agents: new Map<string, any>(),
+      initialize: jest.fn(),
+      loadAgents: jest.fn(),
+      getAgent: jest.fn(),
+      getAllAgents: jest.fn(),
+      sendMessage: jest.fn(),
+      processMessage: jest.fn(),
+      healthCheck: jest.fn(),
+      cleanup: jest.fn()
+    })),
+    AgentEngineConfig: {
+      enabled: true,
+      agentsPath: '/storage/config/agents.json',
+      autoInitialize: true,
+      enableHealthChecks: true,
+      maxAgents: 100
+    }
+  };
+});
+
+describe('AgentEngine 核心功能测试', () => {
+  let agentEngine: any;
+
+  beforeEach(() => {
+    // Mock agent configs
+    (fs.readFileSync as jest.Mock).mockImplementation((file: string) => {
+      if (file.includes('agents.json')) {
+        return JSON.stringify({
+          agents: [
+            {
+              id: 'agent:legal_expert',
+              name: '法律专家',
+              description: '提供法律咨询和解释',
+              model: 'test-model-legal',
+              capabilities: ['text_processing', 'legal_advice'],
+              enabled: true,
+              maxTokens: 2000,
+              temperature: 0.3
+            },
+            {
+              id: 'agent:programmer',
+              name: '程序猿',
+              description: '提供编程指导和代码审查',
+              model: 'test-model-code',
+              capabilities: ['text_processing', 'code_generation'],
+              enabled: true,
+              maxTokens: 3000,
+              temperature: 0.7
+            },
+            {
+              id: 'agent:architect',
+              name: '架构师',
+              description: '系统架构设计',
+              model: 'test-model-architect',
+              capabilities: ['text_processing', 'system_design'],
+              enabled: true,
+              maxTokens: 2500,
+              temperature: 0.5
+            }
+          ]
+        });
+      }
+      return '{}';
+    });
+
+    (fs.existsSync as jest.Mock).mockReturnValue(true);
+    (path.join as jest.Mock).mockImplementation((...args) => args.join('/'));
+
+    agentEngine = new AgentEngine({
+      enabled: true,
+      agentsPath: '/storage/config/agents.json',
+      autoInitialize: true,
+      enableHealthChecks: true,
+      maxAgents: 100
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('✅ 初始化测试 (P0 - 正常流程)', () => {
+    test('应该成功初始化AgentEngine', () => {
+      expect(agentEngine).toBeDefined();
+      expect(agentEngine.config.enabled).toBe(true);
+      expect(agentEngine.config.agentsPath).toBe('/storage/config/agents.json');
+    });
+
+    test('应该加载配置', () => {
+      expect(agentEngine.config.autoInitialize).toBe(true);
+      expect(agentEngine.config.enableHealthChecks).toBe(true);
+      expect(agentEngine.config.maxAgents).toBe(100);
+    });
+
+    test('应该初始化Agent存储', () => {
+      expect(agentEngine.agents).toBeInstanceOf(Map);
+      expect(agentEngine.agents.size).toBe(0);
+    });
+  });
+
+  describe('🔄 Agent加载测试 (P0 - 正常流程)', () => {
+    test('应该从文件加载Agent配置', async () => {
+      await agentEngine.loadAgents();
+
+      expect(fs.readFileSync).toHaveBeenCalled();
+      expect(agentEngine.agents.size).toBeGreaterThanOrEqual(3);
+    });
+
+    test('应该成功加载Agent实例', async () => {
+      await agentEngine.loadAgents();
+
+      const agent = agentEngine.getAgent('agent:legal_expert');
+      expect(agent).toBeDefined();
+      expect(agent?.id).toBe('agent:legal_expert');
+    });
+
+    test('应该正确解析Agent配置', async () => {
+      await agentEngine.loadAgents();
+
+      const legalAgent = agentEngine.getAgent('agent:legal_expert');
+      expect(legalAgent?.name).toBe('法律专家');
+      expect(legalAgent?.model).toBe('test-model-legal');
+      expect(legalAgent?.capabilities).toContain('text_processing');
+    });
+
+    test('应该处理空的Agent配置文件', async () => {
+      (fs.readFileSync as jest.Mock).mockReturnValueOnce(JSON.stringify({ agents: [] }));
+
+      await agentEngine.loadAgents();
+
+      expect(agentEngine.agents.size).toBe(0);
+    });
+  });
+
+  describe('🔍 Agent检索测试 (P0 - 正常流程)', () => {
+    test('应该通过ID获取Agent', async () => {
+      await agentEngine.loadAgents();
+
+      const agent = agentEngine.getAgent('agent:legal_expert');
+      expect(agent).toBeDefined();
+      expect(agent?.id).toBe('agent:legal_expert');
+    });
+
+    test('应该返回null当Agent不存在', () => {
+      const agent = agentEngine.getAgent('nonexistent-agent');
+      expect(agent).toBeNull();
+    });
+
+    test('应该返回所有已加载的Agent', async () => {
+      await agentEngine.loadAgents();
+
+      const allAgents = agentEngine.getAllAgents();
+      expect(allAgents).toBeInstanceOf(Array);
+      expect(allAgents.length).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  describe('📨 消息路由测试 (P0 - 正常流程)', () => {
+    test('应该能够发送消息给特定Agent', async () => {
+      await agentEngine.loadAgents();
+
+      const message: IAgentMessage = {
+        id: 'msg-1',
+        from: 'user-1',
+        to: 'agent:legal_expert',
+        content: 'Legal advice needed',
+        timestamp: new Date(),
+        type: 'text'
+      };
+
+      await agentEngine.sendMessage(message);
+
+      expect(agentEngine.processMessage).toHaveBeenCalledWith(message);
+    });
+
+    test('应该处理路由到不存在的Agent', async () => {
+      const message: IAgentMessage = {
+        id: 'msg-2',
+        from: 'user-2',
+        to: 'nonexistent-agent',
+        content: 'Message',
+        timestamp: new Date(),
+        type: 'text'
+      };
+
+      const result = await agentEngine.sendMessage(message);
+      expect(result).toBeDefined();
+    });
+
+    test('应该支持批量消息路由', async () => {
+      await agentEngine.loadAgents();
+
+      const messages: IAgentMessage[] = [
+        {
+          id: 'msg-3',
+          from: 'user-3',
+          to: 'agent:legal_expert',
+          content: 'Legal question 1',
+          timestamp: new Date(),
+          type: 'text'
+        },
+        {
+          id: 'msg-4',
+          from: 'user-4',
+          to: 'agent:programmer',
+          content: 'Code help 1',
+          timestamp: new Date(),
+          type: 'text'
+        }
+      ];
+
+      await Promise.all(messages.map(msg => agentEngine.sendMessage(msg)));
+
+      expect(agentEngine.processMessage).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('❌ 异常情况处理 (P0 - 异常处理)', () => {
+    test('应该处理配置文件不存在', async () => {
+      (fs.existsSync as jest.Mock).mockReturnValueOnce(false);
+
+      await expect(agentEngine.loadAgents()).resolves.not.toThrow();
+    });
+
+    test('应该处理无效的JSON配置', async () => {
+      (fs.readFileSync as jest.Mock).mockReturnValueOnce('invalid json');
+      (fs.existsSync as jest.Mock).mockReturnValueOnce(true);
+
+      await expect(agentEngine.loadAgents()).resolves.not.toThrow();
+    });
+
+    test('应该处理无效的Agent配置', async () => {
+      (fs.readFileSync as jest.Mock).mockImplementationOnce(() => {
+        return JSON.stringify({
+          agents: [
+            {
+              id: 'invalid-agent',
+              name: 'Invalid Agent'
+              // Missing required fields
+            }
+          ]
+        });
+      });
+
+      await agentEngine.loadAgents();
+      // Should handle gracefully, not crash
+    });
+
+    test('应该处理Agent配置超限', async () => {
+      (fs.readFileSync as jest.Mock).mockReturnValueOnce(() => {
+        return JSON.stringify({
+          agents: Array.from({ length: 101 }, (_, i) => ({
+            id: `agent-${i}`,
+            name: `Agent ${i}`,
+            model: `model-${i}`,
+            capabilities: ['text_processing'],
+            enabled: true,
+            maxTokens: 1000,
+            temperature: 0.5
+          }))
+        });
+      });
+
+      await agentEngine.loadAgents();
+      // Should handle gracefully, may reject excess agents
+    });
+  });
+
+  describe('🔍 健康检查测试 (P1 - 健康监控)', () => {
+    test('应该执行Agent健康检查', async () => {
+      await agentEngine.loadAgents();
+      jest.spyOn(agentEngine, 'getAgent').mockImplementation((id: string) => {
+        return {
+          id,
+          status: AgentStatus.IDLE,
+          lastActiveAt: new Date(),
+          metadata: { health: 'healthy' }
+        };
+      });
+
+      const healthStatus = await agentEngine.healthCheck();
+
+      expect(healthStatus).toBeDefined();
+      expect(healthStatus.totalAgents).toBeGreaterThan(0);
+    });
+
+    test('应该返回健康统计信息', async () => {
+      await agentEngine.loadAgents();
+
+      const healthStatus = await agentEngine.healthCheck();
+
+      expect(healthStatus.totalAgents).toBeGreaterThanOrEqual(3);
+      expect(healthStatus.healthyAgents).toBeDefined();
+      expect(healthStatus.unhealthyAgents).toBeDefined();
+    });
+  });
+
+  describe('🧹 清理与维护测试 (P1 - 维护)', () => {
+    test('应该正确清理资源', async () => {
+      await agentEngine.loadAgents();
+      agentEngine.cleanup();
+
+      expect(agentEngine.agents.size).toBe(0);
+    });
+
+    test('应该释放挂起的任务', async () => {
+      await agentEngine.loadAgents();
+
+      // Mock processMessage to return a promise
+      jest.spyOn(agentEngine, 'processMessage').mockImplementation(() =>
+        new Promise(resolve => setTimeout(resolve, 100))
+      );
+
+      const cleanup = agentEngine.cleanup();
+      expect(cleanup).toBeDefined();
+    });
+  });
+
+  describe('📊 统计与监控测试 (P2 - 监控)', () => {
+    test('应该跟踪消息统计', async () => {
+      await agentEngine.loadAgents();
+
+      const messages: IAgentMessage[] = Array.from({ length: 10 }, (_, i) => ({
+        id: `msg-stats-${i}`,
+        from: `user-${i}`,
+        to: 'agent:legal_expert',
+        content: `Stats ${i}`,
+        timestamp: new Date(),
+        type: 'text'
+      }));
+
+      await Promise.all(messages.map(msg => agentEngine.sendMessage(msg)));
+
+      // Check that messages were processed
+      expect(agentEngine.processMessage).toHaveBeenCalledTimes(10);
+    });
+
+    test('应该支持配置验证', () => {
+      const validConfig = {
+        enabled: true,
+        agentsPath: '/config/agents.json',
+        autoInitialize: true,
+        enableHealthChecks: true,
+        maxAgents: 100
+      };
+
+      const engine = new AgentEngine(validConfig);
+      expect(engine.config.enabled).toBe(true);
+    });
+
+    test('应该拒绝无效配置', () => {
+      const invalidConfig = {
+        enabled: true,
+        agentsPath: '/config/agents.json',
+        autoInitialize: true,
+        enableHealthChecks: true,
+        maxAgents: -1 // Invalid
+      };
+
+      expect(() => {
+        new AgentEngine(invalidConfig as any);
+      }).toThrow();
+    });
+  });
+
+  describe('🔄 集成测试', () => {
+    test('应该完成完整的端到端流程', async () => {
+      // 1. Initialize
+      const engine = new AgentEngine({
+        enabled: true,
+        agentsPath: '/storage/config/agents.json',
+        autoInitialize: true,
+        enableHealthChecks: true,
+        maxAgents: 100
+      });
+
+      // 2. Load agents
+      await engine.loadAgents();
+
+      // 3. Get agent
+      const agent = engine.getAgent('agent:legal_expert');
+      expect(agent).toBeDefined();
+
+      // 4. Send message
+      const message: IAgentMessage = {
+        id: 'msg-integration',
+        from: 'user-integration',
+        to: 'agent:legal_expert',
+        content: 'Integration test',
+        timestamp: new Date(),
+        type: 'text'
+      };
+
+      await engine.sendMessage(message);
+
+      // 5. Health check
+      const healthStatus = await engine.healthCheck();
+      expect(healthStatus).toBeDefined();
+    });
+  });
+});

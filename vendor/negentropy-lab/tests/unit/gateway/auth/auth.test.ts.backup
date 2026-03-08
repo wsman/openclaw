@@ -1,0 +1,727 @@
+/**
+ * 🔍 Gateway Authentication 单元测试套件
+ *
+ * 宪法依据：
+ * - §381 安全公理：测试必须验证安全约束
+ * - §101 同步公理：测试代码与实现代码同步
+ * - §102 熵减原则：通过测试降低系统不确定性
+ *
+ * 测试范围：
+ * 1. JWT token生成与验证
+ * 2. 权限Scope体系
+ * 3. 审计日志系统
+ * 4. 统一认证管理器
+ */
+
+import {
+  createDefaultJWTAuthManager,
+  JWTAuthManager,
+  JWTConfig,
+  JWTValidationResult,
+  JWTPayload,
+  RefreshToken
+} from '../jwt';
+
+import {
+  createDefaultPermissionManager,
+  PermissionManager,
+  BasePermission,
+  ApiPermission,
+  AgentPermission,
+  Permission,
+  PermissionSet,
+  Role,
+  PermissionValidationResult
+} from '../permissions';
+
+import {
+  createDefaultAuditLogManager,
+  AuditLogManager,
+  AuditEventType,
+  AuditSeverity,
+  AuditEvent,
+  auditUtils
+} from '../audit';
+
+import {
+  createDefaultUnifiedAuthManager,
+  UnifiedAuthManager
+} from '../index';
+
+describe('Gateway Authentication - JWT模块测试', () => {
+  let authManager: JWTAuthManager;
+  let testConfig: JWTConfig;
+
+  beforeEach(() => {
+    testConfig = {
+      secret: 'test-secret-key-for-jwt-validation-only',
+      expiresIn: '1h',
+      refreshExpiresIn: '7d'
+    };
+
+    authManager = createDefaultJWTAuthManager(testConfig);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('✅ JWT Token生成测试 (P0 - 正常流程)', () => {
+    test('应该生成有效的JWT token', () => {
+      const payload: JWTPayload = {
+        sub: 'user-123',
+        name: 'Test User',
+        role: 'user',
+        scopes: ['read', 'write']
+      };
+
+      const token = authManager.generateToken(payload);
+      expect(token).toBeDefined();
+      expect(typeof token).toBe('string');
+      expect(token.split('.')).toHaveLength(3);
+    });
+
+    test('应该在token中包含所有必要的payload字段', () => {
+      const payload: JWTPayload = {
+        sub: 'user-456',
+        name: 'Test User 2',
+        role: 'admin',
+        scopes: ['read', 'write', 'delete'],
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 3600
+      };
+
+      const token = authManager.generateToken(payload);
+      expect(token).toBeDefined();
+
+      // Verify token by decoding (basic check)
+      const decoded = authManager.verifyToken(token);
+      expect(decoded.sub).toBe('user-456');
+      expect(decoded.name).toBe('Test User 2');
+      expect(decoded.role).toBe('admin');
+      expect(decoded.scopes).toEqual(['read', 'write', 'delete']);
+    });
+
+    test('应该正确设置token过期时间', () => {
+      const payload: JWTPayload = {
+        sub: 'user-expiry',
+        role: 'user',
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 3600 // 1 hour
+      };
+
+      const token = authManager.generateToken(payload);
+      const decoded = authManager.verifyToken(token);
+      expect(decoded.exp).toBeDefined();
+      expect(decoded.exp).toBeGreaterThan(payload.iat);
+    });
+  });
+
+  describe('🔍 JWT Token验证测试 (P0 - 正常流程)', () => {
+    test('应该验证有效的JWT token', () => {
+      const payload: JWTPayload = {
+        sub: 'user-valid',
+        name: 'Valid User',
+        role: 'user',
+        scopes: ['read']
+      };
+
+      const token = authManager.generateToken(payload);
+      const result = authManager.verifyToken(token);
+
+      expect(result.valid).toBe(true);
+      expect(result.payload).toBeDefined();
+      expect(result.payload.sub).toBe('user-valid');
+      expect(result.payload.role).toBe('user');
+    });
+
+    test('应该拒绝过期的token', () => {
+      const payload: JWTPayload = {
+        sub: 'user-expired',
+        role: 'user',
+        iat: Math.floor(Date.now() / 1000) - 4000, // 1 hour ago
+        exp: Math.floor(Date.now() / 1000) - 3000 // Should be expired
+      };
+
+      const token = authManager.generateToken(payload);
+      const result = authManager.verifyToken(token);
+
+      expect(result.valid).toBe(false);
+      expect(result.reason).toContain('expired');
+    });
+
+    test('应该拒绝格式错误的token', () => {
+      const result = authManager.verifyToken('invalid.token.format');
+
+      expect(result.valid).toBe(false);
+      expect(result.reason).toBeDefined();
+    });
+
+    test('应该拒绝伪造的token', () => {
+      const payload: JWTPayload = {
+        sub: 'user-fake',
+        role: 'user'
+      };
+
+      // Manually modify the token's signature (simulated)
+      const token = authManager.generateToken(payload);
+      const modifiedToken = token.split('.').slice(0, 2).join('.') + '.fake.signature';
+
+      const result = authManager.verifyToken(modifiedToken);
+
+      expect(result.valid).toBe(false);
+      expect(result.reason).toContain('signature');
+    });
+  });
+
+  describe('❌ JWT 异常处理测试 (P0 - 异常处理)', () => {
+    test('应该处理空token', () => {
+      const result = authManager.verifyToken('');
+
+      expect(result.valid).toBe(false);
+      expect(result.reason).toBeDefined();
+    });
+
+    test('应该处理null token', () => {
+      const result = authManager.verifyToken(null as any);
+
+      expect(result.valid).toBe(false);
+      expect(result.reason).toBeDefined();
+    });
+
+    test('应该处理空payload', () => {
+      const token = authManager.generateToken({} as any);
+      const result = authManager.verifyToken(token);
+
+      expect(result.valid).toBe(false);
+      expect(result.reason).toBeDefined();
+    });
+
+    test('应该处理缺少必需字段的payload', () => {
+      const token = authManager.generateToken({
+        sub: 'user-minimal',
+        // Missing 'role' field
+      } as any);
+
+      const result = authManager.verifyToken(token);
+      expect(result.valid).toBe(false);
+    });
+  });
+
+  describe('🔄 Token刷新测试 (P0 - 正常流程)', () => {
+    test('应该生成有效的刷新token', () => {
+      const refreshToken = authManager.generateRefreshToken('user-123');
+      expect(refreshToken).toBeDefined();
+      expect(typeof refreshToken).toBe('string');
+    });
+
+    test('应该验证有效的刷新token', () => {
+      const refreshToken = authManager.generateRefreshToken('user-refresh');
+      const result = authManager.verifyRefreshToken(refreshToken);
+
+      expect(result.valid).toBe(true);
+      expect(result.payload.userId).toBe('user-refresh');
+    });
+
+    test('应该拒绝过期的刷新token', () => {
+      const payload = {
+        userId: 'user-expired-refresh',
+        type: 'refresh',
+        iat: Math.floor(Date.now() / 1000) - 86400000, // 1 day ago
+        exp: Math.floor(Date.now() / 1000) - 86400000
+      };
+
+      const token = authManager.generateRefreshToken(payload.userId);
+      const result = authManager.verifyRefreshToken(token);
+
+      expect(result.valid).toBe(false);
+      expect(result.reason).toContain('expired');
+    });
+  });
+
+  describe('🔑 权限Scope测试 (P0 - 正常流程)', () => {
+    test('应该支持多种权限类型', () => {
+      const permissions = [
+        new ApiPermission('read'),
+        new AgentPermission('agent:legal_expert'),
+        new BasePermission('admin')
+      ];
+
+      expect(permissions[0] instanceof ApiPermission).toBe(true);
+      expect(permissions[1] instanceof AgentPermission).toBe(true);
+      expect(permissions[2] instanceof BasePermission).toBe(true);
+    });
+
+    test('应该支持权限检查', () => {
+      const permission = new ApiPermission('read');
+      expect(permission.hasPermission('read')).toBe(true);
+      expect(permission.hasPermission('write')).toBe(false);
+    });
+
+    test('应该支持权限集合', () => {
+      const permissionSet = new PermissionSet();
+      permissionSet.add(new ApiPermission('read'));
+      permissionSet.add(new ApiPermission('write'));
+
+      expect(permissionSet.hasPermission('read')).toBe(true);
+      expect(permissionSet.hasPermission('write')).toBe(true);
+      expect(permissionSet.hasPermission('delete')).toBe(false);
+    });
+
+    test('应该支持角色管理', () => {
+      const role = new Role('admin');
+      role.addPermission(new ApiPermission('all'));
+
+      expect(role.canAccess('all')).toBe(true);
+    });
+  });
+
+  describe('🔐 权限验证测试 (P0 - 正常流程)', () => {
+    test('应该验证token是否具有指定权限', () => {
+      const payload: JWTPayload = {
+        sub: 'user-permissions',
+        role: 'admin',
+        scopes: ['read', 'write', 'delete']
+      };
+
+      const token = authManager.generateToken(payload);
+      const result = authManager.verifyToken(token);
+
+      expect(result.valid).toBe(true);
+      expect(result.permissions?.hasPermission('read')).toBe(true);
+      expect(result.permissions?.hasPermission('write')).toBe(true);
+      expect(result.permissions?.hasPermission('delete')).toBe(true);
+    });
+
+    test('应该拒绝没有所需权限的token', () => {
+      const payload: JWTPayload = {
+        sub: 'user-limited',
+        role: 'user',
+        scopes: ['read']
+      };
+
+      const token = authManager.generateToken(payload);
+      const result = authManager.verifyToken(token);
+
+      expect(result.valid).toBe(true);
+      expect(result.permissions?.hasPermission('delete')).toBe(false);
+    });
+
+    test('应该支持自定义权限检查', () => {
+      const permission = new Permission('custom:test:read');
+      expect(permission.toString()).toBe('custom:test:read');
+    });
+  });
+
+  describe('📊 审计日志测试 (P1 - 审计)', () => {
+    test('应该记录登录事件', () => {
+      const auditManager = createDefaultAuditLogManager({
+        logFilePath: '/storage/logs/audit.log'
+      });
+
+      auditManager.log({
+        eventType: AuditEventType.LOGIN,
+        severity: AuditSeverity.INFO,
+        userId: 'user-123',
+        details: {
+          ip: '127.0.0.1',
+          userAgent: 'TestClient/1.0'
+        }
+      });
+
+      expect(auditManager.getLogs().length).toBeGreaterThan(0);
+    });
+
+    test('应该记录权限检查事件', () => {
+      const auditManager = createDefaultAuditLogManager({
+        logFilePath: '/storage/logs/audit.log'
+      });
+
+      auditManager.log({
+        eventType: AuditEventType.PERMISSION_CHECK,
+        severity: AuditSeverity.INFO,
+        userId: 'user-456',
+        details: {
+          action: 'read',
+          resource: '/api/users'
+        }
+      });
+
+      expect(auditManager.getLogs().length).toBeGreaterThan(0);
+    });
+
+    test('应该支持日志查询', () => {
+      const auditManager = createDefaultAuditLogManager({
+        logFilePath: '/storage/logs/audit.log'
+      });
+
+      // Add multiple logs
+      for (let i = 0; i < 5; i++) {
+        auditManager.log({
+          eventType: AuditEventType.LOGIN,
+          severity: AuditSeverity.INFO,
+          userId: `user-${i}`,
+          details: { ip: '127.0.0.1' }
+        });
+      }
+
+      // Query by user
+      const userLogs = auditManager.queryLogs({ userId: 'user-1' });
+      expect(userLogs.length).toBeGreaterThan(0);
+
+      // Query by event type
+      const loginLogs = auditManager.queryLogs({ eventType: AuditEventType.LOGIN });
+      expect(loginLogs.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('🔄 统一认证管理器测试 (P0 - 正常流程)', () => {
+    test('应该创建统一的认证管理器', () => {
+      const unifiedAuth = createDefaultUnifiedAuthManager({
+        jwt: testConfig,
+        audit: {
+          logFilePath: '/storage/logs/audit.log'
+        }
+      });
+
+      expect(unifiedAuth).toBeDefined();
+    });
+
+    test('应该支持完整的认证流程', () => {
+      const unifiedAuth = createDefaultUnifiedAuthManager({
+        jwt: testConfig,
+        audit: {
+          logFilePath: '/storage/logs/audit.log'
+        }
+      });
+
+      // 1. Generate token
+      const payload: JWTPayload = {
+        sub: 'user-unified',
+        name: 'Unified User',
+        role: 'admin'
+      };
+
+      const token = unifiedAuth.generateToken(payload);
+
+      // 2. Verify token
+      const verification = unifiedAuth.verifyToken(token);
+      expect(verification.valid).toBe(true);
+
+      // 3. Get permissions
+      expect(verification.permissions).toBeDefined();
+
+      // 4. Check permissions
+      expect(verification.permissions?.hasPermission('read')).toBe(true);
+    });
+  });
+
+  describe('🌐 HTTP认证头测试 (P1 - HTTP)', () => {
+    test('应该从Authorization头提取token', () => {
+      const token = 'test.token.here';
+      const authHeader = `Bearer ${token}`;
+
+      const extractedToken = authManager.extractTokenFromAuthHeader(authHeader);
+      expect(extractedToken).toBe(token);
+    });
+
+    test('应该处理没有Authorization头的请求', () => {
+      const result = authManager.extractTokenFromAuthHeader(null as any);
+      expect(result).toBeNull();
+    });
+
+    test('应该处理无效的Authorization头格式', () => {
+      const result = authManager.extractTokenFromAuthHeader('InvalidFormat');
+      expect(result).toBeNull();
+    });
+
+    test('应该处理没有Bearer前缀的Authorization头', () => {
+      const token = 'test.token.here';
+      const result = authManager.extractTokenFromAuthHeader(`Basic ${token}`);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('🔧 辅助函数测试 (P2 - 辅助)', () => {
+    test('应该生成安全的随机token', () => {
+      const token = authManager.generateSecureToken();
+      expect(token).toBeDefined();
+      expect(typeof token).toBe('string');
+      expect(token.length).toBeGreaterThan(32);
+    });
+
+    test('应该生成有意义的token ID', () => {
+      const tokenId = authManager.generateTokenId();
+      expect(tokenId).toBeDefined();
+      expect(typeof tokenId).toBe('string');
+      expect(tokenId.split('-')).toHaveLength(2); // user-timestamp
+    });
+  });
+
+  describe('🔒 安全约束测试 (P0 - 安全)', () => {
+    test('应该防止token重放攻击', () => {
+      const payload: JWTPayload = {
+        sub: 'user-replay',
+        role: 'user'
+      };
+
+      const token1 = authManager.generateToken(payload);
+      const result1 = authManager.verifyToken(token1);
+
+      expect(result1.valid).toBe(true);
+
+      // Token should not be reused for different user
+      const token2 = authManager.generateToken(payload);
+      const result2 = authManager.verifyToken(token2);
+
+      expect(result2.valid).toBe(true);
+      expect(result2.payload.sub).toBe('user-replay');
+    });
+
+    test('应该使用不同的密钥验证token', () => {
+      const config1: JWTConfig = {
+        secret: 'secret-key-1',
+        expiresIn: '1h',
+        refreshExpiresIn: '7d'
+      };
+
+      const config2: JWTConfig = {
+        secret: 'secret-key-2',
+        expiresIn: '1h',
+        refreshExpiresIn: '7d'
+      };
+
+      const authManager1 = createDefaultJWTAuthManager(config1);
+      const authManager2 = createDefaultJWTAuthManager(config2);
+
+      const payload: JWTPayload = {
+        sub: 'user-key-diff',
+        role: 'user'
+      };
+
+      const token = authManager1.generateToken(payload);
+      const result = authManager2.verifyToken(token);
+
+      expect(result.valid).toBe(false);
+      expect(result.reason).toContain('signature');
+    });
+  });
+});
+
+describe('Gateway Authentication - 权限体系测试', () => {
+  describe('✅ 权限类型测试 (P0 - 正常流程)', () => {
+    test('应该创建基础权限', () => {
+      const basePermission = new BasePermission('admin');
+      expect(basePermission.toString()).toBe('admin');
+      expect(basePermission.toString()).toBe('admin');
+    });
+
+    test('应该创建API权限', () => {
+      const apiPermission = new ApiPermission('users:get');
+      expect(apiPermission.toString()).toBe('users:get');
+      expect(apiPermission.resource).toBe('users');
+      expect(apiPermission.action).toBe('get');
+    });
+
+    test('应该创建Agent权限', () => {
+      const agentPermission = new AgentPermission('agent:legal_expert:execute');
+      expect(agentPermission.toString()).toBe('agent:legal_expert:execute');
+      expect(agentPermission.agentId).toBe('agent:legal_expert');
+      expect(agentPermission.action).toBe('execute');
+    });
+
+    test('应该支持权限继承', () => {
+      const parentPermission = new ApiPermission('read');
+      const childPermission = new ApiPermission('read');
+
+      expect(parentPermission.toString()).toBe('read');
+      expect(childPermission.toString()).toBe('read');
+    });
+  });
+
+  describe('🔍 权限验证测试 (P0 - 正常流程)', () => {
+    test('应该验证基础权限', () => {
+      const permission = new BasePermission('admin');
+      expect(permission.hasPermission('admin')).toBe(true);
+      expect(permission.hasPermission('user')).toBe(false);
+    });
+
+    test('应该验证API权限', () => {
+      const permission = new ApiPermission('users:post');
+      expect(permission.hasPermission('users:post')).toBe(true);
+      expect(permission.hasPermission('users:get')).toBe(false);
+    });
+
+    test('应该验证Agent权限', () => {
+      const permission = new AgentPermission('agent:legal_expert:read');
+      expect(permission.hasPermission('agent:legal_expert:read')).toBe(true);
+      expect(permission.hasPermission('agent:programmer:read')).toBe(false);
+    });
+
+    test('应该支持通配符权限', () => {
+      const permission = new ApiPermission('*');
+      expect(permission.hasPermission('read')).toBe(true);
+      expect(permission.hasPermission('write')).toBe(true);
+      expect(permission.hasPermission('users:delete')).toBe(true);
+    });
+  });
+
+  describe('❌ 权限验证异常处理 (P0 - 异常处理)', () => {
+    test('应该处理无效的权限字符串', () => {
+      const permission = new ApiPermission('invalid:format');
+      expect(permission.hasPermission('read')).toBe(false);
+    });
+
+    test('应该处理空权限检查', () => {
+      const permission = new BasePermission('admin');
+      expect(permission.hasPermission('')).toBe(false);
+    });
+
+    test('应该处理null权限', () => {
+      expect(() => {
+        const permission = new BasePermission(null as any);
+      }).toThrow();
+    });
+  });
+
+  describe('🔄 角色权限映射测试 (P1 - 角色)', () => {
+    test('应该创建角色', () => {
+      const role = new Role('admin');
+      expect(role.name).toBe('admin');
+    });
+
+    test('应该将权限添加到角色', () => {
+      const role = new Role('admin');
+      role.addPermission(new BasePermission('admin'));
+      role.addPermission(new ApiPermission('users:read'));
+
+      expect(role.canAccess('admin')).toBe(true);
+      expect(role.canAccess('users:read')).toBe(true);
+    });
+
+    test('应该支持角色继承', () => {
+      const baseRole = new Role('base');
+      baseRole.addPermission(new BasePermission('read'));
+
+      const adminRole = new Role('admin');
+      adminRole.addPermission(new BasePermission('admin'));
+      adminRole.inheritFrom(baseRole);
+
+      expect(adminRole.canAccess('read')).toBe(true);
+      expect(adminRole.canAccess('admin')).toBe(true);
+    });
+  });
+
+  describe('📊 权限统计测试 (P2 - 统计)', () => {
+    test('应该统计角色权限', () => {
+      const role = new Role('admin');
+      role.addPermission(new BasePermission('admin'));
+      role.addPermission(new ApiPermission('users:read'));
+      role.addPermission(new ApiPermission('users:write'));
+
+      const stats = role.getPermissionsStats();
+      expect(stats.total).toBe(3);
+      expect(stats.categories.admin).toBe(1);
+      expect(stats.categories.users).toBe(2);
+    });
+
+    test('应该统计用户权限', () => {
+      const userPermissions = new PermissionSet();
+      userPermissions.add(new BasePermission('read'));
+      userPermissions.add(new ApiPermission('users:read'));
+
+      const stats = userPermissions.getStats();
+      expect(stats.total).toBe(2);
+      expect(stats.categories.base).toBe(1);
+      expect(stats.categories.api).toBe(1);
+    });
+  });
+});
+
+describe('Gateway Authentication - 审计日志测试', () => {
+  test('应该记录认证事件', () => {
+    const auditManager = createDefaultAuditLogManager({
+      logFilePath: '/storage/logs/audit.log'
+    });
+
+    auditManager.log({
+      eventType: AuditEventType.LOGIN,
+      severity: AuditSeverity.INFO,
+      userId: 'user-auth-123',
+      details: {
+        method: 'password',
+        ip: '192.168.1.1'
+      }
+    });
+
+    const logs = auditManager.getLogs();
+    expect(logs.length).toBeGreaterThan(0);
+    expect(logs[0].eventType).toBe(AuditEventType.LOGIN);
+    expect(logs[0].userId).toBe('user-auth-123');
+  });
+
+  test('应该记录认证失败事件', () => {
+    const auditManager = createDefaultAuditLogManager({
+      logFilePath: '/storage/logs/audit.log'
+    });
+
+    auditManager.log({
+      eventType: AuditEventType.AUTH_FAILED,
+      severity: AuditSeverity.WARNING,
+      userId: 'user-auth-fail',
+      details: {
+        reason: 'invalid_credentials',
+        ip: '192.168.1.1'
+      }
+    });
+
+    const logs = auditManager.getLogs();
+    expect(logs.length).toBeGreaterThan(0);
+    expect(logs[0].eventType).toBe(AuditEventType.AUTH_FAILED);
+    expect(logs[0].severity).toBe(AuditSeverity.WARNING);
+  });
+
+  test('应该支持日志过滤', () => {
+    const auditManager = createDefaultAuditLogManager({
+      logFilePath: '/storage/logs/audit.log'
+    });
+
+    // Add different types of logs
+    for (let i = 0; i < 10; i++) {
+      auditManager.log({
+        eventType: i % 2 === 0 ? AuditEventType.LOGIN : AuditEventType.LOGOUT,
+        severity: i % 3 === 0 ? AuditSeverity.WARNING : AuditSeverity.INFO,
+        userId: `user-${i}`,
+        details: { ip: '192.168.1.1' }
+      });
+    }
+
+    // Filter by event type
+    const loginLogs = auditManager.queryLogs({ eventType: AuditEventType.LOGIN });
+    expect(loginLogs.length).toBeGreaterThan(0);
+
+    // Filter by severity
+    const warningLogs = auditManager.queryLogs({ severity: AuditSeverity.WARNING });
+    expect(warningLogs.length).toBeGreaterThan(0);
+  });
+
+  test('应该限制日志大小', () => {
+    const auditManager = createDefaultAuditLogManager({
+      logFilePath: '/storage/logs/audit.log',
+      maxLogs: 100
+    });
+
+    // Add more logs than limit
+    for (let i = 0; i < 200; i++) {
+      auditManager.log({
+        eventType: AuditEventType.LOGIN,
+        severity: AuditSeverity.INFO,
+        userId: `user-${i}`,
+        details: { ip: '192.168.1.1' }
+      });
+    }
+
+    const logs = auditManager.getLogs();
+    expect(logs.length).toBeLessThanOrEqual(100);
+  });
+});

@@ -14,6 +14,7 @@
 > **Last Updated**: 2026-02-05  
 > **Type**: Feature Specification Collection  
 > **Status**: Legacy Template（规划参考）
+> **审计说明（2026-03-07）**: 本文档为遗留模板集合。其示例中的 `.pre-commit-config.yaml`、`legacy_quarantine/`、旧脚本与旧仓结构属于规划/历史上下文，不代表当前仓运行态已存在对应文件。
 
 ## 📋 概述
 
@@ -145,7 +146,7 @@ The MY-DOGE-MICRO project has a modernized frontend foundation (70% complete) bu
 > **Status**: 🔄 State B (Planning) - Pending Approval
 
 ### Executive Summary
-**Problem**: The current CDD toolchain is **non-portable** due to hardcoded absolute paths in `.pre-commit-config.yaml`, causing failures in any environment other than the original developer's machine.
+**Problem**: A portability risk exists whenever host-bound hook/config files (for example `.pre-commit-config.yaml`, if reintroduced) contain hardcoded absolute paths, causing failures outside the original developer environment.
 
 **Solution**: Decouple CDD tools from the host-specific location and establish a portable, self-contained infrastructure.
 

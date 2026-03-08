@@ -23,8 +23,8 @@
 
 ### Step 1: 提案与起草
 识别变更目标文档类型：
-- **T0**: `basic_law_index.md`, `procedural_law_index.md` (影响全局)
-- **T1**: `system_patterns.md`, `tech_context.md` (影响特定域)
+- **T0**: `memory_bank/t0_core/basic_law_index.md`, `memory_bank/t0_core/procedural_law_index.md` (影响全局)
+- **T1**: `memory_bank/t1_axioms/system_patterns.md`, `memory_bank/t1_axioms/tech_context.md` (影响特定域)
 
 ### Step 2: 版本号计算
 | 变更类型 | 版本 | 说明 |
@@ -46,7 +46,7 @@
 **场景**: 新增"安全第一"原则
 
 **处理**:
-1. 识别目标: `basic_law_index.md`
+1. 识别目标: `memory_bank/t0_core/basic_law_index.md`
 2. 版本计算: MINOR
 3. 传播检查: `DS-050` 需要增加"安全需求"章节
 4. 生成影响报告

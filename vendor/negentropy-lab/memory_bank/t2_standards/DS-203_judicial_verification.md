@@ -297,7 +297,7 @@ from engine.mcp_core.tools.judiciary import judicial_verify_contract
 
 # 验证工具调用桥接器契约
 result = judicial_verify_contract(
-    interfacePath='server/types/interfaces/IToolCallBridge.ts',
+    interfacePath='server/types/system/IToolCallBridge.ts',
     implementationPath='server/services/ToolCallBridgeService.ts',
     depth='strict'
 )

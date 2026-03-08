@@ -4,13 +4,15 @@
 **对应程序法条款**: §220
 **宪法依据**: §130 (MCP微内核神圣公理), §131 (MCP绝对冷启动原则)
 **版本**: v7.0.0 (Negentropy-Lab)
-**状态**: 🟢 生产就绪
+**状态**: 🟡 规范定义成熟（当前仓运行态需人工冷启动）
 
 ---
 
 **对应程序法条款**: §220
 **宪法依据**: §130 (MCP微内核神圣公理), §131 (MCP绝对冷启动原则)
 **适用场景**: MCP服务的启动、停止和维护
+
+> **运行态说明**: 当前仓 `engine/mcp_core/server.py` 以 stdio / FastMCP 方式运行，不默认暴露统一 HTTP `/health` 端点；运行验证以进程存活和启动日志为准。
 
 ### 概述
 
@@ -23,7 +25,7 @@ MCP运维流程确保MCP服务的稳定运行和合规维护。
 #### 步骤 1: 停止当前服务
 ```bash
 # 停止当前MCP服务进程
-pkill -f "mcp_server"
+pkill -f "engine/mcp_core/server.py"
 ```
 - [ ] 确认服务已停止
 - [ ] 记录停止时间
@@ -36,18 +38,18 @@ pkill -f "mcp_server"
 #### 步骤 3: 重新启动服务
 ```bash
 # 启动MCP服务（假设在项目根目录执行）
-python engine/mcp_core/server.py
+python3 engine/mcp_core/server.py
 ```
 - [ ] 确认服务启动成功
 - [ ] 记录启动时间
 
-#### 步骤 4: 验证健康端点
+#### 步骤 4: 验证进程与启动输出
 ```bash
-# 验证健康端点
-curl http://localhost:8080/health
+# 验证进程存活
+pgrep -af "engine/mcp_core/server.py"
 ```
-- [ ] 确认健康端点返回 200 OK
-- [ ] 验证服务状态正常
+- [ ] 确认进程已成功启动
+- [ ] 检查 stderr / supervisor 日志中无启动异常
 
 ### 热重载禁止令
 

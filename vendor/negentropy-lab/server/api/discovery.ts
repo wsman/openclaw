@@ -17,7 +17,7 @@ import { logger } from '../utils/logger';
 import { MDNSDiscoverer } from '../discovery/mdns/MDNSDiscoverer';
 import { ServiceInfo, DiscoveryOptions } from '../discovery/types/ServiceInfo';
 
-const router: express.Router = express.Router();
+const router = express.Router();
 
 /**
  * 全局MDNSDiscoverer实例引用

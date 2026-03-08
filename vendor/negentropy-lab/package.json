@@ -2,16 +2,19 @@
   "name": "negentropy-lab",
   "version": "7.6.0",
   "description": "Negentropy-Lab Gateway Server - 多Agent协作知识聊天系统",
-  "main": "dist/server/index.js",
-  "types": "dist/server/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "engines": {
     "node": ">=18.0.0"
   },
   "scripts": {
-    "dev": "tsx watch server/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "dev:colyseus": "tsx watch server/index.ts",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:colyseus\"",
     "build": "tsc -p tsconfig.build.json",
     "build:clean": "rimraf dist && tsc -p tsconfig.build.json",
-    "start": "node dist/server/index.js",
+    "start": "node dist/index.js",
+    "start:colyseus": "node dist/server/index.js",
     "test": "vitest",
     "test:jest": "jest",
     "test:all": "npm run test && npm run test:jest",

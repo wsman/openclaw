@@ -1,0 +1,458 @@
+/**
+ * 🔍 BaseAgent 单元测试套件
+ *
+ * 宪法依据：
+ * - §101 同步公理：测试代码与实现代码同步
+ * - §102 熵减原则：通过测试降低系统不确定性
+ * - §381 安全公理：验证Agent行为安全约束
+ * - §108 异构模型策略：验证模型参数指定
+ *
+ * 测试范围：
+ * 1. Agent生命周期管理
+ * 2. 消息处理流程
+ * 3. 状态管理
+ * 4. 错误处理
+ * 5. 资源清理
+ */
+
+import { BaseAgent } from '../../agents/BaseAgent';
+import {
+  IAgentMessage,
+  IAgentState,
+  IAgentConfig,
+  AgentStatus,
+  AgentCapabilities
+} from '../../types/agents/IAgentBase';
+
+// Mock dependencies
+jest.mock('../../utils/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn()
+  }
+}));
+
+describe('BaseAgent 核心功能测试', () => {
+  let baseAgent: BaseAgent;
+  let mockConfig: IAgentConfig;
+
+  beforeEach(() => {
+    mockConfig = {
+      id: 'test-agent',
+      name: 'Test Agent',
+      description: 'A test agent for unit testing',
+      model: 'test-model-v1',
+      capabilities: AgentCapabilities.TEXT_PROCESSING,
+      maxTokens: 2000,
+      temperature: 0.7,
+      enabled: true
+    };
+
+    baseAgent = new BaseAgent(mockConfig);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('✅ 初始化测试 (P0 - 正常流程)', () => {
+    test('应该正确初始化Agent实例', () => {
+      expect(baseAgent).toBeDefined();
+      expect(baseAgent.config).toEqual(mockConfig);
+      expect(baseAgent.state.status).toBe(AgentStatus.IDLE);
+    });
+
+    test('应该设置正确的初始状态', () => {
+      const initialState = baseAgent.getState();
+      expect(initialState.id).toBe('test-agent');
+      expect(initialState.name).toBe('Test Agent');
+      expect(initialState.status).toBe(AgentStatus.IDLE);
+      expect(initialState.enabled).toBe(true);
+    });
+
+    test('应该加载Agent配置', () => {
+      const loadedConfig = baseAgent.getConfig();
+      expect(loadedConfig.id).toBe('test-agent');
+      expect(loadedConfig.model).toBe('test-model-v1');
+      expect(loadedConfig.maxTokens).toBe(2000);
+    });
+  });
+
+  describe('⚡ 状态管理测试 (P0 - 正常流程)', () => {
+    test('应该正确更新Agent状态', () => {
+      baseAgent.setState({ status: AgentStatus.PROCESSING });
+      const state = baseAgent.getState();
+      expect(state.status).toBe(AgentStatus.PROCESSING);
+    });
+
+    test('应该正确获取Agent状态', () => {
+      baseAgent.setState({
+        status: AgentStatus.PROCESSING,
+        lastActiveAt: new Date()
+      });
+
+      const state = baseAgent.getState();
+      expect(state.status).toBe(AgentStatus.PROCESSING);
+      expect(state.lastActiveAt).toBeInstanceOf(Date);
+    });
+
+    test('应该支持状态转换', () => {
+      const transitions: AgentStatus[] = [
+        AgentStatus.IDLE,
+        AgentStatus.PROCESSING,
+        AgentStatus.COMPLETED,
+        AgentStatus.IDLE
+      ];
+
+      transitions.forEach(status => {
+        baseAgent.setState({ status });
+        expect(baseAgent.getState().status).toBe(status);
+      });
+    });
+  });
+
+  describe('📨 消息处理测试 (P0 - 正常流程)', () => {
+    test('应该能够接收消息', async () => {
+      const mockMessage: IAgentMessage = {
+        id: 'msg-1',
+        from: 'user-1',
+        to: 'test-agent',
+        content: 'Hello, test agent!',
+        timestamp: new Date(),
+        type: 'text'
+      };
+
+      await baseAgent.receiveMessage(mockMessage);
+
+      const state = baseAgent.getState();
+      expect(state.messagesReceived).toBeGreaterThan(0);
+    });
+
+    test('应该能够处理消息', async () => {
+      const mockMessage: IAgentMessage = {
+        id: 'msg-2',
+        from: 'user-2',
+        to: 'test-agent',
+        content: 'Process this message',
+        timestamp: new Date(),
+        type: 'text'
+      };
+
+      const result = await baseAgent.processMessage(mockMessage);
+      expect(result).toBeDefined();
+      expect(result.id).toBeDefined();
+      expect(result.timestamp).toBeInstanceOf(Date);
+    });
+
+    test('应该能够发送响应', async () => {
+      const mockMessage: IAgentMessage = {
+        id: 'msg-3',
+        from: 'user-3',
+        to: 'test-agent',
+        content: 'Send me a response',
+        timestamp: new Date(),
+        type: 'text'
+      };
+
+      const response = await baseAgent.generateResponse(mockMessage);
+      expect(response).toBeDefined();
+      expect(response.from).toBe('test-agent');
+      expect(response.content).toBeDefined();
+    });
+  });
+
+  describe('❌ 异常情况处理 (P0 - 异常处理)', () => {
+    test('应该处理无效消息', async () => {
+      const invalidMessage = {
+        id: '',
+        from: '',
+        to: '',
+        content: '',
+        timestamp: null,
+        type: 'invalid'
+      } as any;
+
+      await expect(
+        baseAgent.processMessage(invalidMessage)
+      ).rejects.toThrow();
+    });
+
+    test('应该处理消息处理失败', async () => {
+      const failingMessage: IAgentMessage = {
+        id: 'msg-fail',
+        from: 'user-fail',
+        to: 'test-agent',
+        content: 'This should fail',
+        timestamp: new Date(),
+        type: 'text'
+      };
+
+      // Mock processMessage to fail
+      jest.spyOn(baseAgent as any, 'processInternal').mockRejectedValue(
+        new Error('Processing failed')
+      );
+
+      await expect(
+        baseAgent.processMessage(failingMessage)
+      ).rejects.toThrow('Processing failed');
+    });
+
+    test('应该处理并发消息', async () => {
+      const messages: IAgentMessage[] = Array.from({ length: 10 }, (_, i) => ({
+        id: `msg-concurrent-${i}`,
+        from: `user-${i}`,
+        to: 'test-agent',
+        content: `Concurrent message ${i}`,
+        timestamp: new Date(),
+        type: 'text'
+      }));
+
+      const results = await Promise.all(
+        messages.map(msg => baseAgent.processMessage(msg))
+      );
+
+      expect(results).toHaveLength(10);
+      results.forEach(result => {
+        expect(result).toBeDefined();
+        expect(result.id).toBeDefined();
+      });
+    });
+  });
+
+  describe('🔍 边界条件测试 (P0 - 边界验证)', () => {
+    test('应该处理空消息内容', async () => {
+      const emptyMessage: IAgentMessage = {
+        id: 'msg-empty',
+        from: 'user-empty',
+        to: 'test-agent',
+        content: '',
+        timestamp: new Date(),
+        type: 'text'
+      };
+
+      const result = await baseAgent.processMessage(emptyMessage);
+      expect(result).toBeDefined();
+    });
+
+    test('应该处理超长消息', async () => {
+      const longContent = 'a'.repeat(10000);
+      const longMessage: IAgentMessage = {
+        id: 'msg-long',
+        from: 'user-long',
+        to: 'test-agent',
+        content: longContent,
+        timestamp: new Date(),
+        type: 'text'
+      };
+
+      const result = await baseAgent.processMessage(longMessage);
+      expect(result).toBeDefined();
+    });
+
+    test('应该处理特殊字符', async () => {
+      const specialContent = '🚀 Test with special chars: <>&"\'\\n\\t';
+      const specialMessage: IAgentMessage = {
+        id: 'msg-special',
+        from: 'user-special',
+        to: 'test-agent',
+        content: specialContent,
+        timestamp: new Date(),
+        type: 'text'
+      };
+
+      const result = await baseAgent.processMessage(specialMessage);
+      expect(result).toBeDefined();
+    });
+
+    test('应该处理消息速率限制', async () => {
+      const messages: IAgentMessage[] = Array.from({ length: 100 }, (_, i) => ({
+        id: `msg-rate-${i}`,
+        from: `user-rate`,
+        to: 'test-agent',
+        content: `Rate limit test ${i}`,
+        timestamp: new Date(),
+        type: 'text'
+      }));
+
+      // Some messages may be rejected due to rate limiting
+      const results = await Promise.allSettled(
+        messages.map(msg => baseAgent.processMessage(msg))
+      );
+
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      expect(successCount).toBeGreaterThan(0);
+    });
+  });
+
+  describe('🧹 资源清理测试 (P1 - 清理流程)', () => {
+    test('应该正确清理资源', () => {
+      baseAgent.cleanup();
+      const state = baseAgent.getState();
+      expect(state.status).toBe(AgentStatus.IDLE);
+    });
+
+    test('应该释放所有挂起的处理任务', async () => {
+      const pendingMessages: IAgentMessage[] = Array.from({ length: 5 }, (_, i) => ({
+        id: `msg-pending-${i}`,
+        from: `user-pending`,
+        to: 'test-agent',
+        content: `Pending ${i}`,
+        timestamp: new Date(),
+        type: 'text'
+      }));
+
+      // Start processing but don't await
+      const promises = pendingMessages.map(msg =>
+        baseAgent.processMessage(msg)
+      );
+
+      // Cleanup should cancel pending operations
+      baseAgent.cleanup();
+
+      await Promise.allSettled(promises);
+    });
+  });
+
+  describe('📊 元数据测试 (P1 - 元数据管理)', () => {
+    test('应该跟踪消息统计', async () => {
+      const messages: IAgentMessage[] = Array.from({ length: 5 }, (_, i) => ({
+        id: `msg-stats-${i}`,
+        from: `user-stats`,
+        to: 'test-agent',
+        content: `Stats ${i}`,
+        timestamp: new Date(),
+        type: 'text'
+      }));
+
+      await Promise.all(messages.map(msg => baseAgent.processMessage(msg)));
+
+      const state = baseAgent.getState();
+      expect(state.messagesReceived).toBe(5);
+      expect(state.messagesProcessed).toBe(5);
+    });
+
+    test('应该跟踪处理时间', async () => {
+      const message: IAgentMessage = {
+        id: 'msg-timing',
+        from: 'user-timing',
+        to: 'test-agent',
+        content: 'Timing test',
+        timestamp: new Date(),
+        type: 'text'
+      };
+
+      const startTime = Date.now();
+      await baseAgent.processMessage(message);
+      const endTime = Date.now();
+
+      const processingTime = endTime - startTime;
+      expect(processingTime).toBeGreaterThan(0);
+    });
+  });
+
+  describe('🔐 安全约束测试 (P0 - 安全验证)', () => {
+    test('应该验证消息来源', async () => {
+      const untrustedMessage: IAgentMessage = {
+        id: 'msg-untrusted',
+        from: 'untrusted-source',
+        to: 'test-agent',
+        content: 'Untrusted content',
+        timestamp: new Date(),
+        type: 'text',
+        metadata: { trusted: false }
+      };
+
+      // Should handle untrusted messages appropriately
+      const result = await baseAgent.processMessage(untrustedMessage);
+      expect(result).toBeDefined();
+    });
+
+    test('应该防止注入攻击', async () => {
+      const injectionMessage: IAgentMessage = {
+        id: 'msg-injection',
+        from: 'user-injection',
+        to: 'test-agent',
+        content: '<script>alert("XSS")</script>',
+        timestamp: new Date(),
+        type: 'text'
+      };
+
+      const result = await baseAgent.processMessage(injectionMessage);
+      expect(result).toBeDefined();
+      // Result should be sanitized
+      expect(result.content).not.toContain('<script>');
+    });
+
+    test('应该验证模型参数', () => {
+      expect(mockConfig.model).toBeDefined();
+      expect(typeof mockConfig.model).toBe('string');
+      expect(mockConfig.maxTokens).toBeGreaterThan(0);
+      expect(mockConfig.temperature).toBeGreaterThanOrEqual(0);
+      expect(mockConfig.temperature).toBeLessThanOrEqual(2);
+    });
+  });
+});
+
+describe('BaseAgent 集成测试', () => {
+  let baseAgent: BaseAgent;
+
+  beforeEach(() => {
+    baseAgent = new BaseAgent({
+      id: 'integration-test-agent',
+      name: 'Integration Test Agent',
+      description: 'Agent for integration testing',
+      model: 'test-model',
+      capabilities: AgentCapabilities.TEXT_PROCESSING,
+      maxTokens: 1000,
+      temperature: 0.5,
+      enabled: true
+    });
+  });
+
+  describe('🔄 端到端流程测试', () => {
+    test('应该完成完整的消息处理流程', async () => {
+      const message: IAgentMessage = {
+        id: 'msg-e2e',
+        from: 'user-e2e',
+        to: 'integration-test-agent',
+        content: 'End to end test',
+        timestamp: new Date(),
+        type: 'text'
+      };
+
+      // 1. Receive message
+      await baseAgent.receiveMessage(message);
+
+      // 2. Process message
+      const processResult = await baseAgent.processMessage(message);
+      expect(processResult).toBeDefined();
+
+      // 3. Generate response
+      const response = await baseAgent.generateResponse(message);
+      expect(response).toBeDefined();
+      expect(response.from).toBe('integration-test-agent');
+    });
+
+    test('应该处理多条消息队列', async () => {
+      const messages: IAgentMessage[] = Array.from({ length: 20 }, (_, i) => ({
+        id: `msg-queue-${i}`,
+        from: 'user-queue',
+        to: 'integration-test-agent',
+        content: `Queue message ${i}`,
+        timestamp: new Date(),
+        type: 'text'
+      }));
+
+      const results = await Promise.all(
+        messages.map(msg => baseAgent.processMessage(msg))
+      );
+
+      expect(results).toHaveLength(20);
+      results.forEach(result => {
+        expect(result).toBeDefined();
+      });
+    });
+  });
+});

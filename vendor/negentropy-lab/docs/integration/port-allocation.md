@@ -1,6 +1,6 @@
 # Integration Port Allocation
 
-Last updated: 2026-03-03
+Last updated: 2026-03-07
 
 ## 1. Default Port Baseline
 
@@ -16,7 +16,7 @@ The launcher resolves ports in this order:
 1. Read requested ports from merged config.
 2. Check availability for each service.
 3. If occupied and `autoResolvePorts=true`, scan forward with `+1 ... +portScanRange`.
-4. Persist resolved ports to runtime state (`storage/runtime/launcher-state.json`).
+4. Persist resolved ports to runtime state (`storage/runtime/launcher-state.json`; runtime-generated, so absence before first launcher run is expected).
 
 Defaults:
 
@@ -42,8 +42,12 @@ Defaults:
 
 ```bash
 npm run launch -- preflight
-npx tsx scripts/check-integration-config.ts
+npm run check:integration:config
 ```
+
+Note:
+
+- `check:integration:config` requires reachable external repo roots via `OPENCLAW_PROJECT_PATH` and `OPENDOGE_UI_PATH` when not using the historical Windows layout.
 
 Expected baseline output:
 

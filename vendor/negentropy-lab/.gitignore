@@ -33,34 +33,65 @@ lerna-debug.log*
 build/
 coverage/
 .nyc_output/
+*.tsbuildinfo
 
 # 缓存
 .cache/
 .temp/
+.eslintcache
+
+# 本地虚拟环境/静态分析缓存
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.python-version
+.coverage
 
 # 测试相关
 __pycache__/
 *.pyc
 .pytest_cache/
+.tmp-*
+test-results.json
+failed-suite-results*.json
+tests/coverage-data.json
+tests/coverage-report.md
+
+# 本地检查与临时报表
+constitution-compliance-report.json
+.tmp-*.tsv
+.tmp-*.json
+reports/consistency-check-report.json
+reports/consistency-check-report.html
+reports/consistency-check-test-report.json
+reports/contract-count-report.json
+reports/contract-drift-audit.json
+reports/performance-weekly-report.json
+reports/phase14-e2e-integration.json
+reports/phase14-performance-baseline.json
+reports/phase15-grayscale-rollout.json
+reports/deploy-preflight-*.json
+reports/production-deploy-smoke-*.json
+reports/rollback-verify-*.json
+reports/ops-fault-injection-*.json
+reports/ws-soak-*.json
 
 # 文档生成
 docs/_build/
 site/
 
-# 包管理器特定文件
-yarn.lock
-pnpm-lock.yaml
-
 # 其他
 *.pid
 *.seed
 *.pid.lock
-*.backup
-
-# 报告
-reports/
 
 # 数据库文件
 *.db
 *.sqlite
 *.sqlite3
+
+# 运行时存储
+storage/runtime/
+storage/qdrant_local/
+

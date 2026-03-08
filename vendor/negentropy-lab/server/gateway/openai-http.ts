@@ -25,7 +25,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
-import { UnifiedAuthManager } from './auth';
+import { GatewayAuthManager } from './auth';
 
 // OpenAI API相关类型
 interface OpenAIMessage {
@@ -137,7 +137,7 @@ export interface OpenAIConfig {
  * OpenAI兼容HTTP API处理器
  */
 export class OpenAIHTTPHandler {
-  private authManager: UnifiedAuthManager;
+  private authManager: GatewayAuthManager;
   private config: OpenAIConfig;
   private logger = logger;
   
@@ -146,7 +146,7 @@ export class OpenAIHTTPHandler {
    * @param authManager 认证管理器
    * @param config OpenAI配置
    */
-  constructor(authManager: UnifiedAuthManager, config: Partial<OpenAIConfig> = {}) {
+  constructor(authManager: GatewayAuthManager, config: Partial<OpenAIConfig> = {}) {
     this.authManager = authManager;
     this.config = {
       enabled: true,
@@ -492,7 +492,7 @@ export class OpenAIHTTPHandler {
  * 
  * 宪法依据: §101同步公理，确保API路由与文档同步更新
  */
-export function createOpenAIHTTPRouter(authManager: UnifiedAuthManager, config?: Partial<OpenAIConfig>) {
+export function createOpenAIHTTPRouter(authManager: GatewayAuthManager, config?: Partial<OpenAIConfig>) {
   const router = require('express').Router();
   const openAIHandler = new OpenAIHTTPHandler(authManager, config);
   
@@ -529,7 +529,7 @@ export function createOpenAIHTTPRouter(authManager: UnifiedAuthManager, config?:
 /**
  * 集成到现有Express应用
  */
-export function integrateOpenAIHTTP(app: any, authManager: UnifiedAuthManager, config?: Partial<OpenAIConfig>) {
+export function integrateOpenAIHTTP(app: any, authManager: GatewayAuthManager, config?: Partial<OpenAIConfig>) {
   const openaiRouter = createOpenAIHTTPRouter(authManager, config);
   
   // 挂载路由

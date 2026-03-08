@@ -1,6 +1,6 @@
 # Integration Env Precedence
 
-Last updated: 2026-03-03
+Last updated: 2026-03-07
 
 ## 1. Precedence Rules
 
@@ -21,7 +21,7 @@ Priority:
 1. `NEGENTROPY_DECISION_URL` (process env)
 2. Default `http://localhost:3000/internal/openclaw/decision`
 
-Source: `D:/Games/openclaw/src/gateway/negentropy/decision-bridge.ts`
+Source: OpenClaw external repo `src/gateway/negentropy/decision-bridge.ts` (rooted at `OPENCLAW_PROJECT_PATH`)
 
 ### 1.3 UI decision API base URL (Web + Desk)
 
@@ -33,8 +33,8 @@ Priority:
 
 Sources:
 
-- `D:/Users/WSMAN/Desktop/OpenDoge/opendoge-ui/apps/control-ui-web/src/api/decisionApi.ts`
-- `D:/Users/WSMAN/Desktop/OpenDoge/opendoge-ui/apps/control-ui-desk/src/api/decisionApi.ts`
+- `OPENDOGE_UI_PATH/apps/control-ui-web/src/api/decisionApi.ts`
+- `OPENDOGE_UI_PATH/apps/control-ui-desk/src/api/decisionApi.ts`
 
 ## 2. Canonical Env Keys
 
@@ -49,6 +49,7 @@ Sources:
 | `LAUNCHER_OPENCLAW_PORT` | explicit OpenClaw port |
 | `LAUNCHER_OPENCLAW_PATH` | OpenClaw repo path |
 | `OPENCLAW_PROJECT_PATH` | OpenClaw repo path (compat alias) |
+| `OPENDOGE_UI_PATH` | opendoge-ui repo path |
 | `LAUNCHER_PORT_SCAN_RANGE` | fallback scan range |
 | `LAUNCHER_AUTO_RESOLVE_PORTS` | enable/disable auto fallback |
 
@@ -78,5 +79,10 @@ Sources:
 ## 4. Validation
 
 ```bash
-npx tsx scripts/check-integration-config.ts
+npm run check:integration:config
 ```
+
+Note:
+
+- In Linux or other non-Windows environments, set `OPENCLAW_PROJECT_PATH` and `OPENDOGE_UI_PATH` explicitly before running the check.
+- If these env vars are absent, the current checker falls back to historical Windows default paths and will report missing files.

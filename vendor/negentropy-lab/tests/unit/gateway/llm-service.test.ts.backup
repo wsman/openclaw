@@ -1,0 +1,730 @@
+/**
+ * 🔍 Gateway LLMService 单元测试套件
+ *
+ * 宪法依据：
+ * - §101 同步公理：测试代码与实现代码同步
+ * - §102 熵减原则：通过测试降低系统不确定性
+ * - §108 异构模型策略：验证模型参数指定
+ *
+ * 测试范围：
+ * 1. LLM服务初始化
+ * 2. API调用
+ * 3. 模型路由
+ * 4. 错误处理
+ * 5. 速率限制
+ * 6. 成本追踪
+ */
+
+import { LLMService } from '../../llm-service';
+import { ModelConfig, ModelProvider } from '../../types/system';
+
+// Mock fetch API
+global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
+
+describe('Gateway LLMService 核心功能测试', () => {
+  let llmService: LLMService;
+  let mockConfig: ModelConfig;
+
+  beforeEach(() => {
+    mockConfig = {
+      provider: ModelProvider.OPENAI,
+      model: 'gpt-4',
+      apiKey: 'test-api-key',
+      baseUrl: 'https://api.openai.com/v1',
+      maxTokens: 2000,
+      temperature: 0.7,
+      timeout: 30000
+    };
+
+    llmService = new LLMService(mockConfig);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('✅ 初始化测试 (P0 - 正常流程)', () => {
+    test('应该成功初始化LLM服务', () => {
+      expect(llmService).toBeDefined();
+      expect(llmService.config).toEqual(mockConfig);
+    });
+
+    test('应该加载服务配置', () => {
+      expect(llmService.config.provider).toBe(ModelProvider.OPENAI);
+      expect(llmService.config.model).toBe('gpt-4');
+      expect(llmService.config.maxTokens).toBe(2000);
+    });
+
+    test('应该支持多种LLM提供商', () => {
+      const providers = [
+        ModelProvider.OPENAI,
+        ModelProvider.ANTHROPIC,
+        ModelProvider.COHERE,
+        ModelProvider.AZURE_OPENAI,
+        ModelProvider.AWS Bedrock
+      ];
+
+      providers.forEach(provider => {
+        const service = new LLMService({
+          provider,
+          model: 'test-model',
+          apiKey: 'test-key',
+          maxTokens: 1000
+        });
+        expect(service).toBeDefined();
+      });
+    });
+
+    test('应该支持自定义baseUrl', () => {
+      const customService = new LLMService({
+        provider: ModelProvider.OPENAI,
+        model: 'gpt-4',
+        apiKey: 'test-key',
+        baseUrl: 'https://custom.api.com/v1'
+      });
+
+      expect(customService.config.baseUrl).toBe('https://custom.api.com/v1');
+    });
+  });
+
+  describe('🔄 API调用测试 (P0 - 正常流程)', () => {
+    test('应该发送聊天请求', async () => {
+      const mockResponse = {
+        id: 'chatcmpl-123',
+        object: 'chat.completion',
+        created: 1234567890,
+        model: 'gpt-4',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'Hello, this is a test response.'
+            },
+            finish_reason: 'stop'
+          }
+        ],
+        usage: {
+          prompt_tokens: 10,
+          completion_tokens: 20,
+          total_tokens: 30
+        }
+      };
+
+      (fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse
+      });
+
+      const result = await llmService.chat({
+        messages: [
+          {
+            role: 'user',
+            content: 'Hello'
+          }
+        ]
+      });
+
+      expect(fetch).toHaveBeenCalled();
+      expect(result.choices).toHaveLength(1);
+      expect(result.choices[0].message.content).toBe('Hello, this is a test response.');
+    });
+
+    test('应该支持系统提示词', async () => {
+      const mockResponse = {
+        id: 'chatcmpl-124',
+        object: 'chat.completion',
+        created: 1234567891,
+        model: 'gpt-4',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'System response'
+            },
+            finish_reason: 'stop'
+          }
+        ],
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 10,
+          total_tokens: 30
+        }
+      };
+
+      (fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse
+      });
+
+      const result = await llmService.chat({
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant'
+          },
+          {
+            role: 'user',
+            content: 'Hello'
+          }
+        ]
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    test('应该支持多轮对话', async () => {
+      const mockResponse = {
+        id: 'chatcmpl-125',
+        object: 'chat.completion',
+        created: 1234567892,
+        model: 'gpt-4',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'Conversation response'
+            },
+            finish_reason: 'stop'
+          }
+        ],
+        usage: {
+          prompt_tokens: 30,
+          completion_tokens: 15,
+          total_tokens: 45
+        }
+      };
+
+      (fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse
+      });
+
+      const messages = [
+        { role: 'user', content: 'What is 2+2?' },
+        { role: 'assistant', content: '4' },
+        { role: 'user', content: 'What about 2+3?' }
+      ];
+
+      const result = await llmService.chat({ messages });
+
+      expect(result).toBeDefined();
+      expect(result.choices[0].message.content).toBe('Conversation response');
+    });
+
+    test('应该处理流式响应', async () => {
+      const mockStream = {
+        async *[Symbol.asyncIterator]() {
+          yield 'Hello';
+          yield ' ';
+          yield 'World';
+        }
+      };
+
+      (fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        body: mockStream as any
+      });
+
+      const result = await llmService.chat({
+        messages: [{ role: 'user', content: 'Hello World' }],
+        stream: true
+      });
+
+      expect(result).toBeDefined();
+      // Streaming response handling would be tested here
+    });
+  });
+
+  describe('🔍 模型路由测试 (P0 - 正常流程)', () => {
+    test('应该根据配置路由到正确模型', () => {
+      const service = new LLMService({
+        provider: ModelProvider.OPENAI,
+        model: 'gpt-4',
+        apiKey: 'test-key',
+        maxTokens: 2000
+      });
+
+      expect(service.config.model).toBe('gpt-4');
+      expect(service.config.provider).toBe(ModelProvider.OPENAI);
+    });
+
+    test('应该支持模型参数验证', () => {
+      const validConfig: ModelConfig = {
+        provider: ModelProvider.OPENAI,
+        model: 'gpt-4',
+        apiKey: 'test-key',
+        maxTokens: 2000,
+        temperature: 0.7
+      };
+
+      const service = new LLMService(validConfig);
+      expect(service.config).toEqual(validConfig);
+    });
+
+    test('应该拒绝无效的模型名称', () => {
+      const invalidConfig: any = {
+        provider: ModelProvider.OPENAI,
+        model: '',
+        apiKey: 'test-key',
+        maxTokens: 2000
+      };
+
+      expect(() => {
+        new LLMService(invalidConfig);
+      }).toThrow();
+    });
+
+    test('应该拒绝无效的temperature值', () => {
+      const invalidConfig: ModelConfig = {
+        provider: ModelProvider.OPENAI,
+        model: 'gpt-4',
+        apiKey: 'test-key',
+        maxTokens: 2000,
+        temperature: -1 // Invalid
+      };
+
+      expect(() => {
+        new LLMService(invalidConfig);
+      }).toThrow();
+    });
+  });
+
+  describe('❌ 异常处理测试 (P0 - 异常处理)', () => {
+    test('应该处理API错误响应', async () => {
+      (fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized'
+      });
+
+      await expect(
+        llmService.chat({ messages: [{ role: 'user', content: 'Test' }] })
+      ).rejects.toThrow();
+    });
+
+    test('应该处理网络错误', async () => {
+      (fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+
+      await expect(
+        llmService.chat({ messages: [{ role: 'user', content: 'Test' }] })
+      ).rejects.toThrow('Network error');
+    });
+
+    test('应该处理超时错误', async () => {
+      llmService = new LLMService({
+        ...mockConfig,
+        timeout: 1 // Very short timeout
+      });
+
+      // Mock timeout
+      jest.useFakeTimers();
+      (fetch as jest.Mock).mockImplementation(
+        () =>
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout')), 100)
+          )
+      );
+
+      await expect(
+        llmService.chat({ messages: [{ role: 'user', content: 'Test' }] })
+      ).rejects.toThrow();
+
+      jest.useRealTimers();
+    });
+
+    test('应该处理无效的响应格式', async () => {
+      (fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ invalid: 'response' })
+      });
+
+      await expect(
+        llmService.chat({ messages: [{ role: 'user', content: 'Test' }] })
+      ).rejects.toThrow();
+    });
+
+    test('应该处理空响应', async () => {
+      (fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => null
+      });
+
+      await expect(
+        llmService.chat({ messages: [{ role: 'user', content: 'Test' }] })
+      ).rejects.toThrow();
+    });
+
+    test('应该处理无效的messages格式', async () => {
+      await expect(
+        llmService.chat({ messages: [] as any })
+      ).rejects.toThrow();
+    });
+
+    test('应该处理缺少必需参数的请求', async () => {
+      await expect(llmService.chat({} as any)).rejects.toThrow();
+    });
+  });
+
+  describe('🔒 速率限制测试 (P1 - 速率限制)', () => {
+    test('应该限制API调用频率', async () => {
+      let callCount = 0;
+      (fetch as jest.Mock).mockImplementation(() => {
+        callCount++;
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ id: 'test', choices: [] })
+        });
+      });
+
+      // Make multiple calls quickly
+      const promises = Array.from({ length: 10 }, () =>
+        llmService.chat({ messages: [{ role: 'user', content: 'Test' }] })
+      );
+
+      await Promise.all(promises);
+
+      expect(callCount).toBe(10);
+    });
+
+    test('应该跟踪API调用统计', async () => {
+      (fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 'test',
+          choices: [],
+          usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 }
+        })
+      });
+
+      await llmService.chat({ messages: [{ role: 'user', content: 'Test' }] });
+
+      const stats = llmService.getStats();
+      expect(stats.totalCalls).toBeGreaterThan(0);
+    });
+
+    test('应该支持速率限制配置', () => {
+      const rateLimitedService = new LLMService({
+        ...mockConfig,
+        rateLimit: {
+          maxRequestsPerMinute: 60,
+          maxRequestsPerHour: 1000
+        }
+      });
+
+      expect(rateLimitedService.config.rateLimit).toBeDefined();
+    });
+  });
+
+  describe('💰 成本追踪测试 (P1 - 成本)', () => {
+    test('应该计算Token使用成本', async () => {
+      (fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 'test',
+          choices: [],
+          usage: {
+            prompt_tokens: 100,
+            completion_tokens: 200,
+            total_tokens: 300
+          }
+        })
+      });
+
+      await llmService.chat({ messages: [{ role: 'user', content: 'Test' }] });
+
+      const stats = llmService.getStats();
+      expect(stats.totalTokens).toBe(300);
+    });
+
+    test('应该跟踪按模型计费', async () => {
+      (fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 'test',
+          choices: [],
+          usage: {
+            prompt_tokens: 50,
+            completion_tokens: 100,
+            total_tokens: 150
+          }
+        })
+      });
+
+      await llmService.chat({ messages: [{ role: 'user', content: 'Test' }] });
+
+      const stats = llmService.getStats();
+      expect(stats.modelUsage).toBeDefined();
+    });
+
+    test('应该支持按模型计费', () => {
+      const costTrackingService = new LLMService({
+        ...mockConfig,
+        costTracking: true
+      });
+
+      expect(costTrackingService.config.costTracking).toBe(true);
+    });
+  });
+
+  describe('🔧 辅助功能测试 (P2 - 辅助)', () => {
+    test('应该获取服务状态', () => {
+      const status = llmService.getStatus();
+      expect(status).toBeDefined();
+      expect(status.healthy).toBe(true);
+    });
+
+    test('应该重置统计信息', async () => {
+      (fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 'test',
+          choices: [],
+          usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 }
+        })
+      });
+
+      await llmService.chat({ messages: [{ role: 'user', content: 'Test' }] });
+
+      const stats1 = llmService.getStats();
+      llmService.resetStats();
+      const stats2 = llmService.getStats();
+
+      expect(stats2.totalCalls).toBe(0);
+    });
+
+    test('应该支持健康检查', () => {
+      const health = llmService.checkHealth();
+      expect(health).toBeDefined();
+    });
+
+    test('应该支持配置验证', () => {
+      const validConfig = {
+        provider: ModelProvider.OPENAI,
+        model: 'gpt-4',
+        apiKey: 'valid-key',
+        maxTokens: 2000,
+        temperature: 0.7
+      };
+
+      expect(() => {
+        new LLMService(validConfig);
+      }).not.toThrow();
+    });
+
+    test('应该支持配置验证失败', () => {
+      const invalidConfig = {
+        provider: ModelProvider.OPENAI,
+        model: 'gpt-4',
+        apiKey: 'valid-key',
+        maxTokens: 2000,
+        temperature: 3 // Out of range
+      };
+
+      expect(() => {
+        new LLMService(invalidConfig);
+      }).toThrow();
+    });
+  });
+
+  describe('🌐 国际化测试 (P2 - 国际化)', () => {
+    test('应该支持多语言模型', () => {
+      const multilingualService = new LLMService({
+        ...mockConfig,
+        model: 'gpt-4-turbo'
+      });
+
+      expect(multilingualService.config.model).toBe('gpt-4-turbo');
+    });
+
+    test('应该支持区域特定配置', () => {
+      const regionalService = new LLMService({
+        ...mockConfig,
+        region: 'ap-southeast-1'
+      });
+
+      expect(regionalService.config.region).toBe('ap-southeast-1');
+    });
+  });
+
+  describe('🔌 API扩展测试 (P2 - 扩展)', () => {
+    test('应该支持函数调用', async () => {
+      (fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 'test',
+          choices: [
+            {
+              message: {
+                role: 'assistant',
+                content: null,
+                function_call: {
+                  name: 'get_weather',
+                  arguments: '{"city": "Tokyo"}'
+                }
+              }
+            }
+          ],
+          usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 }
+        })
+      });
+
+      const result = await llmService.chat({
+        messages: [{ role: 'user', content: 'What is the weather in Tokyo?' }],
+        functions: [
+          {
+            name: 'get_weather',
+            description: 'Get weather information',
+            parameters: {
+              type: 'object',
+              properties: {
+                city: { type: 'string' }
+              },
+              required: ['city']
+            }
+          }
+        ]
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    test('应该支持图像理解', async () => {
+      (fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 'test',
+          choices: [
+            {
+              message: {
+                role: 'assistant',
+                content: 'I see a cat'
+              }
+            }
+          ],
+          usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 }
+        })
+      });
+
+      const result = await llmService.chat({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'What do you see in this image?'
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: 'https://example.com/image.jpg'
+                }
+              }
+            ]
+          }
+        ]
+      });
+
+      expect(result).toBeDefined();
+    });
+  });
+});
+
+describe('Gateway LLMService 集成测试', () => {
+  let llmService: LLMService;
+
+  beforeEach(() => {
+    llmService = new LLMService({
+      provider: ModelProvider.OPENAI,
+      model: 'gpt-4',
+      apiKey: 'test-key',
+      maxTokens: 2000
+    });
+  });
+
+  test('应该完成完整的聊天流程', async () => {
+    // 1. Initialize service
+    const service = new LLMService({
+      provider: ModelProvider.OPENAI,
+      model: 'gpt-4',
+      apiKey: 'test-key',
+      maxTokens: 2000
+    });
+
+    // 2. Make chat request
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        id: 'test',
+        choices: [
+          {
+            message: {
+              role: 'assistant',
+              content: 'Response'
+            }
+          }
+        ],
+        usage: {
+          prompt_tokens: 10,
+          completion_tokens: 10,
+          total_tokens: 20
+        }
+      })
+    });
+
+    const result = await service.chat({
+      messages: [{ role: 'user', content: 'Hello' }]
+    });
+
+    // 3. Verify response
+    expect(result.choices[0].message.content).toBe('Response');
+
+    // 4. Check stats
+    const stats = service.getStats();
+    expect(stats.totalCalls).toBe(1);
+    expect(stats.totalTokens).toBe(20);
+  });
+
+  test('应该处理错误流程', async () => {
+    (fetch as jest.Mock).mockRejectedValueOnce(new Error('API error'));
+
+    await expect(
+      llmService.chat({ messages: [{ role: 'user', content: 'Test' }] })
+    ).rejects.toThrow('API error');
+  });
+
+  test('应该支持错误恢复', async () => {
+    let callCount = 0;
+    (fetch as jest.Mock).mockImplementation(() => {
+      callCount++;
+      if (callCount < 3) {
+        return Promise.reject(new Error('API error'));
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          id: 'test',
+          choices: [
+            {
+              message: {
+                role: 'assistant',
+                content: 'Success'
+              }
+            }
+          ],
+          usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 }
+        })
+      });
+    });
+
+    const result = await llmService.chat({
+      messages: [{ role: 'user', content: 'Test' }]
+    });
+
+    expect(callCount).toBe(3);
+    expect(result.choices[0].message.content).toBe('Success');
+  });
+});

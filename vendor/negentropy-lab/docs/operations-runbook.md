@@ -1,7 +1,7 @@
 # Negentropy-Lab 运维手册
 
-**版本**: v7.5.0-dev
-**更新日期**: 2026-03-01
+**版本**: v7.6.0-dev
+**更新日期**: 2026-03-07
 **维护者**: 科技部
 
 ---
@@ -33,10 +33,10 @@
 
 | 检查项 | 频率 | 命令 |
 |--------|------|------|
-| 服务状态 | 每小时 | `curl http://localhost:3000/health` |
+| 服务状态 | 每小时 | `npm run launch -- health` |
 | 内存使用 | 每15分钟 | `pm2 status` 或 `free -h` |
 | 日志错误 | 每小时 | `grep ERROR logs/application.log | tail -20` |
-| 连接数 | 每30分钟 | `curl http://localhost:3000/metrics | grep active_connections` |
+| 连接数 | 每30分钟 | `ss -s` 或 `netstat -an | grep :3000 | wc -l` |
 
 ### 2.2 定时任务
 
@@ -122,11 +122,14 @@ netstat -an | grep :3000 | wc -l
 # 2. 检查异常连接
 netstat -an | grep :3000 | grep -v ESTABLISHED
 
-# 3. 必要时限流
-curl -X POST http://localhost:3000/admin/rate-limit \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -d '{"maxConnections": 5000}'
+# 3. 查看 launcher 视角健康状态
+npm run launch -- health
 ```
+
+说明：
+
+- 当前仓默认未暴露 `/admin/rate-limit` 运行时管理端点。
+- 如需临时限流，请在反向代理/入口层执行，或通过配置变更后重启服务。
 
 ---
 
@@ -236,8 +239,8 @@ pm2 start negentropy-gateway
 # 检查宪法合规状态
 npm run check:constitution
 
-# 查看熵值变化
-curl http://localhost:3000/api/entropy
+# 查看持续治理报告
+npm run report:perf:trend
 
 # 检查RPC契约覆盖
 npm run check:contract:strict

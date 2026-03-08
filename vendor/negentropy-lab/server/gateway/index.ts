@@ -157,9 +157,9 @@ function checkConstitutionalCompliance(config: Partial<GatewayConfig>) {
 }
 
 // 导出 Gateway 核心类型和工具（Phase 1A 可用模块）
-// 旧实现已归档到 archive/server.impl.ts
-export * from './server.impl-with-ws';
+export * from './server.impl';
 // 升级认证系统到增强版本（Phase 1B Day 4: 认证增强）
+// export * from './auth';  // 旧认证系统，已弃用
 export * from './auth/index'; // 新统一认证系统
 // 以下模块将在 Phase 1B/C 中实现
 // export * from './server-http';      // Phase 1B: HTTP API 集成

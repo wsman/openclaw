@@ -20,6 +20,7 @@ import { getCircuitBreakerManager } from '../resilience/circuit-breaker';
 import { getFallbackAdapter } from '../resilience/fallback-adapter';
 import { getOpenClawBridge } from '../bridge/openclaw-bridge';
 import { createDefaultDecisionRequest, DecisionRequest } from '../contracts/decision-contract';
+import { createWorkflowInternalApiRouter } from '../../openclaw-orchestration/api/internal-api';
 
 // ============================================================================
 // API 路由器
@@ -182,6 +183,10 @@ export function createInternalApiRouter(): Router {
       },
     });
   });
+
+  // Mount workflow orchestration under the same internal /openclaw API surface so
+  // extension defaults can derive a single base URL from the decision service URL.
+  router.use(createWorkflowInternalApiRouter());
 
   return router;
 }

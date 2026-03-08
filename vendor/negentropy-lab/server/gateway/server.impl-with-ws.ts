@@ -16,7 +16,7 @@ import { logger } from '../utils/logger';
 import * as http from 'http';
 import express, { Request, Response } from 'express';
 import { GatewayWebSocketHandler, WsConnectionConfig } from './websocket-handler-fixed';
-import { createDefaultUnifiedAuthManager } from './auth';
+import { GatewayAuthManager, createDefaultAuthManager } from './auth';
 
 // 类型定义
 export type GatewayBindMode = 'loopback' | 'lan' | 'tailnet' | 'auto';
@@ -284,7 +284,7 @@ export async function startGatewayServer(
   const server = http.createServer(app);
   
   // 创建 WebSocket 处理器
-  const authManager = createDefaultUnifiedAuthManager();
+  const authManager = createDefaultAuthManager();
   const wsConfig: WsConnectionConfig = {
     ...websocket,
     authManager,
@@ -490,3 +490,4 @@ export function createCronService() {
     },
   };
 }
+

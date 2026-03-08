@@ -1,193 +1,182 @@
 /**
- * 🚀 认证中间件 - 兼容层
+ * 🚀 认证系统核心模块
  * 
  * @constitution
- * §102 熵减原则：消除冗余代码，统一认证接口
- * §152 单一真理源公理：认证逻辑集中在 gateway/auth
+ * §101 同步公理：代码变更必须触发文档更新
+ * §102 熵减原则：所有变更必须降低或维持系统熵值
+ * §107 通信安全公理：私聊消息必须加密，公开消息需身份验证
+ * §152 单一真理源公理：知识库文件是可执行规范的唯一真理源
+ * §306 零停机协议：在生产级开发任务中确保服务连续性
+ * §504 监控系统公理：系统必须实时监控宪法合规状态和性能指标
+ * §505 熵值计算公理：系统必须实时计算和监控认知熵值
+ * §506 成本透视公理：所有LLM调用必须实时追踪成本和性能
  * 
- * 整合说明：
- * - 所有认证逻辑已迁移到 server/gateway/auth/
- * - 此文件提供向后兼容的中间件函数
- * - 新代码请直接从 '../gateway/auth' 导入
- * 
- * @deprecated 请直接从 '../gateway/auth' 导入
- * @see server/gateway/auth/index.ts
+ * @filename auth.ts
+ * @version 1.0.0
+ * @category auth
+ * @last_updated 2026-02-11
  */
-
 import { Request, Response, NextFunction } from 'express';
-import { UnifiedAuthManager, createDefaultUnifiedAuthManager, JWTPayload } from '../gateway/auth';
+import jwt from 'jsonwebtoken';
+import { logger } from '../utils/logger';
 
-// 发出废弃警告（非生产环境）
-if (process.env.NODE_ENV !== 'production') {
-  console.warn('⚠️  DEPRECATED: middleware/auth.ts 已废弃，请直接从 gateway/auth 导入');
-}
+// JWT 密钥，与 auth.ts 保持一致
+const JWT_SECRET = process.env.JWT_SECRET || 'entropy-lab-secret-key-change-in-production';
 
-// ==========================================
-// 类型定义（向后兼容）
-// ==========================================
-
-/**
- * 认证用户信息
- * @deprecated 使用 JWTPayload 替代
- */
+// JWT 解码后的用户信息接口
 export interface AuthUser {
   sub: string;
-  username?: string;
-  email?: string;
-  role?: string;
-  scope?: string[];
-  iat?: number;
-  exp?: number;
+  username: string;
+  role: 'admin' | 'operator' | 'guest';
+  permissions: string[];
+  allowed_knowledge_bases?: string[];
 }
 
-// ==========================================
-// 单例管理器
-// ==========================================
-
-let _authManager: UnifiedAuthManager | null = null;
-
-/**
- * 获取认证管理器单例
- */
-function getAuthManager(): UnifiedAuthManager {
-  if (!_authManager) {
-    _authManager = createDefaultUnifiedAuthManager();
+// 扩展 Express 请求类型以包含用户信息
+declare global {
+  namespace Express {
+    interface Request {
+      user?: AuthUser;
+    }
   }
-  return _authManager;
 }
 
-// ==========================================
-// 中间件函数（向后兼容）
-// ==========================================
-
 /**
- * JWT 认证中间件
- * 
- * 验证请求头中的 JWT 令牌，并将用户信息附加到 req.user
- * 
- * @deprecated 使用 gateway/auth 中的中间件替代
+ * 身份验证中间件
+ * 验证 JWT 令牌，并将解码后的用户信息附加到 req.user
  */
-export async function authenticateJWT(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
+export const authenticateJWT = (req: Request, res: Response, next: NextFunction): void => {
   try {
     const authHeader = req.headers.authorization;
-    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({
-        success: false,
-        error: '缺少认证令牌',
-        code: 'MISSING_TOKEN'
-      });
+      res.status(401).json({ success: false, error: '未提供身份验证令牌' });
       return;
     }
+
+    const token = authHeader.split(' ')[1];
     
-    const token = authHeader.substring(7);
-    const authManager = getAuthManager();
-    
-    const result = await authManager.verifyToken(token, [], req.ip, req.get('user-agent'));
-    
-    if (!result.valid || !result.payload) {
-      res.status(401).json({
-        success: false,
-        error: '令牌无效或已过期',
-        code: 'INVALID_TOKEN'
-      });
-      return;
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as AuthUser;
+      req.user = decoded;
+      next();
+    } catch (err) {
+      if (err instanceof jwt.TokenExpiredError) {
+        res.status(401).json({ success: false, error: '令牌已过期' });
+      } else if (err instanceof jwt.JsonWebTokenError) {
+        res.status(401).json({ success: false, error: '无效令牌' });
+      } else {
+        res.status(401).json({ success: false, error: '身份验证失败' });
+      }
     }
-    
-    // 将用户信息附加到请求对象
-    (req as any).user = {
-      sub: result.payload.sub,
-      scope: result.payload.scope,
-      iat: result.payload.iat,
-      exp: result.payload.exp
-    } as AuthUser;
-    
-    next();
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: '认证服务错误',
-      code: 'AUTH_SERVICE_ERROR'
-    });
+    logger.error(`[Auth Middleware] Unexpected error: ${error.message}`);
+    res.status(500).json({ success: false, error: '服务器内部错误' });
   }
-}
+};
 
 /**
- * 可选认证中间件
- * 
- * 尝试验证令牌，但不强制要求
- * 
- * @deprecated 使用 gateway/auth 中的中间件替代
+ * 权限检查中间件
+ * 检查用户是否拥有指定的权限
+ * @param permission 所需的权限字符串，如 "manage_users"、"view_knowledge_base"
  */
-export async function optionalAuth(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      // 没有令牌，继续但 req.user 为 undefined
+export const requirePermission = (permission: string) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({ success: false, error: '未认证' });
+      return;
+    }
+
+    // 管理员拥有全部权限
+    if (req.user.role === 'admin') {
       next();
       return;
     }
-    
-    // 有令牌，尝试验证
-    await authenticateJWT(req, res, next);
-  } catch (error: any) {
-    // 可选认证失败时继续，不阻止请求
-    next();
-  }
-}
+
+    // 检查权限
+    if (req.user.permissions.includes(permission) || req.user.permissions.includes('*')) {
+      next();
+    } else {
+      logger.warn(`[Auth] Permission denied for user ${req.user.username}: missing ${permission}`);
+      res.status(403).json({ success: false, error: '权限不足' });
+    }
+  };
+};
 
 /**
- * 角色检查中间件工厂
- * 
- * @param requiredRole - 需要的角色
- * @deprecated 使用 gateway/auth 中的权限系统替代
+ * 角色检查中间件
+ * 检查用户是否拥有指定的角色
+ * @param requiredRole 所需的角色：'admin' | 'operator' | 'guest'
  */
-export function requireRole(requiredRole: string) {
+export const requireRole = (requiredRole: 'admin' | 'operator' | 'guest') => {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const user = (req as any).user as AuthUser | undefined;
-    
-    if (!user) {
-      res.status(401).json({
-        success: false,
-        error: '未认证',
-        code: 'UNAUTHORIZED'
-      });
+    if (!req.user) {
+      res.status(401).json({ success: false, error: '未认证' });
       return;
     }
-    
-    if (user.role !== requiredRole && user.role !== 'admin') {
-      res.status(403).json({
-        success: false,
-        error: '权限不足',
-        code: 'FORBIDDEN'
-      });
+
+    // 角色层级：admin > operator > guest
+    const roleHierarchy: Record<'admin' | 'operator' | 'guest', number> = {
+      'admin': 3,
+      'operator': 2,
+      'guest': 1
+    };
+
+    // 确保用户角色是有效的角色
+    const userRole = req.user.role;
+    if (!(userRole in roleHierarchy)) {
+      logger.warn(`[Auth] Invalid role detected for user ${req.user.username}: ${userRole}`);
+      res.status(403).json({ success: false, error: '无效的用户角色' });
       return;
     }
-    
-    next();
+
+    const userRoleLevel = roleHierarchy[userRole];
+    const requiredRoleLevel = roleHierarchy[requiredRole];
+
+    if (userRoleLevel >= requiredRoleLevel) {
+      next();
+    } else {
+      logger.warn(`[Auth] Role denied for user ${req.user.username}: ${req.user.role} < ${requiredRole}`);
+      res.status(403).json({ success: false, error: '角色权限不足' });
+    }
   };
-}
+};
 
-// ==========================================
-// 重新导出 gateway/auth 内容
-// ==========================================
+/**
+ * 组合中间件：先验证JWT，再检查权限
+ * @param permission 所需的权限
+ */
+export const authAndPermission = (permission: string) => {
+  return [authenticateJWT, requirePermission(permission)];
+};
 
-export * from '../gateway/auth';
+/**
+ * 组合中间件：先验证JWT，再检查角色
+ * @param role 所需的角色
+ */
+export const authAndRole = (role: 'admin' | 'operator' | 'guest') => {
+  return [authenticateJWT, requireRole(role)];
+};
 
-// 导出主要类和函数
-export {
-  UnifiedAuthManager,
-  createDefaultUnifiedAuthManager
-} from '../gateway/auth';
-
-// 导出类型（便于类型检查）
-export type { JWTPayload } from '../gateway/auth';
+/**
+ * 获取用户信息中间件（可选认证）
+ * 如果提供了有效的JWT，将用户信息附加到req.user，但不强制要求认证
+ */
+export const optionalAuth = (req: Request, res: Response, next: NextFunction): void => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as AuthUser;
+        req.user = decoded;
+      } catch (err) {
+        // 令牌无效，但这不是错误，只是不附加用户信息
+        logger.debug(`[Optional Auth] Invalid token: ${err}`);
+      }
+    }
+    next();
+  } catch (error: any) {
+    logger.error(`[Optional Auth] Unexpected error: ${error.message}`);
+    next(); // 可选认证不阻止请求
+  }
+};

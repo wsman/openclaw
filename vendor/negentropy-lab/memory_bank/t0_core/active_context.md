@@ -1,9 +1,9 @@
 ﻿# 活跃上下文 - Negentropy-Lab v7.6.0-dev
 
 **版本**: v7.6.0-dev (Phase 13 Final Acceptance 已完成)
-**状态**: ✅ Phase 13 Final Acceptance 已完成 | 📋 Phase 14-15 规划中（计划窗口: 2026-03-05~2026-03-20）
+**状态**: ✅ Phase 13 Final Acceptance 已完成 | 🔄 Phase 14-15 执行中（计划窗口: 2026-03-05~2026-03-20）
 **宪法依据**: §101同步公理、§102熵减原则、§103协作同步公理、§192模型选择器公理、§193模型选择器更新公理、§110协作效率公理、§501插件系统公理、§504监控系统公理
-**最后更新**: 2026-03-05
+**最后更新**: 2026-03-07
 
 ---
 
@@ -35,7 +35,7 @@
 ## 🏗️ 架构组件实现追踪
 
 > **说明**: 本章节追踪七层自治架构各组件的实现状态，确保文档与代码一致性。
-> **最后更新**: 2026-03-04
+> **最后更新**: 2026-03-07
 > **运行基线**: 运行时入口、职责边界与实现状态以 `memory_bank/t0_core/runtime_architecture_baseline.md` 为准。
 
 ### 七层架构实现状态
@@ -48,8 +48,8 @@
 | **L2.5** | 内部事务局(IAB) | 🟡 功能集成 | `server/gateway/monitoring/core/ConstitutionMonitor.ts`, `EntropyService.ts` | 审计功能集成于现有监控服务 |
 | **L2** | 执行代理层 | ✅ 已实现 | `server/agents/` | 三层架构完整实现 |
 | **L1** | 记忆银行层 | ✅ 已实现 | `memory_bank/` | T0-T3四层架构 |
-| **L0.8** | ToolCallBridge | 🟡 规范完成 | 仅有文档 `memory_bank/t2_standards/DS-23_tool_call_bridge.md` | 代码实现待开发 |
-| **L0.5** | Legacy兼容层 | 📋 架构规划 | 无代码实现 | 架构设计完成，适配器待开发 |
+| **L0.8** | ToolCallBridge | 🟡 接口在位 | `memory_bank/t2_standards/DS-23_tool_call_bridge.md`, `server/types/system/IToolCallBridge.ts` | 广播实现待补齐 |
+| **L0.5** | Legacy兼容层 | 🟡 局部实现 | `server/adapters/OpenClawLogAdapter.ts` | 通用兼容适配器仍待补齐 |
 | **L0** | 遗留隔离层 | 📋 架构规划 | 无代码实现 | 隔离区设计完成，实现待开发 |
 
 ### 状态图例
@@ -61,8 +61,8 @@
 ### 关键差异说明
 
 1. **L2.5 内部事务局(IAB)**: 原设计为独立服务，实际实现中审计功能集成于 `ConstitutionMonitor` 和 `EntropyService`
-2. **L0.8 ToolCallBridge**: `DS-23_tool_call_bridge.md` 标注"生产就绪"应理解为"规范定义成熟度"，非"代码已实现"
-3. **L0.5 Legacy兼容层**: `§107 Legacy兼容层公理` 定义了架构设计，但 `LegacyCommandAdapter` 等适配器代码尚未开发
+2. **L0.8 ToolCallBridge**: `DS-23_tool_call_bridge.md` 与 `IToolCallBridge` 类型接口已存在，但事件广播实现仍未落地
+3. **L0.5 Legacy兼容层**: 已存在 `OpenClawLogAdapter` 这类局部适配器实现，但 `LegacyCommandAdapter` 等通用兼容适配器仍未开发
 
 ---
 
@@ -74,7 +74,7 @@
 | **OpenClaw决策服务** | ✅ 完整实现 | 决策控制器/策略引擎/断路器/灰度发布/回滚演练已完成 |
 | **Agent三层架构** | 🟢 就绪 | L1+L2+L3完整 |
 | **插件系统** | 🟡 核心可用 | PluginManager/PluginValidator可用，热重载监视器待实现 |
-| **监控系统** | ✅ 完整实现 | 11个服务：CostTracker/ConstitutionMonitor/EntropyService/UIStateSync/ControlPanel/AgentExecutionVisualizer/StreamingOptimizer/TaskQueueVisualizer/TaskSchedulerEnhanced/PerformanceMetricsEnhanced/CostPerspective |
+| **监控系统** | 🟡 组件齐全 | 11个服务类已实现；默认运行态明确接入 `CostTracker`，其余能力需显式装配或按路由挂载 |
 | **LLM集成** | 🟡 分层存在 | `server/services`含ModelSelectorService，Gateway路径以模型注册表与failover为主 |
 | **测试覆盖率** | 🟡 以最新报告为准 | 仓库未维护统一实时覆盖率快照 |
 | **全量测试基线** | ✅ 通过 | `npm test -- --run`：`Test Files 15 passed / 273 tests`，全部通过；OpenClaw决策模块核心功能完成，WebSocket+HTTP双端集成验收通过 |
@@ -94,15 +94,15 @@
 
 ### 📅 移植历史记录
 
-#### 2026-03-05~2026-03-20: Phase 14-15 规划阶段 (计划窗口)
+#### 2026-03-05~2026-03-20: Phase 14-15 执行阶段 (计划窗口)
 - **版本**: v7.6.0-dev (Phase 13 Final Acceptance 已完成)
-- **当前状态**: 📋 规划阶段（尚未开始执行）
+- **当前状态**: 🔄 执行阶段（已进入计划窗口）
 - **计划内容**:
   1. Phase 14: 生产环境就绪验证
   2. Phase 15: 部署集成/监控告警/灰度发布演练/运维就绪验证
 - **前置条件**: Phase 13 验收已通过
 - **最新实际验收**: `reports/2026-03-03_phase13-final-acceptance.md`
-- **注意**: `reports/2026-03-20_phase15-final-acceptance.md` 为规划模板文档，非验收完成报告
+- **注意**: `reports/2026-03-15_phase14-final-acceptance.md` 与 `reports/2026-03-20_phase15-final-acceptance.md` 均生成于 2026-03-04，属于 rehearsal/排期文件，不能等同于 2026-03-15 / 2026-03-20 已发生的真实生产验收
 
 #### 2026-03-03: Phase 13 批次验收完成
 - **版本**: v7.6.0-dev (Phase 13 Final Acceptance)

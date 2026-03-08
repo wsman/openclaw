@@ -19,9 +19,14 @@ import { LLMService, LLMRequest, StreamCallback } from '../services/LLMService';
  * 
  * @version 1.0.0
  * @category API Routes
- * 
- * 注意: Request.container 类型已在 server/types/express.d.ts 中统一声明
  */
+
+// 扩展Express Request类型
+declare module 'express-serve-static-core' {
+    interface Request {
+        container?: Container;
+    }
+}
 
 /**
  * 创建LLM API路由

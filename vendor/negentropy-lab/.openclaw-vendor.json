@@ -1,0 +1,52 @@
+{
+  "sourceRoot": "D:\\Users\\WSMAN\\Desktop\\Coding Task\\Negentropy-Lab",
+  "syncedAt": "2026-03-08T09:48:35.798Z",
+  "sourceHead": "9434798619b652cdf8e7283c675950719b594f64",
+  "includeRootDirs": [
+    ".github",
+    "config",
+    "docs",
+    "engine",
+    "memory_bank",
+    "monitoring",
+    "plugins",
+    "scripts",
+    "server",
+    "src",
+    "templates",
+    "tests"
+  ],
+  "includeRootFiles": [
+    ".clinerules",
+    ".eslintrc.json",
+    ".gitignore",
+    "CHANGELOG.md",
+    "constitution-compliance-report.json",
+    "docker-compose.production.yml",
+    "docker-compose.v3.yml",
+    "Dockerfile.mcp",
+    "Dockerfile.node",
+    "Dockerfile.production",
+    "jest.config.js",
+    "LICENSE",
+    "package.json",
+    "pnpm-lock.yaml",
+    "README.md",
+    "tsconfig.build.json",
+    "tsconfig.json",
+    "tsconfig.test.json",
+    "vitest.config.mjs"
+  ],
+  "excludeNames": [
+    ".cdd",
+    ".git",
+    ".husky",
+    "coverage",
+    "data",
+    "dist",
+    "logs",
+    "node_modules",
+    "reports",
+    "storage"
+  ]
+}

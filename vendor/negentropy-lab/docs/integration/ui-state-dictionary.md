@@ -1,19 +1,21 @@
 # UI Decision State Dictionary
 
-Last updated: 2026-03-03
+Last updated: 2026-03-07
 Owner: Negentropy-Lab + opendoge-ui
 
 ## 1. Scope
 
 This document defines the canonical UI state dictionary for decision control across Web and Desk.
 
-Primary source:
+Primary sources:
 
-- `D:/Users/WSMAN/Desktop/OpenDoge/opendoge-ui/control-ui/src/types/protocol.ts`
+- `OPENDOGE_UI_PATH/apps/control-ui-web/src/api/decisionApi.ts`
+- `OPENDOGE_UI_PATH/apps/control-ui-desk/src/api/decisionApi.ts`
+- Legacy `control-ui/src/types/protocol.ts` is retired and should not be treated as the canonical mirror.
 
 Contract source:
 
-- `D:/Users/WSMAN/Desktop/Coding Task/Negentropy-Lab/server/gateway/openclaw-decision/contracts/decision-contract.ts`
+- `server/gateway/openclaw-decision/contracts/decision-contract.ts`
 
 ## 2. Canonical Enums
 
@@ -83,3 +85,4 @@ Expected:
 
 - mode and action enum set checks are `pass`
 - UI protocol and decision contract remain aligned
+- If the UI repo is outside the historical Windows default path, export `OPENDOGE_UI_PATH` first.

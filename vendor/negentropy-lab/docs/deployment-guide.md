@@ -1,7 +1,7 @@
 # Negentropy-Lab 部署指南
 
-**版本**: v7.5.0-dev
-**更新日期**: 2026-03-01
+**版本**: v7.6.0-dev
+**更新日期**: 2026-03-07
 **维护者**: 科技部
 
 ---
@@ -21,9 +21,9 @@
 
 ### 1.2 依赖服务
 
-- **Redis**: 会话存储和缓存
-- **PostgreSQL**: 持久化数据存储（可选）
-- **Qdrant**: 向量数据库（MCP服务）
+- **Redis**: 会话存储和缓存（可选，可在当前环境回退到 mock/本地模式）
+- **Qdrant**: 向量数据库（向量检索/知识图谱链路使用）
+- **PostgreSQL**: 非默认运行时依赖，仅作为外部扩展存储规划
 
 ---
 
@@ -36,15 +36,15 @@
 git clone https://github.com/wsman/Negentropy-Lab.git
 cd Negentropy-Lab
 
-# 配置环境变量
-cp .env.example .env
-# 编辑 .env 文件，设置必要的配置
+# 准备环境变量
+# 仓库未维护统一 `.env.example`，请按第 3 节手动创建 `.env`
+# 或在部署系统中直接注入所需环境变量
 
 # 启动服务
-docker-compose up -d
+docker compose -f docker-compose.production.yml up -d
 
 # 查看日志
-docker-compose logs -f gateway
+docker compose -f docker-compose.production.yml logs -f gateway
 ```
 
 ### 2.2 手动部署
@@ -108,14 +108,20 @@ WS_MAX_CONNECTIONS=10000
 ### 4.1 启动服务
 
 ```bash
-# 开发模式
+# 开发模式（主入口，Colyseus/API-only）
+npm run dev:colyseus
+
+# 开发模式（轻量 HTTP + /ws）
 npm run dev
 
-# 生产模式
+# 生产模式（主入口）
+npm run start:colyseus
+
+# 生产模式（轻量入口）
 npm start
 
 # 使用 PM2
-pm2 start npm --name "negentropy-gateway" -- start
+pm2 start node --name "negentropy-colyseus" -- dist/server/index.js
 ```
 
 ### 4.2 停止服务
@@ -134,8 +140,8 @@ pkill -f "node.*dist/index.js"
 # HTTP 健康检查
 curl http://localhost:3000/health
 
-# WebSocket 健康检查
-wscat -c ws://localhost:3000/ws -x '{"type":"ping"}'
+# 如独立 Gateway(4514) 已单独启动，可额外检查
+curl http://localhost:4514/health
 ```
 
 ---
@@ -154,10 +160,10 @@ logs/
 
 ### 5.2 Prometheus 指标
 
-访问 `/metrics` 端点获取 Prometheus 格式指标：
+默认运行态不暴露统一 `/metrics` 端点。若独立 Gateway 进程已启动，可通过 `/api/websocket/stats` 查看连接统计：
 
 ```bash
-curl http://localhost:3000/metrics
+curl http://localhost:4514/api/websocket/stats
 ```
 
 ### 5.3 关键指标
@@ -219,7 +225,7 @@ ufw allow 443/tcp
 
 ```bash
 # 检查服务状态
-npx vitest run tests/integration/gateway/gateway-e2e.test.ts
+npm run launch -- preflight
 
 # 查看实时日志
 tail -f logs/application.log
@@ -230,7 +236,7 @@ npm run check:consistency -- --strict --timeout-ms 120000
 npm run check:contract:strict
 
 # Phase 14 联调与性能基线
-npm run check:integration:config
+npm run check:integration:config   # 需先配置 OPENCLAW_PROJECT_PATH / OPENDOGE_UI_PATH
 npm run phase14:e2e
 npm run phase14:perf
 ```

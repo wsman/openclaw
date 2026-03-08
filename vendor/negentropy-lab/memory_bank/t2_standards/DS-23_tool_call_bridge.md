@@ -12,7 +12,7 @@
 **最后更新**: 2026-03-04  
 **维护者**: 监察部-逆熵实验室架构委员会
 
-> **重要说明**: 本文档状态"规范定义完成"表示接口契约、数学基础、实现规范已完整定义。实际的TypeScript代码实现（如 `ToolCallBridgeImpl.ts`、`IToolCallBridge.ts`）尚未开发。本文档中的代码示例为"实现规范"，用于指导后续开发。
+> **重要说明**: 本文档状态"规范定义完成"表示接口契约、数学基础、实现规范已完整定义。当前仓已存在接口文件 `server/types/system/IToolCallBridge.ts`；事件广播实现（如 `ToolCallBridgeImpl.ts`）仍未开发。本文档中的代码示例为"实现规范"，用于指导后续开发。
 
 ## 📖 目录
 - [一、概述](#一概述)
@@ -606,9 +606,10 @@ tsc --noEmit --strict --noImplicitAny --noImplicitThis --alwaysStrict
 ```bash
 # 运行judicial_verify_contract工具
 # 验证代码实现与接口契约的一致性
+# 当前仓已落地接口文件；实现文件路径仍为规划示例
 judicial_verify_contract \
   --code-file server/services/ToolCallBridgeImpl.ts \
-  --doc-file server/services/IToolCallBridge.d.ts
+  --doc-file server/types/system/IToolCallBridge.ts
 ```
 
 ### 9.3 性能测试
@@ -710,11 +711,11 @@ describe('ToolCallBridge Performance', () => {
 
 ---
 
-**标准状态**: 🟡 规范定义完成，代码实现待开发  
+**标准状态**: 🟡 规范定义完成；接口文件已落地，广播实现待开发  
 **合规性**: 规范100%符合宪法§438-§440要求  
 **数学证明**: 提供完整的时间复杂度分析和算法正确性证明  
 **实现验证**: 待代码实现后进行三级司法验证 (架构、契约、行为)
 
-> **实现提示**: 本文档中的代码示例为"实现规范"，用于指导后续TypeScript代码开发。实际实现时需创建 `IToolCallBridge.ts`、`ToolCallBridgeImpl.ts` 等文件。
+> **实现提示**: 本文档中的代码示例为"实现规范"，用于指导后续TypeScript代码开发。当前仓已存在 `server/types/system/IToolCallBridge.ts`；后续只需补齐 `ToolCallBridgeImpl.ts` 等运行时实现。
 
 *遵循逆熵实验室宪法约束: 代码即数学证明，架构即宪法约束。*

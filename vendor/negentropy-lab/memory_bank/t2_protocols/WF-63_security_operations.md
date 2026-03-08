@@ -14,7 +14,9 @@ tags: [security, ops, safety, incident-response]
 **对应程序法条款**: §210
 **宪法依据**: §161 (零信任权限模型), §396 (用户系统技术标准)
 **版本**: v5.5.0 (Dual-Store Isomorphism)
-**状态**: 🟢 生产就绪
+**状态**: 🟡 规范定义成熟（运行态需按当前认证入口适配）
+
+> **运行态说明**: 当前仓默认未提供独立的 `/api/auth/login` REST 登录端点；认证入口以 WebSocket RPC `auth.login`、`server/gateway/auth/*.ts` 中的网关认证模块，以及 `server/middleware/auth.ts` 提供的 Bearer JWT 中间件为主。
 
 ---
 
@@ -40,19 +42,19 @@ tags: [security, ops, safety, incident-response]
 
 **步骤**:
 
-1. [ ] **凭证接收**: 前端通过安全HTTPS连接提交凭证到 `/api/auth/login`
+1. [ ] **凭证接收**: 客户端通过安全连接发起认证；当前仓运行态以 WebSocket RPC `auth.login` 或 Bearer JWT 保护的 HTTP API 为主
 2. [ ] **输入验证**: 
    - 验证用户名格式（如邮箱格式）
    - 验证密码复杂度（最小长度8字符）
    - 防止SQL注入和XSS攻击
 3. [ ] **凭证验证**:
-   - 查询认证配置（环境变量与网关配置，参考 `server/gateway/config.ts`）
-   - 使用`bcrypt`验证密码哈希（盐轮次 ≥ 10）
-   - 检查用户状态（是否启用、是否锁定）
-4. [ ] **令牌生成**:
-   - 使用`HS256`算法生成JWT
-   - 令牌载荷包含: `sub`(用户ID), `role`(角色), `permissions`(权限列表)
-   - 设置有效期: 默认24小时
+   - 查询认证配置（环境变量与网关配置，参考 `server/gateway/auth.ts`、`server/gateway/auth/index.ts`、`server/middleware/auth.ts`）
+   - 使用 JWT 校验或网关口令校验；当前实现未维护独立用户数据库
+   - 检查用户状态与权限范围（scope / permissions）
+4. [ ] **令牌生成/校验**:
+   - 若启用 `JWTAuthManager`，使用标准 JWT 配置生成/验证令牌
+   - 令牌载荷应包含: `sub`(用户ID), `role`(角色), `permissions`(权限列表)
+   - 有效期、issuer、audience 由网关 JWT 配置统一控制
 5. [ ] **响应返回**:
    - 成功: HTTP 200，返回 `{ "token": "jwt_token", "user": { "id", "role" } }`
    - 失败: HTTP 401，返回错误信息（不泄露具体原因）
@@ -103,7 +105,7 @@ const authMiddleware = (requiredPermission) => {
 ```
 
 **配置要求**:
-- [ ] 所有受保护路由必须通过 `app.use('/api', authMiddleware)` 中间件
+- [ ] 所有受保护路由必须通过 `authenticateJWT`、`authAndPermission` 或等价鉴权中间件
 - [ ] 敏感操作需要额外权限检查（如`admin`角色）
 - [ ] 审计日志必须记录所有权限验证事件
 

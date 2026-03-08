@@ -1,6 +1,6 @@
 # OpenClaw Decision Env Mapping
 
-Last updated: 2026-03-03
+Last updated: 2026-03-07
 Owner: Negentropy-Lab + OpenClaw
 
 ## 1. Scope
@@ -9,9 +9,9 @@ This document defines the canonical env mapping used by the OpenClaw decision br
 
 Source files:
 
-- `D:/Games/openclaw/src/gateway/negentropy/decision-bridge.ts`
-- `D:/Users/WSMAN/Desktop/Coding Task/Negentropy-Lab/scripts/launcher.ts`
-- `D:/Users/WSMAN/Desktop/Coding Task/Negentropy-Lab/config/launcher.config.ts`
+- OpenClaw external repo `src/gateway/negentropy/decision-bridge.ts` (rooted at `OPENCLAW_PROJECT_PATH`)
+- `scripts/launcher.ts`
+- `config/launcher.config.ts`
 
 ## 2. OpenClaw-side Decision Keys
 
@@ -50,3 +50,4 @@ Expected:
 
 - `env.openclaw.NEGENTROPY_DECISION_URL` is `pass`
 - launcher-openclaw path and port keys are present and consistent
+- On Linux or custom layouts, export `OPENCLAW_PROJECT_PATH` and `OPENDOGE_UI_PATH` before running the check, otherwise the checker falls back to historical Windows defaults.

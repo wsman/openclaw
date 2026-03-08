@@ -1,13 +1,16 @@
 # OpenClaw-Negentropy Contract Dictionary
 
-Last updated: 2026-03-03
+Last updated: 2026-03-07
 Owners: Negentropy-Lab + OpenClaw + opendoge-ui
 
 ## 1. Single Source of Truth
 
 - Canonical contract file: `server/gateway/openclaw-decision/contracts/decision-contract.ts`
-- Bridge implementation: `D:/Games/openclaw/src/gateway/negentropy/decision-bridge.ts`
-- UI protocol mirror: `D:/Users/WSMAN/Desktop/OpenDoge/opendoge-ui/control-ui/src/types/protocol.ts`
+- Bridge implementation: OpenClaw external repo `src/gateway/negentropy/decision-bridge.ts` (rooted at `OPENCLAW_PROJECT_PATH`)
+- UI protocol mirrors:
+  - `apps/control-ui-web/src/api/decisionApi.ts` (rooted at `OPENDOGE_UI_PATH`)
+  - `apps/control-ui-desk/src/api/decisionApi.ts` (rooted at `OPENDOGE_UI_PATH`)
+- Legacy note: retired `control-ui/src/types/protocol.ts` is no longer authoritative.
 
 ## 2. Decision Enums
 
@@ -49,9 +52,9 @@ Owners: Negentropy-Lab + OpenClaw + opendoge-ui
 
 | Ingress | Method ID | File |
 | --- | --- | --- |
-| OpenAI Chat Completions | `http.openai.chat.completions` | `D:/Games/openclaw/src/gateway/openai-http.ts` |
-| OpenResponses Create | `http.openresponses.create` | `D:/Games/openclaw/src/gateway/openresponses-http.ts` |
-| Tools Invoke | `http.tools.invoke` | `D:/Games/openclaw/src/gateway/tools-invoke-http.ts` |
+| OpenAI Chat Completions | `http.openai.chat.completions` | `OPENCLAW_PROJECT_PATH/src/gateway/openai-http.ts` |
+| OpenResponses Create | `http.openresponses.create` | `OPENCLAW_PROJECT_PATH/src/gateway/openresponses-http.ts` |
+| Tools Invoke | `http.tools.invoke` | `OPENCLAW_PROJECT_PATH/src/gateway/tools-invoke-http.ts` |
 
 ## 5. Canonical Decision Error Codes
 
@@ -82,7 +85,8 @@ Owners: Negentropy-Lab + OpenClaw + opendoge-ui
 Run:
 
 ```bash
-npx tsx scripts/check-integration-config.ts
+npm run check:integration:config
 ```
 
 The script writes a machine report to `reports/*_integration-config-check.json` and exits non-zero on contract drift.
+Outside the historical Windows environment, export `OPENCLAW_PROJECT_PATH` and `OPENDOGE_UI_PATH` first so the checker can locate the external repos.
