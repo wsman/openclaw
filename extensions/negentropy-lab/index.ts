@@ -67,8 +67,10 @@ function usageText(): string {
     "- /negentropy workflow trace <runId> [limit]",
     "- /negentropy workflow run <name>",
     "- /negentropy workflow retry <runId>",
+    "- /negentropy workflow reconcile [runId] [--include-terminal] [--reason <text>]",
     "- /negentropy workflow cancel <runId> [--emergency]",
     "- /negentropy workflow emergency-stop <runId>",
+    "- /negentropy workflow stop <runId>",
   ].join("\n");
 }
 

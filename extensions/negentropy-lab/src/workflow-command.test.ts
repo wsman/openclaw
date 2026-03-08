@@ -126,4 +126,21 @@ describe("workflow command", () => {
       expect.objectContaining({ runId: "wf-1", emergency: true }),
     );
   });
+
+  it("includes reconcile and stop in usage text for invalid workflow commands", async () => {
+    const result = await handleWorkflowCommand({
+      bridge: {} as any,
+      tokens: ["trace"],
+      ctx: {
+        channel: "webchat",
+        commandBody: "/negentropy workflow trace",
+        config: {} as any,
+        isAuthorizedSender: true,
+      },
+    });
+
+    expect(result.text).toContain("Missing runId");
+    expect(result.text).toContain("/negentropy workflow reconcile");
+    expect(result.text).toContain("/negentropy workflow stop");
+  });
 });
