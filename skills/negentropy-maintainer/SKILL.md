@@ -11,15 +11,17 @@ Use this skill when the task is specifically about the **Negentropy maintenance 
 - `extensions/negentropy-lab`
 - `vendor/negentropy-lab`
 
-This skill is for four jobs:
+This skill is for five jobs:
 
 - **sync** the vendor snapshot from the external Negentropy-Lab source repo
 - **build** and validate the vendored backend without keeping generated artifacts
 - **commit** the result in maintainer-quality chunks
 - **upgrade** the vendored snapshot while keeping OpenClaw-side wiring intact
+- **maintain** the long-term relationship between the external source repo, the vendor snapshot, the OpenClaw bridge, and the maintainer workflow
 
-Open `references/module-map.md` for the Negentropy integration map.  
+Open `references/module-map.md` for the Negentropy integration map.
 Open `references/change-playbooks.md` for the step-by-step sync / build / commit / upgrade checklists.
+Open `references/long-term-maintenance.md` when the task is about ongoing ownership boundaries, cadence, sourceRoot policy, or the long-term maintenance relationship.
 
 ## Operating model
 
@@ -48,10 +50,12 @@ In short:
 
 - Official upstream baseline: `origin/main` from `https://github.com/openclaw/openclaw.git`
 - External source repo: path configured in `custom/stack.local.json`
+- Example current local Negentropy checkout on this workstation: `<path-to-negentropy-lab>`
 - Vendor destination: `vendor/negentropy-lab`
 - Runtime bridge: `extensions/negentropy-lab`
 - Sync orchestrator: `scripts/custom-stack.mjs`
 - Local stack docs/template: `custom/README.md`, `custom/stack.example.json`
+- Long-term maintenance model: `references/long-term-maintenance.md`
 - Generic OpenClaw host surfaces that the extension depends on:
   - `src/plugins/types.ts`
   - `src/plugins/hooks.ts`

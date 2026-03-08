@@ -35,3 +35,28 @@ plugins:
 
 The vendored Negentropy backend still lives in `vendor/negentropy-lab`; the
 sync/build workflow remains driven by `scripts/custom-stack.mjs`.
+
+## Contract source and sync
+
+This extension consumes a local contract snapshot:
+
+- `extensions/negentropy-lab/src/decision-contract.snapshot.ts`
+
+The snapshot is generated from vendor canonical source:
+
+- `vendor/negentropy-lab/server/gateway/openclaw-decision/contracts/decision-contract.ts`
+
+Sync command:
+
+```bash
+node extensions/negentropy-lab/scripts/sync-decision-contract-snapshot.mjs
+```
+
+## Minimal control commands
+
+The extension registers `/negentropy` command handlers:
+
+- `/negentropy status`
+- `/negentropy mode <OFF|SHADOW|ENFORCE>`
+- `/negentropy fail-closed <on|off>`
+- `/negentropy rollback`

@@ -18,9 +18,11 @@ This reference maps the files that matter when maintaining the three-part Negent
 ## Vendor source and destination
 
 - **External source repo**: configured by `negentropy.sourceRoot`
+- **Example current local source checkout**: `<path-to-negentropy-lab>`
 - **Vendored destination**: `vendor/negentropy-lab`
 - **OpenClaw runtime bridge**: `extensions/negentropy-lab`
 - **Local metadata file**: `vendor/negentropy-lab/.openclaw-vendor.json` (ignored; do not commit)
+- **Long-term relationship reference**: `references/long-term-maintenance.md`
 
 ## What `scripts/custom-stack.mjs` syncs
 
@@ -94,6 +96,8 @@ These are the first places to inspect after a vendor sync or upgrade:
 
 - `extensions/negentropy-lab/index.ts`
 - `extensions/negentropy-lab/openclaw.plugin.json`
+- `extensions/negentropy-lab/src/decision-contract.snapshot.ts`
+- `extensions/negentropy-lab/scripts/sync-decision-contract-snapshot.mjs`
 - `extensions/negentropy-lab/src/decision-bridge.ts`
 - `extensions/negentropy-lab/src/gateway-request.ts`
 - `src/plugins/types.ts`

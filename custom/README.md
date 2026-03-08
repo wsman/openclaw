@@ -23,6 +23,14 @@ This folder keeps local integration wiring for a custom OpenClaw stack while pre
 - `pnpm custom:opendoge-ui:test:quick`
 - `pnpm custom:opendoge-ui:test:full-live`
 
+## Source root prerequisites
+
+Negentropy sync requires a real external Negentropy-Lab checkout.
+
+- Configure `custom/stack.local.json -> negentropy.sourceRoot`.
+- `pnpm custom:stack:status` reports `negentropy.sourceStatus` and `negentropy.sourceHint`.
+- `pnpm custom:negentropy:sync:dry` prints `status: "source-missing"` instead of failing hard when source is absent.
+
 ## Recommended layout
 
 - Keep OpenClaw core changes minimal and isolated.
