@@ -19,6 +19,13 @@ export type GatewayRequestPolicyDecision = {
   details?: unknown;
 };
 
+export const HTTP_COMPAT_INGRESS_METHOD_REWRITE_ERROR =
+  "HTTP compatibility ingress only supports params rewrite; cross-method rewrite is not allowed.";
+
+export function resolveGatewayHttpPolicyBlockStatus(errorCode: string | undefined): 400 | 403 {
+  return errorCode === "INVALID_REQUEST" ? 400 : 403;
+}
+
 function normalizeGatewayParams(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {};

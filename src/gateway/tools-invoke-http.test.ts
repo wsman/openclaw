@@ -624,6 +624,22 @@ describe("POST /tools/invoke", () => {
             sessionKey: "main",
           },
           traceId: "trace-rewrite",
+        })
+        .mockResolvedValueOnce({
+          method: "chat.send",
+          params: {
+            tool: "agents_list",
+            action: "json",
+            args: {},
+            sessionKey: "main",
+          },
+          traceId: "trace-cross-method",
+        })
+        .mockResolvedValueOnce({
+          block: true,
+          reason: "invalid payload",
+          errorCode: "INVALID_REQUEST",
+          traceId: "trace-invalid",
         });
       initializeGlobalHookRunner(
         createMockPluginRegistry([{ hookName: "gateway_request", handler: gatewayRequestHook }]),
@@ -648,6 +664,26 @@ describe("POST /tools/invoke", () => {
       const rewrittenBody = await rewritten.json();
       expect(rewrittenBody.ok).toBe(true);
       expect(rewrittenBody).toHaveProperty("result");
+
+      allowAgentsListForMain();
+      const crossMethod = await invokeAgentsListAuthed({ sessionKey: "main" });
+      expect(crossMethod.status).toBe(400);
+      const crossBody = await crossMethod.json();
+      expect(crossBody.ok).toBe(false);
+      expect(crossBody.error?.type).toBe("invalid_request");
+      expect(crossBody.error?.message).toContain(
+        "HTTP compatibility ingress only supports params rewrite",
+      );
+      expect(crossBody.error?.traceId).toBe("trace-cross-method");
+
+      allowAgentsListForMain();
+      const invalidRequest = await invokeAgentsListAuthed({ sessionKey: "main" });
+      expect(invalidRequest.status).toBe(400);
+      const invalidBody = await invalidRequest.json();
+      expect(invalidBody.ok).toBe(false);
+      expect(invalidBody.error?.type).toBe("invalid_request");
+      expect(invalidBody.error?.message).toContain("invalid payload");
+      expect(invalidBody.error?.traceId).toBe("trace-invalid");
     } finally {
       resetGlobalHookRunner();
     }

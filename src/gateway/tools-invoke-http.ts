@@ -35,6 +35,8 @@ import {
 import { getBearerToken, getHeader } from "./http-utils.js";
 import {
   evaluateGatewayHttpRequestPolicy,
+  HTTP_COMPAT_INGRESS_METHOD_REWRITE_ERROR,
+  resolveGatewayHttpPolicyBlockStatus,
 } from "./plugin-request-policy.js";
 
 const DEFAULT_BODY_BYTES = 2 * 1024 * 1024;
@@ -208,10 +210,11 @@ export async function handleToolsInvokeHttpRequest(
     },
   });
   if (!policyDecision.allowed) {
-    sendJson(res, 403, {
+    const status = resolveGatewayHttpPolicyBlockStatus(policyDecision.errorCode);
+    sendJson(res, status, {
       ok: false,
       error: {
-        type: "permission_denied",
+        type: status === 400 ? "invalid_request" : "permission_denied",
         message: policyDecision.reason || "Request rejected by plugin policy",
         ...(policyDecision.traceId ? { traceId: policyDecision.traceId } : {}),
       },
@@ -224,7 +227,8 @@ export async function handleToolsInvokeHttpRequest(
       ok: false,
       error: {
         type: "invalid_request",
-        message: `rewritten method not supported: ${policyDecision.method}`,
+        message: HTTP_COMPAT_INGRESS_METHOD_REWRITE_ERROR,
+        ...(policyDecision.traceId ? { traceId: policyDecision.traceId } : {}),
       },
     });
     return true;

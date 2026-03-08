@@ -45,7 +45,11 @@ import {
   type Usage,
 } from "./open-responses.schema.js";
 import { buildAgentPrompt } from "./openresponses-prompt.js";
-import { evaluateGatewayHttpRequestPolicy } from "./plugin-request-policy.js";
+import {
+  evaluateGatewayHttpRequestPolicy,
+  HTTP_COMPAT_INGRESS_METHOD_REWRITE_ERROR,
+  resolveGatewayHttpPolicyBlockStatus,
+} from "./plugin-request-policy.js";
 
 type OpenResponsesHttpOptions = {
   auth: ResolvedGatewayAuth;
@@ -297,10 +301,11 @@ export async function handleOpenResponsesHttpRequest(
     requestParams: handled.body as Record<string, unknown>,
   });
   if (!policyDecision.allowed) {
-    sendJson(res, 403, {
+    const status = resolveGatewayHttpPolicyBlockStatus(policyDecision.errorCode);
+    sendJson(res, status, {
       error: {
         message: policyDecision.reason || "Request rejected by plugin policy",
-        type: "permission_denied",
+        type: status === 400 ? "invalid_request_error" : "permission_denied",
         ...(policyDecision.traceId ? { trace_id: policyDecision.traceId } : {}),
       },
     });
@@ -310,8 +315,9 @@ export async function handleOpenResponsesHttpRequest(
   if (policyDecision.method !== OPENRESPONSES_HTTP_DECISION_METHOD) {
     sendJson(res, 400, {
       error: {
-        message: `rewritten method not supported: ${policyDecision.method}`,
+        message: HTTP_COMPAT_INGRESS_METHOD_REWRITE_ERROR,
         type: "invalid_request_error",
+        ...(policyDecision.traceId ? { trace_id: policyDecision.traceId } : {}),
       },
     });
     return true;

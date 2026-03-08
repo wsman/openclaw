@@ -278,7 +278,22 @@ async function syncNegentropy(config, { dryRun }) {
     throw new Error("negentropy source/vendor paths are not configured");
   }
 
-  await ensureExists(sourceRoot, "Negentropy-Lab source");
+  const sourceExists = await pathExists(sourceRoot);
+  if (!sourceExists) {
+    const payload = {
+      action: "sync-negentropy",
+      sourceRoot,
+      vendorRoot,
+      status: "source-missing",
+      hint:
+        "Set custom/stack.local.json -> negentropy.sourceRoot to a real Negentropy-Lab checkout before sync.",
+    };
+    if (dryRun) {
+      console.log(JSON.stringify(payload, null, 2));
+      return;
+    }
+    throw new Error(`Negentropy-Lab source not found: ${sourceRoot}`);
+  }
 
   const entries = await fs.readdir(sourceRoot, { withFileTypes: true });
   const selectedEntries = entries
@@ -417,14 +432,22 @@ async function printStatus(config) {
       ? path.join(uiRoot, config.opendogeUi.webAppDir, "dist")
       : null;
 
+  const sourceExists = sourceRoot ? await pathExists(sourceRoot) : false;
+  const vendorExists = vendorRoot ? await pathExists(vendorRoot) : false;
+
   const status = {
     negentropy: {
       sourceRoot,
-      sourceExists: sourceRoot ? await pathExists(sourceRoot) : false,
-      sourceHead: sourceRoot ? await gitHead(sourceRoot) : null,
+      sourceExists,
+      sourceStatus: sourceExists ? "ready" : "missing",
+      sourceHead: sourceExists && sourceRoot ? await gitHead(sourceRoot) : null,
+      sourceHint: sourceExists
+        ? undefined
+        : "Set custom/stack.local.json -> negentropy.sourceRoot to a real Negentropy-Lab checkout.",
       vendorRoot,
-      vendorExists: vendorRoot ? await pathExists(vendorRoot) : false,
-      vendorMetadataPath: vendorRoot ? path.join(vendorRoot, vendorMetadataFile) : null
+      vendorExists,
+      vendorMetadataPath: vendorRoot ? path.join(vendorRoot, vendorMetadataFile) : null,
+      canSync: Boolean(sourceExists && vendorRoot)
     },
     opendogeUi: {
       root: uiRoot,

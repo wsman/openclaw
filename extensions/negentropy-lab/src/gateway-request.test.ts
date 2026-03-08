@@ -25,6 +25,11 @@ describe("negentropy gateway request hook", () => {
       json: async () => ({
         action: "REJECT",
         reason: "blocked by policy",
+        errorCode: "POLICY_DENY",
+        policyTags: {
+          ruleIds: ["rule-1"],
+          category: "risk",
+        },
       }),
     } as Response);
     const handler = createNegentropyGatewayRequestHandler({
@@ -49,11 +54,46 @@ describe("negentropy gateway request hook", () => {
         reason: "blocked by policy",
         errorCode: "PERMISSION_DENIED",
         traceId: expect.any(String),
+        details: {
+          policyTags: {
+            ruleIds: ["rule-1"],
+            category: "risk",
+          },
+          decisionErrorCode: "POLICY_DENY",
+        },
       }),
     );
   });
 
-  it("maps decision rewrites into method/params overrides", async () => {
+  it("maps ws decision rewrites into method + params overrides", async () => {
+    const fetchSpy = vi.fn<typeof fetch>().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        action: "REWRITE",
+        method: "chat.forwarded",
+        params: { text: "rewritten" },
+      }),
+    } as Response);
+    const handler = createNegentropyGatewayRequestHandler({
+      bridge: createDecisionBridge({ mode: "ENFORCE" }, fetchSpy),
+    });
+
+    const result = await handler({
+      transport: "ws",
+      method: "chat.send",
+      params: { text: "original" },
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        method: "chat.forwarded",
+        params: { text: "rewritten" },
+        traceId: expect.any(String),
+      }),
+    );
+  });
+
+  it("rejects cross-method rewrites for HTTP compatibility ingress", async () => {
     const fetchSpy = vi.fn<typeof fetch>().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -75,10 +115,40 @@ describe("negentropy gateway request hook", () => {
 
     expect(result).toEqual(
       expect.objectContaining({
-        method: "chat.forwarded",
-        params: { text: "rewritten" },
+        block: true,
+        errorCode: "INVALID_REQUEST",
+        reason:
+          "HTTP compatibility ingress only supports params rewrite; cross-method rewrite is not allowed.",
+      }),
+    );
+  });
+
+  it("allows HTTP params-only rewrite", async () => {
+    const fetchSpy = vi.fn<typeof fetch>().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        action: "REWRITE",
+        method: "http.openresponses.create",
+        params: { input: "rewritten" },
+      }),
+    } as Response);
+    const handler = createNegentropyGatewayRequestHandler({
+      bridge: createDecisionBridge({ mode: "ENFORCE" }, fetchSpy),
+    });
+
+    const result = await handler({
+      transport: "http",
+      method: "http.openresponses.create",
+      params: { input: "original" },
+      path: "/v1/responses",
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        params: { input: "rewritten" },
         traceId: expect.any(String),
       }),
     );
+    expect(result).not.toHaveProperty("method");
   });
 });

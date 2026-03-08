@@ -29,7 +29,11 @@ import { sendJson, setSseHeaders, writeDone } from "./http-common.js";
 import { handleGatewayPostJsonEndpoint } from "./http-endpoint-helpers.js";
 import { resolveGatewayRequestContext } from "./http-utils.js";
 import { normalizeInputHostnameAllowlist } from "./input-allowlist.js";
-import { evaluateGatewayHttpRequestPolicy } from "./plugin-request-policy.js";
+import {
+  evaluateGatewayHttpRequestPolicy,
+  HTTP_COMPAT_INGRESS_METHOD_REWRITE_ERROR,
+  resolveGatewayHttpPolicyBlockStatus,
+} from "./plugin-request-policy.js";
 
 type OpenAiHttpOptions = {
   auth: ResolvedGatewayAuth;
@@ -436,10 +440,11 @@ export async function handleOpenAiHttpRequest(
     requestParams: handled.body as Record<string, unknown>,
   });
   if (!policyDecision.allowed) {
-    sendJson(res, 403, {
+    const status = resolveGatewayHttpPolicyBlockStatus(policyDecision.errorCode);
+    sendJson(res, status, {
       error: {
         message: policyDecision.reason || "Request rejected by plugin policy",
-        type: "permission_denied",
+        type: status === 400 ? "invalid_request_error" : "permission_denied",
         ...(policyDecision.traceId ? { trace_id: policyDecision.traceId } : {}),
       },
     });
@@ -449,8 +454,9 @@ export async function handleOpenAiHttpRequest(
   if (policyDecision.method !== OPENAI_HTTP_DECISION_METHOD) {
     sendJson(res, 400, {
       error: {
-        message: `rewritten method not supported: ${policyDecision.method}`,
+        message: HTTP_COMPAT_INGRESS_METHOD_REWRITE_ERROR,
         type: "invalid_request_error",
+        ...(policyDecision.traceId ? { trace_id: policyDecision.traceId } : {}),
       },
     });
     return true;

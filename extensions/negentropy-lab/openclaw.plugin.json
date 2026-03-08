@@ -1,7 +1,7 @@
 {
   "id": "negentropy-lab",
   "name": "Negentropy Lab",
-  "description": "Gateway request policy bridge backed by an external Negentropy decision service.",
+  "description": "Gateway request policy bridge plus manual workflow orchestration for Negentropy.",
   "uiHints": {
     "mode": {
       "label": "Decision Mode",
@@ -35,6 +35,25 @@
       "label": "Signing Key",
       "advanced": true,
       "sensitive": true
+    },
+    "workflowEnabled": {
+      "label": "Enable Workflow Bridge",
+      "help": "Manual trigger orchestration bridge. V1 does not enable global auto-orchestration.",
+      "advanced": true
+    },
+    "orchestrationApiBaseUrl": {
+      "label": "Workflow API Base URL",
+      "placeholder": "http://127.0.0.1:3000/internal/openclaw/workflows",
+      "advanced": true
+    },
+    "workflowTimeoutMs": {
+      "label": "Workflow API Timeout (ms)",
+      "advanced": true
+    },
+    "autoDispatchSubagents": {
+      "label": "Auto Dispatch Workflow Subagents",
+      "help": "When enabled, spawn_subagent actions are executed through runtime.subagent.run automatically.",
+      "advanced": true
     }
   },
   "configSchema": {
@@ -72,6 +91,19 @@
       },
       "signingKey": {
         "type": "string"
+      },
+      "workflowEnabled": {
+        "type": "boolean"
+      },
+      "orchestrationApiBaseUrl": {
+        "type": "string"
+      },
+      "workflowTimeoutMs": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "autoDispatchSubagents": {
+        "type": "boolean"
       }
     }
   }

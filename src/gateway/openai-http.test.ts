@@ -776,6 +776,14 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
             messages: [{ role: "user", content: "rewritten prompt" }],
           },
           traceId: "trace-rewrite",
+        })
+        .mockResolvedValueOnce({
+          method: "chat.forwarded",
+          params: {
+            model: "openclaw",
+            messages: [{ role: "user", content: "bad rewrite" }],
+          },
+          traceId: "trace-cross-method",
         });
       initializeGlobalHookRunner(
         createMockPluginRegistry([{ hookName: "gateway_request", handler: gatewayRequestHook }]),
@@ -807,6 +815,22 @@ describe("OpenAI-compatible HTTP API (e2e)", () => {
         | undefined;
       expect(call?.message).toBe("rewritten prompt");
       await rewritten.text();
+
+      agentCommand.mockClear();
+      const crossMethod = await postChatCompletions(port, {
+        model: "openclaw",
+        messages: [{ role: "user", content: "cross method" }],
+      });
+      expect(crossMethod.status).toBe(400);
+      const crossMethodJson = (await crossMethod.json()) as {
+        error?: { type?: string; message?: string; trace_id?: string };
+      };
+      expect(crossMethodJson.error?.type).toBe("invalid_request_error");
+      expect(crossMethodJson.error?.message).toContain(
+        "HTTP compatibility ingress only supports params rewrite",
+      );
+      expect(crossMethodJson.error?.trace_id).toBe("trace-cross-method");
+      expect(agentCommand).not.toHaveBeenCalled();
     } finally {
       resetGlobalHookRunner();
     }

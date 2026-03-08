@@ -235,6 +235,7 @@
     "custom:stack:status": "node scripts/custom-stack.mjs status",
     "custom:negentropy:sync": "node scripts/custom-stack.mjs sync-negentropy",
     "custom:negentropy:sync:dry": "node scripts/custom-stack.mjs sync-negentropy --dry-run",
+    "negentropy:v11:live-smoke": "pnpm exec tsx scripts/negentropy-v11-live-e2e.ts --output reports/negentropy-v11-live-smoke.latest.json --summary reports/negentropy-v11-live-smoke.latest.txt",
     "custom:opendoge-ui:build-web": "node scripts/custom-stack.mjs build-opendoge-web",
     "custom:openclaw:apply-ui-root": "node scripts/custom-stack.mjs apply-openclaw-ui-root",
     "custom:opendoge-ui:test:quick": "node scripts/custom-stack.mjs test-opendoge-quick",
