@@ -1,10 +1,10 @@
 interface:
   display_name: "Negentropy Maintainer"
-  short_description: "Maintain the Negentropy stack with minimal OpenClaw core intrusion"
+  short_description: "Maintain the Negentropy decision + workflow stack with minimal OpenClaw core intrusion"
   icon_small: "./assets/negentropy-maintainer-small.svg"
   icon_large: "./assets/negentropy-maintainer-large.svg"
   brand_color: "#FF5C5C"
-  default_prompt: "Use $negentropy-maintainer to compare against latest origin/main, sync vendor/negentropy-lab, keep Negentropy-specific runtime logic in extensions/negentropy-lab, minimize OpenClaw core changes to generic hook surfaces, and split stack wiring, shared gateway test maintenance, extension, vendor, and skill updates into clean commits."
+  default_prompt: "Use $negentropy-maintainer to compare against latest origin/main, sync vendor/negentropy-lab, keep Negentropy-specific decision/workflow runtime logic in extensions/negentropy-lab, minimize OpenClaw core changes to generic hook surfaces, and split stack wiring, shared gateway test maintenance, extension, vendor, and skill updates into clean commits."
 
 policy:
   allow_implicit_invocation: true

@@ -22,6 +22,7 @@ This skill is for five jobs:
 Open `references/module-map.md` for the Negentropy integration map.
 Open `references/change-playbooks.md` for the step-by-step sync / build / commit / upgrade checklists.
 Open `references/long-term-maintenance.md` when the task is about ongoing ownership boundaries, cadence, sourceRoot policy, or the long-term maintenance relationship.
+Open `references/openclaw-architecture.md` when you need the current code-verified OpenClaw ↔ Negentropy architecture boundary.
 
 ## Operating model
 
@@ -33,7 +34,7 @@ Treat the three paths as different layers with different responsibilities:
   - should be updated when the maintenance workflow or ownership boundaries change
 - `extensions/negentropy-lab` = **OpenClaw runtime integration layer**
   - contains the Negentropy-specific OpenClaw plugin
-  - owns request-policy bridging logic, plugin config schema, and plugin-local tests
+  - owns request-policy bridging logic, workflow bridge/config, control-plane commands, lifecycle-event mapping, and plugin-local tests
   - should absorb Negentropy-specific behavior that does not belong in generic OpenClaw core
 - `vendor/negentropy-lab` = **external source snapshot layer**
   - mirrors the external Negentropy-Lab repository into this repo
@@ -56,6 +57,7 @@ In short:
 - Sync orchestrator: `scripts/custom-stack.mjs`
 - Local stack docs/template: `custom/README.md`, `custom/stack.example.json`
 - Long-term maintenance model: `references/long-term-maintenance.md`
+- Current architecture audit: `references/openclaw-architecture.md`
 - Generic OpenClaw host surfaces that the extension depends on:
   - `src/plugins/types.ts`
   - `src/plugins/hooks.ts`
@@ -65,6 +67,10 @@ In short:
   - `src/gateway/openresponses-http.ts`
   - `src/gateway/tools-invoke-http.ts`
   - `src/gateway/server-methods.ts`
+  - `src/agents/subagent-spawn.ts`
+  - `src/agents/subagent-registry-completion.ts`
+  - `src/gateway/server-methods/sessions.ts`
+  - `src/auto-reply/reply/session.ts`
 
 ## Guardrails
 
@@ -215,6 +221,7 @@ After any sync or upgrade, inspect whether the vendor change affects:
 - `extensions/negentropy-lab/**`
 - plugin-local tests under `extensions/negentropy-lab/src/*.test.ts`
 - generic plugin hook surfaces in `src/plugins/**`
+- lifecycle hook emitters in `src/agents/subagent-spawn.ts`, `src/agents/subagent-registry-completion.ts`, `src/gateway/server-methods/sessions.ts`, or `src/auto-reply/reply/session.ts`
 - `src/gateway/plugin-request-policy.ts`
 - OpenAI-compatible HTTP handling
 - `.gitignore`
@@ -295,6 +302,7 @@ If you also need to rebase onto newer `origin/main`, upgrade the vendor first, s
 - `pnpm build` inside `vendor/negentropy-lab`
 - `git status -sb` confirms no vendored local artifacts remain
 - if extension or host-hook code changed: targeted gateway/plugin tests and `pnpm build` at repo root
+- if workflow bridge/config/command/event wiring changed: targeted `extensions/negentropy-lab` workflow tests and, when doing end-to-end verification, `pnpm negentropy:v11:live-smoke`
 
 ## When to widen the review
 
@@ -305,5 +313,7 @@ Widen beyond the vendor tree when:
 - bridge HTTP behavior changes in `extensions/negentropy-lab/**`, `src/gateway/openai-http.ts`, `src/gateway/openresponses-http.ts`, or `src/gateway/tools-invoke-http.ts`
 - decision service contracts change
 - generic `gateway_request` hook semantics change
+- workflow orchestration contracts, command surface, or `/internal/openclaw/workflows` APIs change
+- subagent/session lifecycle hook emitters or `runtime.subagent.run` integration change
 - stack wiring or ignore rules change
 - the user wants the local commit stack cleaned up for push or rebase

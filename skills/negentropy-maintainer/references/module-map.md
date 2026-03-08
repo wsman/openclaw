@@ -14,6 +14,7 @@ This reference maps the files that matter when maintaining the three-part Negent
 - `scripts/custom-stack.mjs` - sync/status/build helper entry point
 - `.gitignore` - vendor allowlist and local metadata exclusions
 - `package.json` - custom Negentropy sync commands
+- `references/openclaw-architecture.md` - current code-verified architecture boundary and stack audit
 
 ## Vendor source and destination
 
@@ -79,7 +80,7 @@ This reference maps the files that matter when maintaining the three-part Negent
 ## Negentropy stack relationship
 
 - `skills/negentropy-maintainer` = maintainer workflow and review policy
-- `extensions/negentropy-lab` = plugin that adapts OpenClaw runtime requests to Negentropy decisions
+- `extensions/negentropy-lab` = plugin that bridges OpenClaw to Negentropy decisions, workflow orchestration, and manual control commands
 - `vendor/negentropy-lab` = vendored external backend/source snapshot
 
 The normal change flow is:
@@ -95,20 +96,42 @@ The normal change flow is:
 These are the first places to inspect after a vendor sync or upgrade:
 
 - `extensions/negentropy-lab/index.ts`
+- `extensions/negentropy-lab/index.test.ts`
 - `extensions/negentropy-lab/openclaw.plugin.json`
 - `extensions/negentropy-lab/src/decision-contract.snapshot.ts`
 - `extensions/negentropy-lab/scripts/sync-decision-contract-snapshot.mjs`
 - `extensions/negentropy-lab/src/decision-bridge.ts`
 - `extensions/negentropy-lab/src/gateway-request.ts`
+- `extensions/negentropy-lab/src/workflow-config.ts`
+- `extensions/negentropy-lab/src/workflow-client.ts`
+- `extensions/negentropy-lab/src/workflow-bridge.ts`
+- `extensions/negentropy-lab/src/workflow-command.ts`
+- `extensions/negentropy-lab/src/workflow-events.ts`
+- `extensions/negentropy-lab/src/workflow-types.ts`
+- workflow-related tests under `extensions/negentropy-lab/src/workflow-*.test.ts`
 - `src/plugins/types.ts`
 - `src/plugins/hooks.ts`
 - `src/plugin-sdk/core.ts`
+- `src/agents/subagent-spawn.ts`
+- `src/agents/subagent-registry-completion.ts`
+- `src/gateway/server-methods/sessions.ts`
+- `src/auto-reply/reply/session.ts`
 - `src/gateway/plugin-request-policy.ts`
 - `src/gateway/openai-http.ts`
 - `src/gateway/openresponses-http.ts`
 - `src/gateway/tools-invoke-http.ts`
 - `src/gateway/server-methods.ts`
 - related tests under `src/gateway/*.test.ts`
+
+## Vendor workflow orchestration surfaces
+
+These vendor files now matter directly to the OpenClaw-side bridge:
+
+- `vendor/negentropy-lab/server/gateway/openclaw-decision/api/internal-api.ts`
+- `vendor/negentropy-lab/server/gateway/openclaw-orchestration/api/internal-api.ts`
+- `vendor/negentropy-lab/server/gateway/openclaw-orchestration/service/workflow-registry.ts`
+- `vendor/negentropy-lab/server/gateway/openclaw-orchestration/service/orchestration-service.ts`
+- `vendor/negentropy-lab/server/gateway/openclaw-orchestration/runtime/run-store.ts`
 
 ## Minimal core intrusion surfaces
 
@@ -167,6 +190,8 @@ The highest-signal files to review in that compare are:
 - `pnpm custom:stack:status`
 - `pnpm custom:negentropy:sync:dry`
 - `pnpm custom:negentropy:sync`
+- runtime plugin control surface: `/negentropy ...`
+- runtime workflow control surface: `/negentropy workflow ...`
 
 ## Build and cleanup surfaces
 

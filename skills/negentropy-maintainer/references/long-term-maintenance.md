@@ -16,7 +16,7 @@ Treat the stack as four persistent layers:
    - used for review, testing, and version pinning inside this repo
 3. **OpenClaw runtime bridge**
    - `extensions/negentropy-lab`
-   - owns OpenClaw-specific plugin logic, normalization, control-plane glue, and plugin-local tests
+   - owns OpenClaw-specific decision bridge, workflow bridge, control-plane command surface, lifecycle-event mapping, normalization, and plugin-local tests
 4. **Maintainer procedure layer**
    - `skills/negentropy-maintainer`
    - documents how to sync, validate, compare, split commits, and operate the long-term relationship
@@ -38,8 +38,10 @@ Treat the stack as four persistent layers:
 ### Edit `extensions/negentropy-lab` when changing:
 - OpenClaw plugin config exposure
 - request-policy bridging behavior
+- workflow bridge/config behavior
 - OpenClaw-side contract snapshots or normalization
 - control-plane commands/status exposure
+- workflow lifecycle-event mapping or auto-dispatch behavior
 - plugin-local tests
 
 ### Edit OpenClaw core only when changing:
@@ -75,6 +77,7 @@ Treat the stack as four persistent layers:
    - touch OpenClaw core only if the extension boundary itself changed
 8. **Re-run focused validation**
    - plugin tests
+   - workflow bridge/config/command/event tests when workflow surfaces changed
    - gateway request-policy tests
    - any contract/self-check tests
 9. **Split changes by concern**
@@ -112,6 +115,7 @@ A maintenance round is healthy when all of these are true:
 - vendored backend can build locally
 - generated vendor artifacts are cleaned back out
 - extension tests pass
+- workflow bridge/config/command tests pass when workflow surfaces changed
 - gateway request-policy tests pass
 - self-check scripts point at the current extension-based architecture
 - commit boundaries are still clean

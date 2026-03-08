@@ -72,13 +72,19 @@ Use this before finalizing any OpenClaw-side Negentropy change.
    - `src/plugin-sdk/core.ts`
    - `src/gateway/plugin-request-policy.ts`
    - thin Gateway entrypoint calls in:
-     - `src/gateway/openai-http.ts`
-     - `src/gateway/openresponses-http.ts`
-     - `src/gateway/tools-invoke-http.ts`
-     - `src/gateway/server-methods.ts`
-5. If multiple HTTP entrypoints need the same logic, consolidate it in `src/gateway/plugin-request-policy.ts` before adding more one-off code
-6. If shared Gateway tests/mocks changed for non-Negentropy reasons, split them into a separate commit
-7. Re-run targeted validation before restacking history
+      - `src/gateway/openai-http.ts`
+      - `src/gateway/openresponses-http.ts`
+      - `src/gateway/tools-invoke-http.ts`
+      - `src/gateway/server-methods.ts`
+5. Treat workflow-specific bridge/config/command/event logic as extension-layer work unless the generic hook contract or lifecycle emitter itself changed
+6. If workflow lifecycle behavior changed, inspect the generic emitters in:
+   - `src/agents/subagent-spawn.ts`
+   - `src/agents/subagent-registry-completion.ts`
+   - `src/gateway/server-methods/sessions.ts`
+   - `src/auto-reply/reply/session.ts`
+7. If multiple HTTP entrypoints need the same logic, consolidate it in `src/gateway/plugin-request-policy.ts` before adding more one-off code
+8. If shared Gateway tests/mocks changed for non-Negentropy reasons, split them into a separate commit
+9. Re-run targeted validation before restacking history
 
 Red flags:
 
@@ -148,6 +154,8 @@ Negentropy drift usually shows up in:
 
 - `extensions/negentropy-lab/**`
 - generic `gateway_request` hook behavior
+- workflow bridge/config/command/event files under `extensions/negentropy-lab/src/workflow-*`
+- vendor `openclaw-orchestration` APIs and workflow definitions
 - OpenAI-compatible HTTP handlers
 - gateway tests
 
@@ -172,6 +180,10 @@ Then verify ignored artifacts are gone.
 Inspect:
 
 - `extensions/negentropy-lab/**`
+- `src/agents/subagent-spawn.ts`
+- `src/agents/subagent-registry-completion.ts`
+- `src/gateway/server-methods/sessions.ts`
+- `src/auto-reply/reply/session.ts`
 - `src/plugins/**`
 - `src/gateway/plugin-request-policy.ts`
 - `src/gateway/openai-http.ts`
