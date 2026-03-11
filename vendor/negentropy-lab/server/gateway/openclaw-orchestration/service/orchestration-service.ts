@@ -1,3 +1,19 @@
+/**
+ * 🎼 OrchestrationService - 工作流编排服务
+ * 
+ * @constitution
+ * §101 同步公理: 代码与文档必须原子性同步
+ * §102 熵减原则: 标准化编排流程，降低系统熵值
+ * §105 数据完整性公理: 工作流状态变更必须经过验证
+ * §109 ToolCallBridge标准化架构公理: 工具调用桥接标准化
+ * §152 单一真理源公理: 工作流编排逻辑统一管理
+ * 
+ * @filename orchestration-service.ts
+ * @version 1.0.0
+ * @category orchestration/service
+ * @last_updated 2026-03-09
+ */
+
 import { randomUUID } from "crypto";
 import type { WorkflowAction } from "../actions/step-actions";
 import { executeStep } from "../actions/step-actions";
@@ -26,22 +42,6 @@ export type StartWorkflowRequest = {
 export type RetryWorkflowRequest = {
   runId: string;
   trigger?: Partial<WorkflowRunTrigger>;
-};
-
-export type ReconcileRunsRequest = {
-  runId?: string;
-  includeTerminal?: boolean;
-  reason?: string;
-};
-
-export type ReconcileRunsResult = {
-  ok: boolean;
-  triggeredAt: string;
-  reason: string;
-  scanned: number;
-  updated: number;
-  deletedTerminalRuns: number;
-  touchedRunIds: string[];
 };
 
 export type WorkflowRuntimeEventType =
@@ -277,18 +277,6 @@ export class OrchestrationService {
     });
 
     return this.advanceRun(run.runId, definition, "retry", true);
-  }
-
-  reconcileRuns(request: ReconcileRunsRequest = {}): ReconcileRunsResult {
-    const triggeredAt = nowIso();
-    const reason = request.reason?.trim() || "manual_reconcile";
-
-    this.lastSweepAt = Date.now();
-
-    return this.sweepRuns(triggeredAt, reason, {
-      runId: request.runId,
-      includeTerminal: request.includeTerminal === true,
-    });
   }
 
   handleEvent(event: WorkflowRuntimeEvent): OrchestrationResult {
@@ -716,7 +704,7 @@ export class OrchestrationService {
     }
 
     if (result.runTerminalStatus === "failed") {
-      this.markRunFailed(run, stepState.output?.reason ?? "workflow escalated", "failed");
+      this.markRunFailed(run, String(stepState.output?.reason ?? "workflow escalated"), "failed");
     }
 
     if (stepState.child?.childSessionKey && isStepTerminal(stepState.status)) {
@@ -1339,40 +1327,21 @@ export class OrchestrationService {
       return;
     }
     this.lastSweepAt = now;
-    this.sweepRuns(nowIso(), reason, { includeTerminal: true });
+    this.sweepRuns(nowIso(), reason);
   }
 
-  private sweepRuns(
-    now: string,
-    reason: string,
-    options: { runId?: string; includeTerminal?: boolean },
-  ): ReconcileRunsResult {
+  private sweepRuns(now: string, reason: string): void {
     const processedEventCutoff = new Date(new Date(now).getTime() - this.runtimeConfig.processedEventTtlMs).toISOString();
     const terminalCutoff = new Date(new Date(now).getTime() - this.runtimeConfig.terminalTtlMs).getTime();
-    const includeTerminal = options.includeTerminal === true;
-
-    let scanned = 0;
-    let updated = 0;
-    let deletedTerminalRuns = 0;
-    const touchedRunIds = new Set<string>();
 
     for (const run of this.store.listRuns()) {
-      if (options.runId && run.runId !== options.runId) {
-        continue;
-      }
-
-      scanned += 1;
       this.store.pruneProcessedEvents(run.runId, processedEventCutoff);
       this.store.touchCheckpoint(run.runId, { lastSweepAt: now });
 
       if (isTerminalStatus(run.status)) {
-        if (includeTerminal) {
-          const completedAt = run.completedAt ?? run.updatedAt;
-          if (new Date(completedAt).getTime() < terminalCutoff) {
-            this.store.deleteRun(run.runId);
-            deletedTerminalRuns += 1;
-            touchedRunIds.add(run.runId);
-          }
+        const completedAt = run.completedAt ?? run.updatedAt;
+        if (new Date(completedAt).getTime() < terminalCutoff) {
+          this.store.deleteRun(run.runId);
         }
         continue;
       }
@@ -1439,20 +1408,8 @@ export class OrchestrationService {
           event: "run_swept",
           message: `maintenance sweep updated run (${reason})`,
         });
-        updated += 1;
-        touchedRunIds.add(run.runId);
       }
     }
-
-    return {
-      ok: true,
-      triggeredAt: now,
-      reason,
-      scanned,
-      updated,
-      deletedTerminalRuns,
-      touchedRunIds: Array.from(touchedRunIds).sort(),
-    };
   }
 }
 

@@ -87,36 +87,16 @@ fi
 if [[ "${SKIP_TESTS}" == "true" ]]; then
   record_check "mainline_tests" "SKIP" "--skip-tests enabled"
 else
-  LEGACY_TESTS=(
-    tests/unit/gateway/WebSocketHandler.batch1-rpc.test.ts
-    tests/unit/gateway/WebSocketHandler.batch2-performance.test.ts
-    tests/unit/gateway/WebSocketHandler.batch3-4.test.ts
-    tests/unit/gateway/WebSocketHandler.batch4-ui.test.ts
-    tests/unit/gateway/WebSocketHandler.batch5-p0-gap.test.ts
-    tests/unit/gateway/WebSocketHandler.batch6-p1-p2-gap.test.ts
-    tests/integration/gateway/gateway-e2e.test.ts
-  )
-
-  LEGACY_TESTS_AVAILABLE="true"
-  for f in "${LEGACY_TESTS[@]}"; do
-    if [[ ! -f "${f}" ]]; then
-      LEGACY_TESTS_AVAILABLE="false"
-      break
-    fi
-  done
-
-  if [[ "${LEGACY_TESTS_AVAILABLE}" == "true" ]]; then
-    if npx vitest run "${LEGACY_TESTS[@]}" >/dev/null 2>&1; then
-      record_check "mainline_tests" "PASS" "legacy gateway suites passed"
-    else
-      record_check "mainline_tests" "FAIL" "legacy gateway suites failed"
-    fi
+  if npm run test:gateway:mainline >/dev/null 2>&1; then
+    record_check "mainline_tests" "PASS" "gateway mainline regression passed"
   else
-    if npm run phase14:e2e >/dev/null 2>&1 && npm run check:integration:config >/dev/null 2>&1; then
-      record_check "mainline_tests" "PASS" "phase14:e2e + integration config checks passed"
-    else
-      record_check "mainline_tests" "FAIL" "phase14:e2e or integration config checks failed"
-    fi
+    record_check "mainline_tests" "FAIL" "gateway mainline regression failed"
+  fi
+
+  if npm run gate:cluster:acceptance -- --mode preflight >/dev/null 2>&1; then
+    record_check "cluster_websocket_acceptance" "PASS" "cluster websocket gate passed"
+  else
+    record_check "cluster_websocket_acceptance" "FAIL" "cluster websocket gate failed"
   fi
 fi
 

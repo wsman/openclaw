@@ -124,6 +124,9 @@ netstat -an | grep :3000 | grep -v ESTABLISHED
 
 # 3. 查看 launcher 视角健康状态
 npm run launch -- health
+
+# 4. 集群 WebSocket 发布门禁
+npm run gate:cluster:acceptance -- --mode local
 ```
 
 说明：

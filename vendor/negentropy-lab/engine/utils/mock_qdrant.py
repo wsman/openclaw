@@ -34,8 +34,9 @@ class MockCountResult:
 class MockQdrantClient:
     """内存版 Mock Qdrant 客户端，支持本地文件持久化"""
     
-    def __init__(self, path: Optional[str] = None):
+    def __init__(self, path: Optional[str] = None, url: Optional[str] = None, **_: Any):
         self.path = path
+        self.url = url
         self.collections = {} # Dict[str, List[MockPoint]]
         if path:
             os.makedirs(path, exist_ok=True)

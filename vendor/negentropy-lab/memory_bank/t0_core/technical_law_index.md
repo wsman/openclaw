@@ -1,7 +1,7 @@
 ﻿# 技术法索引 - Negentropy-Lab v7.6.0-dev
 
 **版本**: v7.6.0-dev (Phase 13 Final Acceptance 已完成)
-**状态**: ✅ 引导模式 (Bootloader Mode) | 📋 Phase 14-15 规划中（计划窗口: 2026-03-05~2026-03-20）
+**状态**: ✅ 引导模式 (Bootloader Mode) | 🔄 Phase 14-15 执行中（计划窗口: 2026-03-05~2026-03-20）
 **说明**: 技术法标准索引，定义了多Agent协作聊天系统的技术实现规范，包含LLM集成、插件系统、监控系统标准，支持Gateway生态系统架构。严禁凭空生成代码，必须查阅本索引。
 **运行态基线**: 入口、边界与实现状态以 `runtime_architecture_baseline.md` + `active_context.md` 为准。
 
@@ -175,7 +175,7 @@ graph LR
 
 **分类算法**:
 $$
-P(s) = 
+P(s) =
 \begin{cases}
 \text{APPLICATION} & \text{if } s \text{ starts with 'mcp_' or 'http_'} \\
 \text{CONTEXT} & \text{if } s \text{ starts with 'memory_' or 'context_'} \\
@@ -190,6 +190,8 @@ $$
 - `broadcastToolResult(payload)` - 工具结果广播
 - `broadcastToolError(payload)` - 工具错误广播
 - `broadcastToolProgress(payload)` - 工具进度广播
+
+**当前运行态说明**: `server/services/authority/AuthorityToolCallBridge.ts` 已在 `server/runtime/authorityRuntime.ts` 中落地并承担广播/审计职责；统一平台实现仍待后续收敛。
 
 **宪法依据**: §181.1工具调用类型定义强制原则、§438工具调用事件广播公理、§439工具类型推断标准、§440工具调用桥接器接口契约
 
@@ -586,7 +588,7 @@ standards/
 
 | ID | 标准名称 | 核心要求 | OpenAI兼容 |
 |----|----------|----------|-------------|
-| **GH-101** | OpenAI兼容API标准 | `/v1/chat/completions` 端点兼容，流式响应支持 | 完全兼容 |
+| **GH-101** | OpenAI兼容API标准 | `/v1/chat/completions` 端点兼容，流式响应支持 | 独立/简化实现 |
 | **GH-102** | 认证与授权标准 | Bearer Token认证，权限Scope，JWT验证 | 标准 |
 | **GH-103** | 错误处理标准 | 标准化错误响应格式，HTTP状态码映射 | RFC标准 |
 | **GH-104** | 速率限制标准 | 令牌桶算法，配额管理，优先级队列 | 标准 |

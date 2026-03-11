@@ -52,19 +52,19 @@ interface JudicialScanArchitectureParams {
    * 项目根目录
    */
   projectRoot: string;
-  
+
   /**
    * 架构文档路径
    * @default 'memory_bank/t0_core/knowledge_graph.md'
    */
   architectureDoc?: string;
-  
+
   /**
    * 是否输出详细报告
    * @default false
    */
   verbose?: boolean;
-  
+
   /**
    * 严格模式（必须100%同构）
    * @default false
@@ -80,12 +80,12 @@ interface JudicialScanArchitectureResult {
    * 验证状态
    */
   status: 'passed' | 'warning' | 'failed';
-  
+
   /**
    * 同构性百分比
    */
   isomorphismRate: number;
-  
+
   /**
    * 扫描统计
    */
@@ -94,28 +94,28 @@ interface JudicialScanArchitectureResult {
      * 总实体数
      */
     totalEntities: number;
-    
+
     /**
      * 匹配实体数
      */
     matchedEntities: number;
-    
+
     /**
      * 缺失实体数
      */
     missingEntities: number;
-    
+
     /**
      * 多余实体数
      */
     extraEntities: number;
   };
-  
+
   /**
    * 不匹配详情
    */
   mismatches: ArchitectureMismatch[];
-  
+
   /**
    * 修复建议
    */
@@ -127,22 +127,22 @@ interface ArchitectureMismatch {
    * 实体类型
    */
   entityType: 'module' | 'component' | 'service' | 'agent' | 'tool';
-  
+
   /**
    * 实体名称
    */
   name: string;
-  
+
   /**
    * 不匹配类型
    */
   mismatchType: 'missing' | 'extra' | 'incorrect_location' | 'incorrect_type';
-  
+
   /**
    * 期望位置/类型
    */
   expected: string;
-  
+
   /**
    * 实际位置/类型
    */
@@ -203,12 +203,12 @@ interface JudicialVerifyContractParams {
    * 接口定义文件路径
    */
   interfacePath: string;
-  
+
   /**
    * 实现文件路径
    */
   implementationPath: string;
-  
+
   /**
    * 检查深度（basic/strict）
    * @default 'basic'
@@ -224,17 +224,17 @@ interface JudicialVerifyContractResult {
    * 验证状态
    */
   status: 'passed' | 'warning' | 'failed';
-  
+
   /**
    * 契约完整性评分
    */
   contractScore: number;
-  
+
   /**
    * 契约详情
    */
   contracts: ContractVerification[];
-  
+
   /**
    * 违规项
    */
@@ -246,22 +246,22 @@ interface ContractVerification {
    * 接口名称
    */
   interfaceName: string;
-  
+
   /**
    * 方法名
    */
   methodName: string;
-  
+
   /**
    * 验证状态
    */
   verified: boolean;
-  
+
   /**
    * 返回类型匹配
    */
   returnTypeMatch: boolean;
-  
+
   /**
    * 参数匹配
    */
@@ -273,17 +273,17 @@ interface ContractViolation {
    * 违规类型
    */
   violationType: 'missing_method' | 'wrong_return_type' | 'wrong_parameters' | 'missing_export';
-  
+
   /**
    * 接口/方法名称
    */
   target: string;
-  
+
   /**
    * 期望
    */
   expected: string;
-  
+
   /**
    * 实际
    */
@@ -295,10 +295,10 @@ interface ContractViolation {
 ```python
 from engine.mcp_core.tools.judiciary import judicial_verify_contract
 
-# 验证工具调用桥接器契约
+# 验证工具调用桥接器契约（当前仓推荐以 Authority 运行时实现为例）
 result = judicial_verify_contract(
     interfacePath='server/types/system/IToolCallBridge.ts',
-    implementationPath='server/services/ToolCallBridgeService.ts',
+    implementationPath='server/services/authority/AuthorityToolCallBridge.ts',
     depth='strict'
 )
 
@@ -332,12 +332,12 @@ interface JudicialMeasureComplexityParams {
    * 文件或目录路径
    */
   paths: string[];
-  
+
   /**
    * 测量指标类型
    */
   metrics?: ('cyclomatic' | 'cognitive' | 'entropy' | 'lines')[];
-  
+
   /**
    * 输出详细报告
    * @default false
@@ -353,22 +353,22 @@ interface JudicialMeasureComplexityResult {
    * 总体评分
    */
   overallScore: number;
-  
+
   /**
    * 状态
    */
   status: 'excellent' | 'good' | 'fair' | 'poor';
-  
+
   /**
    * 指标详情
    */
   metrics: ComplexityMetrics;
-  
+
   /**
    * 文件详情
    */
   fileDetails: FileComplexity[];
-  
+
   /**
    * 优化建议
    */
@@ -384,7 +384,7 @@ interface ComplexityMetrics {
     max: number;
     threshold: number;
   };
-  
+
   /**
    * 认知复杂度
    */
@@ -393,7 +393,7 @@ interface ComplexityMetrics {
     max: number;
     threshold: number;
   };
-  
+
   /**
    * 代码熵值
    */
@@ -402,7 +402,7 @@ interface ComplexityMetrics {
     max: number;
     threshold: number;
   };
-  
+
   /**
    * 代码行数
    */
@@ -418,32 +418,32 @@ interface FileComplexity {
    * 文件路径
    */
   path: string;
-  
+
   /**
    * 圈复杂度
    */
   cyclomatic: number;
-  
+
   /**
    * 认知复杂度
    */
   cognitive: number;
-  
+
   /**
    * 熵值
    */
   entropy: number;
-  
+
   /**
    * 代码行数
    */
   lines: number;
-  
+
   /**
    * 评分
    */
   score: number;
-  
+
   /**
    * 状态
    */
@@ -499,7 +499,7 @@ interface JudicialVerifyStructureParams {
    * 项目根目录
    */
   projectRoot: string;
-  
+
   /**
    * 结构规范路径
    */
@@ -514,12 +514,12 @@ interface JudicialVerifyStructureResult {
    * 验证状态
    */
   status: 'passed' | 'warning' | 'failed';
-  
+
   /**
    * 结构完整性百分比
    */
   structureIntegrity: number;
-  
+
   /**
    * 结构问题列表
    */
@@ -557,7 +557,7 @@ interface JudicialVerifySignaturesResult {
    * 验证状态
    */
   status: 'passed' | 'failed';
-  
+
   /**
    * 签名详情
    */
@@ -585,12 +585,12 @@ interface JudicialRunTestsParams {
    * 测试路径
    */
   testPath?: string;
-  
+
   /**
    * 测试类型
    */
   testTypes?: ('unit' | 'integration' | 'e2e')[];
-  
+
   /**
    * 最低通过率阈值
    * @default 0.85
@@ -606,12 +606,12 @@ interface JudicialRunTestsResult {
    * 测试状态
    */
   status: 'passed' | 'failed';
-  
+
   /**
    * 通过率
    */
   passRate: number;
-  
+
   /**
    * 测试统计
    */
@@ -622,7 +622,7 @@ interface JudicialRunTestsResult {
     skipped: number;
     duration: number;
   };
-  
+
   /**
    * 失败测试详情
    */
@@ -744,9 +744,9 @@ if test_result['status'] == 'failed':
 
 ---
 
-**文档版本**: v7.0.0  
-**最后更新**: 2026-02-11  
-**维护者**: Negentropy-Lab架构委员会  
+**文档版本**: v7.0.0
+**最后更新**: 2026-02-11
+**维护者**: Negentropy-Lab架构委员会
 **状态**: 🟢 生产就绪（遵循宪法级约束）
 
 *遵循宪法约束: 验证即正义，合规即目标，质量即信任。*

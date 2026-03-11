@@ -1,3 +1,15 @@
+/**
+ * @constitution
+ * §101 同步公理: 编排动作实现与真理源文档保持同步
+ * §102 熵减原则: 保持工作流动作实现简洁可维护
+ * §152 单一真理源公理: 当前运行态以 memory_bank/t0_core 为准
+ *
+ * @filename step-actions.ts
+ * @version 1.0.0
+ * @category orchestration/actions
+ * @last_updated 2026-03-10
+ */
+
 import type {
   WorkflowCompleteStep,
   WorkflowEscalateStep,

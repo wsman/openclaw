@@ -234,6 +234,8 @@ tail -f logs/application.log
 npm run check:constitution
 npm run check:consistency -- --strict --timeout-ms 120000
 npm run check:contract:strict
+npm run test:gateway:mainline
+npm run gate:cluster:acceptance -- --mode preflight
 
 # Phase 14 联调与性能基线
 npm run check:integration:config   # 需先配置 OPENCLAW_PROJECT_PATH / OPENDOGE_UI_PATH
@@ -253,7 +255,17 @@ npm run ops:preflight
 
 # production 预检（可选跳过测试，仅做静态门禁）
 bash ./scripts/deploy-preflight-check.sh --env production --skip-tests
+
+# 单独执行集群 WebSocket 发布门禁
+npm run gate:cluster:acceptance -- --mode release
 ```
+
+当前 staging 预检会额外执行以下集群验收：
+
+- `npx tsc -p tsconfig.json --noEmit`
+- `npm run test:cluster`
+- `npm run test:cluster:e2e`
+- `npm run build`
 
 ### 8.2 回滚后验证
 

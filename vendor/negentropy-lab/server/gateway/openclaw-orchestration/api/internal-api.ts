@@ -1,10 +1,24 @@
+/**
+ * 🔒 Workflow Internal API Router - 工作流内部API路由
+ * 
+ * @constitution
+ * §101 同步公理: 代码与文档必须原子性同步
+ * §102 熵减原则: 标准化API接口，降低系统熵值
+ * §105 数据完整性公理: API请求必须经过验证
+ * §152 单一真理源公理: 工作流API统一入口
+ * 
+ * @filename internal-api.ts
+ * @version 1.0.0
+ * @category orchestration/api
+ * @last_updated 2026-03-09
+ */
+
 import { Request, Response, Router } from "express";
 import {
   type CancelRunRequest,
   createOrchestrationService,
   type ListRunsRequest,
   type OrchestrationService,
-  type ReconcileRunsRequest,
   type RetryWorkflowRequest,
   type StartWorkflowRequest,
   type WorkflowRuntimeEvent,
@@ -50,17 +64,6 @@ export function createWorkflowInternalApiRouter(
     } catch (error) {
       const message = error instanceof Error ? error.message : "unknown error";
       res.status(500).json({ ignored: true, actions: [], message });
-    }
-  });
-
-  router.post("/workflows/reconcile", (req: Request, res: Response) => {
-    try {
-      const request = (req.body ?? {}) as ReconcileRunsRequest;
-      const result = service.reconcileRuns(request);
-      res.json(result);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "unknown error";
-      res.status(500).json({ ok: false, scanned: 0, updated: 0, deletedTerminalRuns: 0, touchedRunIds: [], message });
     }
   });
 

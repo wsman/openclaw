@@ -46,7 +46,7 @@ describe('workflow-contract', () => {
 
     expect(validation.ok).toBe(false);
     if (!validation.ok) {
-      expect(validation.errors.join(' | ')).toContain('sourceStepId references unknown step');
+      expect(('errors' in validation ? validation.errors : []).join(' | ')).toContain('sourceStepId references unknown step');
     }
   });
 });

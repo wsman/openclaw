@@ -1,18 +1,18 @@
 # DS-039 工具调用桥接器标准实现 (Tool Call Bridge Standard Implementation)
 
-**标准编号**: DS-039  
-**宪法依据**: 
+**标准编号**: DS-039
+**宪法依据**:
 - §181.1 工具调用类型定义强制原则
-- §438 工具调用事件广播公理  
+- §438 工具调用事件广播公理
 - §440 工具调用桥接器接口契约
 - §336 依赖注入标准
 
-**状态**: 🟡 规范定义完成，代码实现待开发  
-**版本**: v1.0.0  
-**最后更新**: 2026-03-04  
+**状态**: 🟡 规范定义完成，统一平台实现待收敛
+**版本**: v1.0.0
+**最后更新**: 2026-03-04
 **维护者**: 监察部-逆熵实验室架构委员会
 
-> **重要说明**: 本文档状态"规范定义完成"表示接口契约、数学基础、实现规范已完整定义。当前仓已存在接口文件 `server/types/system/IToolCallBridge.ts`；事件广播实现（如 `ToolCallBridgeImpl.ts`）仍未开发。本文档中的代码示例为"实现规范"，用于指导后续开发。
+> **重要说明**: 本文档状态"规范定义完成"表示接口契约、数学基础、实现规范已完整定义。当前仓已存在接口文件 `server/types/system/IToolCallBridge.ts`，并已在 authority 子系统落地 `server/services/authority/AuthorityToolCallBridge.ts` + `server/runtime/authorityRuntime.ts` 运行时实现（含广播/审计/活跃调用跟踪）。本文档中的 `ToolCallBridgeImpl` 代码示例属于“统一平台参考实现”，不等同于当前仓唯一已落地类名。
 
 ## 📖 目录
 - [一、概述](#一概述)
@@ -45,6 +45,12 @@
 - 工具状态监控与并发控制
 - 工具调用事件广播与订阅
 
+### 1.4 当前仓实现映射（2026-03-10）
+- **契约接口**: `server/types/system/IToolCallBridge.ts`
+- **已落地运行时**: `server/services/authority/AuthorityToolCallBridge.ts`
+- **接入点**: `server/runtime/authorityRuntime.ts`
+- **当前结论**: Authority 子系统已具备广播、审计、活跃调用跟踪与工具注册能力；跨子系统统一平台实现、DI 收敛与命名统一仍待后续整理
+
 ## 二、数学基础
 
 ### 2.1 事件广播函数
@@ -71,7 +77,7 @@ $$|A_{active}| \leq max_{concurrent}$$
 $$S_{category} = \{\text{APPLICATION}, \text{CONTEXT}, \text{BUILTIN}\}$$
 
 **前缀检测函数**:
-$$P(s) = 
+$$P(s) =
   \begin{cases}
   \text{APPLICATION} & \text{if } s \text{ starts with 'mcp_' or 'http_'} \\
   \text{CONTEXT} & \text{if } s \text{ starts with 'memory_' or 'context_'} \\
@@ -95,12 +101,12 @@ interface IToolCallBridge {
   broadcastToolResult(payload: ToolCallResultPayload): Promise<void>;
   broadcastToolError(payload: ToolCallErrorPayload): Promise<void>;
   broadcastToolProgress(payload: ToolCallProgressPayload): Promise<void>;
-  
+
   // 状态查询方法
   getActiveCount(): number;
   isAtConcurrencyLimit(): boolean;
   getRecentEvents(limit: number): ToolCallEvent[];
-  
+
   // 配置管理
   setMaxConcurrency(limit: number): void;
   getConfig(): ToolCallBridgeConfig;
@@ -176,6 +182,8 @@ interface ToolCallBridgeConfig {
 ## 四、实现规范
 
 ### 4.1 核心实现类 (TypeScript)
+> 以下 `ToolCallBridgeImpl` 为统一平台参考实现命名，用于说明目标抽象；当前仓已落地的运行时实现见 `AuthorityToolCallBridge`。
+
 ```typescript
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../types/inversify.types';
@@ -188,7 +196,7 @@ export class ToolCallBridgeImpl implements IToolCallBridge {
   private activeCalls: Map<string, any> = new Map();
   private recentEvents: ToolCallEvent[] = [];
   private config: ToolCallBridgeConfig;
-  
+
   constructor(
     @inject(TYPES.ProtocolBridge) private protocolBridge: ProtocolBridge
   ) {
@@ -199,102 +207,102 @@ export class ToolCallBridgeImpl implements IToolCallBridge {
       enableMetrics: true
     };
   }
-  
+
   async broadcastToolStart(payload: ToolCallStartPayload): Promise<void> {
     if (this.isAtConcurrencyLimit()) {
       throw new Error('已达到最大并发工具调用限制');
     }
-    
+
     const event: ToolCallEvent = {
       type: ToolCallEventType.TOOL_CALL,
       payload,
       timestamp: Date.now()
     };
-    
+
     this.activeCalls.set(payload.id, { startTime: Date.now(), payload });
     this.addRecentEvent(event);
-    
+
     await this.protocolBridge.broadcast('tool_call_start', {
       event,
       clientId: payload.clientId
     });
   }
-  
+
   async broadcastToolResult(payload: ToolCallResultPayload): Promise<void> {
     const startRecord = this.activeCalls.get(payload.id);
     if (!startRecord) {
       throw new Error(`未找到工具调用记录: ${payload.id}`);
     }
-    
+
     const event: ToolCallEvent = {
       type: ToolCallEventType.TOOL_RESULT,
       payload,
       timestamp: Date.now()
     };
-    
+
     this.activeCalls.delete(payload.id);
     this.addRecentEvent(event);
-    
+
     await this.protocolBridge.broadcast('tool_call_result', {
       event,
       duration: Date.now() - startRecord.startTime
     });
   }
-  
+
   async broadcastToolError(payload: ToolCallErrorPayload): Promise<void> {
     const event: ToolCallEvent = {
       type: ToolCallEventType.TOOL_ERROR,
       payload,
       timestamp: Date.now()
     };
-    
+
     this.activeCalls.delete(payload.id);
     this.addRecentEvent(event);
-    
+
     await this.protocolBridge.broadcast('tool_call_error', {
       event,
       error: payload.error
     });
   }
-  
+
   async broadcastToolProgress(payload: ToolCallProgressPayload): Promise<void> {
     const event: ToolCallEvent = {
       type: ToolCallEventType.TOOL_PROGRESS,
       payload,
       timestamp: Date.now()
     };
-    
+
     this.addRecentEvent(event);
-    
+
     await this.protocolBridge.broadcast('tool_call_progress', {
       event,
       progress: payload.progress
     });
   }
-  
+
   getActiveCount(): number {
     return this.activeCalls.size;
   }
-  
+
   isAtConcurrencyLimit(): boolean {
     return this.activeCalls.size >= this.config.maxConcurrency;
   }
-  
+
   getRecentEvents(limit: number = 50): ToolCallEvent[] {
     return this.recentEvents.slice(-limit);
   }
-  
+
   setMaxConcurrency(limit: number): void {
     if (limit < 1) {
       throw new Error('最大并发数必须大于0');
     }
     this.config.maxConcurrency = limit;
   }
-  
+
   getConfig(): ToolCallBridgeConfig {
     return { ...this.config };
   }
-  
+
   // 工具类型推断函数 (§439)
   inferToolCategory(toolName: string): string {
     if (toolName.startsWith('mcp_') || toolName.startsWith('http_')) {
@@ -305,7 +313,7 @@ export class ToolCallBridgeImpl implements IToolCallBridge {
     }
     return 'BUILTIN';
   }
-  
+
   private addRecentEvent(event: ToolCallEvent): void {
     this.recentEvents.push(event);
     if (this.recentEvents.length > this.config.eventRetention) {
@@ -320,7 +328,7 @@ export class ToolCallBridgeImpl implements IToolCallBridge {
 /**
  * 工具类型推断函数 (符合§439标准)
  * 时间复杂度: O(1)
- * 
+ *
  * @param toolName 工具名称
  * @returns 工具类别 ('APPLICATION' | 'CONTEXT' | 'BUILTIN')
  */
@@ -329,7 +337,7 @@ export function inferToolCategory(toolName: string): string {
   if (!toolName || typeof toolName !== 'string') {
     return 'BUILTIN'; // 安全默认值
   }
-  
+
   // 前缀检测 (确定算法)
   if (toolName.startsWith('mcp_') || toolName.startsWith('http_')) {
     return 'APPLICATION';
@@ -337,7 +345,7 @@ export function inferToolCategory(toolName: string): string {
   if (toolName.startsWith('memory_') || toolName.startsWith('context_')) {
     return 'CONTEXT';
   }
-  
+
   return 'BUILTIN';
 }
 ```
@@ -389,10 +397,10 @@ export class SomeService {
   constructor(
     @inject(TYPES.ToolCallBridge) private toolCallBridge: IToolCallBridge
   ) {}
-  
+
   async executeTool(toolName: string, params: any): Promise<any> {
     const toolId = generateUUID();
-    
+
     // 广播工具调用开始
     await this.toolCallBridge.broadcastToolStart({
       id: toolId,
@@ -400,11 +408,11 @@ export class SomeService {
       params,
       timestamp: Date.now()
     });
-    
+
     try {
       // 执行工具调用
       const result = await this.executeActualTool(toolName, params);
-      
+
       // 广播工具调用结果
       await this.toolCallBridge.broadcastToolResult({
         id: toolId,
@@ -413,7 +421,7 @@ export class SomeService {
         timestamp: Date.now(),
         success: true
       });
-      
+
       return result;
     } catch (error) {
       // 广播工具调用错误
@@ -423,7 +431,7 @@ export class SomeService {
         stack: error.stack,
         timestamp: Date.now()
       });
-      
+
       throw error;
     }
   }
@@ -437,7 +445,7 @@ export class SomeService {
 #### 6.1.1 APPLICATION 类别
 - **前缀**: `mcp_`, `http_`
 - **描述**: 应用程序级工具，通常涉及外部服务调用或MCP集成
-- **示例**: 
+- **示例**:
   - `mcp_file_upload` (文件上传工具)
   - `http_api_call` (HTTP API调用工具)
   - `mcp_database_query` (数据库查询工具)
@@ -466,26 +474,26 @@ describe('Tool Category Inference', () => {
     expect(inferToolCategory('mcp_file_upload')).toBe('APPLICATION');
     expect(inferToolCategory('mcp_database_query')).toBe('APPLICATION');
   });
-  
+
   it('should classify http_ tools as APPLICATION', () => {
     expect(inferToolCategory('http_api_call')).toBe('APPLICATION');
   });
-  
+
   it('should classify memory_ tools as CONTEXT', () => {
     expect(inferToolCategory('memory_search')).toBe('CONTEXT');
     expect(inferToolCategory('memory_retrieve')).toBe('CONTEXT');
   });
-  
+
   it('should classify context_ tools as CONTEXT', () => {
     expect(inferToolCategory('context_update')).toBe('CONTEXT');
   });
-  
+
   it('should classify other tools as BUILTIN', () => {
     expect(inferToolCategory('help')).toBe('BUILTIN');
     expect(inferToolCategory('calculate')).toBe('BUILTIN');
     expect(inferToolCategory('unknown_tool')).toBe('BUILTIN');
   });
-  
+
   it('should handle edge cases', () => {
     expect(inferToolCategory('')).toBe('BUILTIN');
     expect(inferToolCategory(null as any)).toBe('BUILTIN');
@@ -554,11 +562,11 @@ export class NeuralAgentService {
     @inject(TYPES.ToolCallBridge) private toolCallBridge: IToolCallBridge,
     @inject(TYPES.ProtocolBridge) private protocolBridge: ProtocolBridge
   ) {}
-  
+
   async processQuery(query: string): Promise<any> {
     // 使用工具调用桥接器管理工具调用
     const toolId = generateUUID();
-    
+
     await this.toolCallBridge.broadcastToolStart({
       id: toolId,
       tool: 'neural_agent',
@@ -566,7 +574,7 @@ export class NeuralAgentService {
       timestamp: Date.now(),
       clientId: 'neural-agent-client'
     });
-    
+
     // ... 执行实际处理逻辑
   }
 }
@@ -606,9 +614,9 @@ tsc --noEmit --strict --noImplicitAny --noImplicitThis --alwaysStrict
 ```bash
 # 运行judicial_verify_contract工具
 # 验证代码实现与接口契约的一致性
-# 当前仓已落地接口文件；实现文件路径仍为规划示例
+# 当前仓已落地接口文件与 authority 运行时实现；统一平台实现路径按目标运行时选择
 judicial_verify_contract \
-  --code-file server/services/ToolCallBridgeImpl.ts \
+  --code-file server/services/authority/AuthorityToolCallBridge.ts \
   --doc-file server/types/system/IToolCallBridge.ts
 ```
 
@@ -625,11 +633,11 @@ describe('ToolCallBridge Performance', () => {
     const avgTime = (endTime - startTime) / 1000;
     expect(avgTime).toBeLessThan(1); // < 1ms 平均耗时
   });
-  
+
   it('should handle high concurrency', async () => {
     const bridge = new ToolCallBridgeImpl();
     bridge.setMaxConcurrency(100);
-    
+
     const promises = [];
     for (let i = 0; i < 100; i++) {
       promises.push(
@@ -641,7 +649,7 @@ describe('ToolCallBridge Performance', () => {
         })
       );
     }
-    
+
     await Promise.all(promises);
     expect(bridge.getActiveCount()).toBe(100);
   });
@@ -663,7 +671,7 @@ describe('ToolCallBridge Performance', () => {
 ### 10.1 相关宪法条款
 - **§181.1**: 工具调用类型定义强制原则
 - **§438**: 工具调用事件广播公理
-- **§439**: 工具类型推断标准  
+- **§439**: 工具类型推断标准
 - **§440**: 工具调用桥接器接口契约
 - **§336**: 依赖注入标准
 - **§306**: 游标分页标准 (用于事件历史查询)
@@ -681,7 +689,7 @@ describe('ToolCallBridge Performance', () => {
 1. **代码分析**: 分析原`ToolCallBridge.ts`的功能点
 2. **类型提取**: 提取原代码中的类型定义到接口文件
 3. **适配器创建**: 创建向后兼容的适配器（如需）
-4. **新实现开发**: 按照本标准实现新的`ToolCallBridgeImpl`
+4. **新实现开发/收敛**: 按照本标准统一现有`AuthorityToolCallBridge`与未来跨子系统实现
 5. **集成测试**: 测试新实现与原系统的集成
 6. **逐步替换**: 逐步替换旧实现，保持向后兼容
 
@@ -697,25 +705,25 @@ describe('ToolCallBridge Performance', () => {
 
 #### 问题3: 广播失败
 **症状**: 工具调用事件未广播到客户端
-**解决方案**: 
+**解决方案**:
 1. 检查ProtocolBridge连接状态
 2. 验证NCP消息格式
 3. 检查客户端订阅状态
 
 #### 问题4: 内存泄漏
 **症状**: 内存使用持续增长
-**解决方案**: 
+**解决方案**:
 1. 检查事件历史清理逻辑
 2. 验证活跃调用清理机制
 3. 确保`activeCalls` Map正确清理
 
 ---
 
-**标准状态**: 🟡 规范定义完成；接口文件已落地，广播实现待开发  
-**合规性**: 规范100%符合宪法§438-§440要求  
-**数学证明**: 提供完整的时间复杂度分析和算法正确性证明  
+**标准状态**: 🟡 规范定义完成；接口文件与 authority 运行时实现已落地，统一平台实现待收敛
+**合规性**: 规范100%符合宪法§438-§440要求
+**数学证明**: 提供完整的时间复杂度分析和算法正确性证明
 **实现验证**: 待代码实现后进行三级司法验证 (架构、契约、行为)
 
-> **实现提示**: 本文档中的代码示例为"实现规范"，用于指导后续TypeScript代码开发。当前仓已存在 `server/types/system/IToolCallBridge.ts`；后续只需补齐 `ToolCallBridgeImpl.ts` 等运行时实现。
+> **实现提示**: 本文档中的代码示例为"实现规范"，用于指导后续TypeScript代码开发。当前仓已存在 `server/types/system/IToolCallBridge.ts` 与 `server/services/authority/AuthorityToolCallBridge.ts`；后续工作重点是统一平台实现收敛，而非从零补齐广播能力。
 
 *遵循逆熵实验室宪法约束: 代码即数学证明，架构即宪法约束。*

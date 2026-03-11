@@ -1,20 +1,9 @@
-/**
- * 📋 TaskRoom - 任务管理房间
- *
- * @constitution
- * §101 同步公理：任务状态必须实时同步
- * §102 熵减原则：任务生命周期结构化，减少状态混乱
- * §110 协作效率公理：任务进度与结果必须可观测
- *
- * @filename TaskRoom.ts
- * @version 1.0.0
- * @category rooms
- * @last_updated 2026-02-27
- */
-
-import { Room, Client } from "colyseus";
+﻿import { Room, Client } from "colyseus";
 import { v4 as uuidv4 } from "uuid";
 import { TaskItemState, TaskState } from "../schema/TaskState";
+import { AuthorityTaskState } from "../schema/AuthorityState";
+import { getAuthorityRuntime } from "../runtime/authorityRuntime";
+import { MutationProposalInput } from "../services/authority/types";
 import { logger } from "../utils/logger";
 
 interface TaskRoomConfig {
@@ -33,8 +22,8 @@ export class TaskRoom extends Room<TaskState> {
   private config!: TaskRoomConfig;
 
   onCreate(options: any) {
-    logger.info(`[TaskRoom] 创建任务房间 ${this.roomId}...`);
-    this.config = { ...DEFAULT_CONFIG, ...options?.config };
+    logger.info(`[TaskRoom] Creating task room ${this.roomId}...`);
+    this.config = { ...DEFAULT_CONFIG, ...(options?.config || {}) };
 
     this.setState(new TaskState());
     this.state.roomId = this.roomId;
@@ -42,14 +31,14 @@ export class TaskRoom extends Room<TaskState> {
     this.state.lastUpdate = Date.now();
 
     this.setupMessageHandlers();
+    this.syncFromAuthority();
     this.setSimulationInterval((deltaTime) => this.update(deltaTime), this.config.tickInterval);
-    logger.info("[TaskRoom] 任务房间创建完成");
+    logger.info("[TaskRoom] Task room ready");
   }
 
   private setupMessageHandlers() {
     this.onMessage("*", (client, type, message) => {
-      const typeStr = String(type);
-      switch (typeStr) {
+      switch (String(type)) {
         case "get_tasks":
           this.handleGetTasks(client, message);
           break;
@@ -72,12 +61,13 @@ export class TaskRoom extends Room<TaskState> {
           this.handleFailTask(client, message);
           break;
         default:
-          logger.debug(`[TaskRoom] 未处理的消息类型：${typeStr}`);
+          logger.debug(`[TaskRoom] Unhandled message type: ${String(type)}`);
       }
     });
   }
 
   private handleGetTasks(client: Client, message: any) {
+    this.syncFromAuthority();
     const statusFilter = message?.status ? String(message.status) : "";
     const limit = Math.max(1, Math.min(500, Number(message?.limit || 100)));
     const tasks = this.serializeTasks()
@@ -92,49 +82,79 @@ export class TaskRoom extends Room<TaskState> {
   }
 
   private handleCreateTask(client: Client, message: any) {
-    const { type = "generic", title = "", payload = {}, priority = "normal", timeoutMs } = message || {};
+    const { type = "generic", title = "", payload = {}, priority = "normal", timeoutMs, assignedTo, department } = message || {};
     if (!title) {
-      client.send("error", { code: "invalid_request", message: "title为必填项" });
+      client.send("error", { code: "invalid_request", message: "title is required" });
       return;
     }
 
-    if (this.state.tasks.size >= this.config.maxTasks) {
-      client.send("error", { code: "task_limit_reached", message: "已达到最大任务数量" });
+    const runtime = getAuthorityRuntime();
+    if (runtime.state.tasks.size >= this.config.maxTasks) {
+      client.send("error", { code: "task_limit_reached", message: "Task limit reached" });
       return;
     }
 
+    const taskId = `task:${uuidv4()}`;
     const now = Date.now();
-    const task = new TaskItemState();
-    task.id = `task:${uuidv4()}`;
-    task.type = String(type);
-    task.title = String(title);
-    task.status = "pending";
-    task.priority = String(priority);
-    task.progress = 0;
-    task.payload = JSON.stringify(payload ?? {});
-    task.timeoutMs = Number(timeoutMs || this.config.defaultTimeoutMs);
-    task.createdAt = now;
-    task.updatedAt = now;
+    const assignedAgent = assignedTo ? runtime.state.agents.get(String(assignedTo)) : undefined;
+    const resolvedDepartment = String(department || assignedAgent?.department || "UNASSIGNED");
+    const targetAgentId = assignedTo ? String(assignedTo) : "";
 
-    this.state.tasks.set(task.id, task);
-    this.updateSummary();
+    try {
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `tasks.${taskId}`,
+        operation: "set",
+        payload: {
+          id: taskId,
+          type: String(type),
+          title: String(title),
+          department: resolvedDepartment,
+          status: "pending",
+          priority: String(priority),
+          priorityScore: this.priorityToScore(String(priority)),
+          progress: 0,
+          payload: JSON.stringify(payload ?? {}),
+          assignedTo: targetAgentId,
+          sourceRoom: this.roomId,
+          timeoutMs: Number(timeoutMs || this.config.defaultTimeoutMs),
+          createdAt: now,
+          updatedAt: now,
+        },
+        reason: "task_room_create",
+      });
 
-    client.send("task_created", {
-      task: this.serializeTask(task),
-      timestamp: now,
-    });
-    this.broadcast("task_changed", {
-      action: "created",
-      task: this.serializeTask(task),
-      timestamp: now,
-    }, { except: client });
+      if (targetAgentId) {
+        this.syncAgentStateForTask(taskId, targetAgentId, "pending", 0, `session:${client.sessionId}`, now);
+      }
+
+      this.syncFromAuthority();
+      const task = this.state.tasks.get(taskId);
+
+      client.send("task_created", {
+        task: task ? this.serializeTask(task) : null,
+        timestamp: now,
+      });
+      this.broadcast(
+        "task_changed",
+        {
+          action: "created",
+          task: task ? this.serializeTask(task) : { id: taskId },
+          timestamp: now,
+        },
+        { except: client },
+      );
+    } catch (error: any) {
+      client.send("error", { code: "task_create_failed", message: error.message });
+    }
   }
 
   private handleGetTask(client: Client, message: any) {
+    this.syncFromAuthority();
     const taskId = message?.taskId ? String(message.taskId) : "";
     const task = taskId ? this.state.tasks.get(taskId) : undefined;
     if (!task) {
-      client.send("error", { code: "task_not_found", message: "找不到指定任务" });
+      client.send("error", { code: "task_not_found", message: "Task not found" });
       return;
     }
 
@@ -145,181 +165,401 @@ export class TaskRoom extends Room<TaskState> {
   }
 
   private handleCancelTask(client: Client, message: any) {
-    const task = this.getTaskOrError(client, message?.taskId);
+    const task = this.getAuthorityTaskOrError(client, message?.taskId);
     if (!task) {
       return;
     }
 
-    if (task.status === "completed" || task.status === "failed" || task.status === "canceled") {
-      client.send("error", { code: "invalid_task_state", message: `任务状态为${task.status}，无法取消` });
+    if (this.isTerminalTaskStatus(task.status)) {
+      client.send("error", { code: "invalid_task_state", message: `Task already ${task.status}` });
       return;
     }
 
-    task.status = "canceled";
-    task.updatedAt = Date.now();
-    task.finishedAt = Date.now();
-    task.progress = task.progress >= 100 ? 100 : task.progress;
-    this.updateSummary();
+    const now = Date.now();
 
-    client.send("task_canceled", { taskId: task.id, timestamp: Date.now() });
-    this.broadcast("task_changed", {
-      action: "canceled",
-      task: this.serializeTask(task),
-      timestamp: Date.now(),
-    }, { except: client });
+    try {
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `tasks.${task.id}`,
+        operation: "update",
+        payload: this.toAuthorityTaskPayload(task, {
+          status: "canceled",
+          updatedAt: now,
+          finishedAt: now,
+        }),
+        reason: "task_room_cancel",
+      });
+
+      if (task.assignedTo) {
+        this.syncAgentStateForTask(task.id, task.assignedTo, "canceled", task.progress, `session:${client.sessionId}`, now);
+      }
+
+      this.syncFromAuthority();
+      const updated = this.state.tasks.get(task.id);
+
+      client.send("task_canceled", { taskId: task.id, timestamp: now });
+      this.broadcast(
+        "task_changed",
+        {
+          action: "canceled",
+          task: updated ? this.serializeTask(updated) : { id: task.id },
+          timestamp: now,
+        },
+        { except: client },
+      );
+    } catch (error: any) {
+      client.send("error", { code: "task_cancel_failed", message: error.message });
+    }
   }
 
   private handleUpdateTaskProgress(client: Client, message: any) {
-    const task = this.getTaskOrError(client, message?.taskId);
+    const task = this.getAuthorityTaskOrError(client, message?.taskId);
     if (!task) {
       return;
     }
 
-    if (task.status === "completed" || task.status === "failed" || task.status === "canceled") {
-      client.send("error", { code: "invalid_task_state", message: `任务状态为${task.status}，无法更新进度` });
+    if (this.isTerminalTaskStatus(task.status)) {
+      client.send("error", { code: "invalid_task_state", message: `Task already ${task.status}` });
       return;
     }
 
     const nextProgress = Math.max(0, Math.min(100, Number(message?.progress ?? task.progress)));
-    task.progress = nextProgress;
-    task.updatedAt = Date.now();
+    const nextAssignedTo = message?.assignedTo ? String(message.assignedTo) : task.assignedTo;
+    const runtime = getAuthorityRuntime();
+    const nextDepartment = nextAssignedTo
+      ? runtime.state.agents.get(nextAssignedTo)?.department || task.department
+      : task.department;
+    const nextStatus = task.status === "pending" ? "running" : task.status;
+    const now = Date.now();
 
-    if (task.status === "pending") {
-      task.status = "running";
-      task.startedAt = Date.now();
+    try {
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `tasks.${task.id}`,
+        operation: "update",
+        payload: this.toAuthorityTaskPayload(task, {
+          status: nextStatus,
+          progress: nextProgress,
+          assignedTo: nextAssignedTo,
+          department: nextDepartment,
+          startedAt: task.startedAt || now,
+          updatedAt: now,
+        }),
+        reason: "task_room_progress_update",
+      });
+
+      if (nextAssignedTo) {
+        this.syncAgentStateForTask(task.id, nextAssignedTo, nextStatus, nextProgress, `session:${client.sessionId}`, now);
+      }
+
+      this.syncFromAuthority();
+
+      client.send("task_progress_updated", {
+        taskId: task.id,
+        progress: nextProgress,
+        status: nextStatus,
+        timestamp: now,
+      });
+    } catch (error: any) {
+      client.send("error", { code: "task_progress_failed", message: error.message });
     }
-
-    if (message?.assignedTo) {
-      task.assignedTo = String(message.assignedTo);
-    }
-
-    this.updateSummary();
-    client.send("task_progress_updated", {
-      taskId: task.id,
-      progress: task.progress,
-      status: task.status,
-      timestamp: Date.now(),
-    });
   }
 
   private handleCompleteTask(client: Client, message: any) {
-    const task = this.getTaskOrError(client, message?.taskId);
+    const task = this.getAuthorityTaskOrError(client, message?.taskId);
     if (!task) {
       return;
     }
 
-    task.status = "completed";
-    task.progress = 100;
-    task.result = JSON.stringify(message?.result ?? {});
-    task.updatedAt = Date.now();
-    task.finishedAt = Date.now();
-    if (task.startedAt === 0) {
-      task.startedAt = task.updatedAt;
-    }
-    this.updateSummary();
+    const now = Date.now();
 
-    client.send("task_completed", {
-      taskId: task.id,
-      timestamp: Date.now(),
-    });
-    this.broadcast("task_changed", {
-      action: "completed",
-      task: this.serializeTask(task),
-      timestamp: Date.now(),
-    }, { except: client });
+    try {
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `tasks.${task.id}`,
+        operation: "update",
+        payload: this.toAuthorityTaskPayload(task, {
+          status: "completed",
+          progress: 100,
+          result: JSON.stringify(message?.result ?? {}),
+          error: "",
+          updatedAt: now,
+          startedAt: task.startedAt || now,
+          finishedAt: now,
+        }),
+        reason: "task_room_complete",
+      });
+
+      if (task.assignedTo) {
+        this.syncAgentStateForTask(task.id, task.assignedTo, "completed", 100, `session:${client.sessionId}`, now);
+      }
+
+      this.syncFromAuthority();
+      const updated = this.state.tasks.get(task.id);
+
+      client.send("task_completed", {
+        taskId: task.id,
+        timestamp: now,
+      });
+      this.broadcast(
+        "task_changed",
+        {
+          action: "completed",
+          task: updated ? this.serializeTask(updated) : { id: task.id },
+          timestamp: now,
+        },
+        { except: client },
+      );
+    } catch (error: any) {
+      client.send("error", { code: "task_complete_failed", message: error.message });
+    }
   }
 
   private handleFailTask(client: Client, message: any) {
-    const task = this.getTaskOrError(client, message?.taskId);
+    const task = this.getAuthorityTaskOrError(client, message?.taskId);
     if (!task) {
       return;
     }
 
-    task.status = "failed";
-    task.error = String(message?.error || "unknown error");
-    task.updatedAt = Date.now();
-    task.finishedAt = Date.now();
-    if (task.startedAt === 0) {
-      task.startedAt = task.updatedAt;
-    }
-    this.updateSummary();
+    const now = Date.now();
 
-    client.send("task_failed", {
-      taskId: task.id,
-      error: task.error,
-      timestamp: Date.now(),
-    });
+    try {
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `tasks.${task.id}`,
+        operation: "update",
+        payload: this.toAuthorityTaskPayload(task, {
+          status: "failed",
+          error: String(message?.error || "unknown error"),
+          updatedAt: now,
+          startedAt: task.startedAt || now,
+          finishedAt: now,
+        }),
+        reason: "task_room_fail",
+      });
+
+      if (task.assignedTo) {
+        this.syncAgentStateForTask(task.id, task.assignedTo, "failed", task.progress, `session:${client.sessionId}`, now);
+      }
+
+      this.syncFromAuthority();
+
+      client.send("task_failed", {
+        taskId: task.id,
+        error: String(message?.error || "unknown error"),
+        timestamp: now,
+      });
+    } catch (error: any) {
+      client.send("error", { code: "task_fail_failed", message: error.message });
+    }
   }
 
   private update(_deltaTime: number) {
+    const runtime = getAuthorityRuntime();
     const now = Date.now();
-    this.state.tasks.forEach((task) => {
-      if (task.status !== "running" && task.status !== "pending") {
-        return;
+    const timedOutTasks = [...runtime.state.tasks.values()].filter((task) => {
+      if (task.status !== "running" && task.status !== "pending" && task.status !== "processing") {
+        return false;
       }
 
       const start = task.startedAt || task.createdAt;
-      if (task.timeoutMs > 0 && now - start > task.timeoutMs) {
-        task.status = "timeout";
-        task.error = "task timeout";
-        task.updatedAt = now;
-        task.finishedAt = now;
+      return task.timeoutMs > 0 && now - start > task.timeoutMs;
+    });
+
+    timedOutTasks.forEach((task) => {
+      this.commitAuthorityMutation({
+        proposer: "system",
+        targetPath: `tasks.${task.id}`,
+        operation: "update",
+        payload: this.toAuthorityTaskPayload(task, {
+          status: "timeout",
+          error: "task timeout",
+          updatedAt: now,
+          finishedAt: now,
+        }),
+        reason: "task_room_timeout",
+        riskLevel: "medium",
+      });
+
+      if (task.assignedTo) {
+        this.syncAgentStateForTask(task.id, task.assignedTo, "timeout", task.progress, "system", now);
       }
     });
-    this.updateSummary();
+
+    this.syncFromAuthority();
   }
 
-  private getTaskOrError(client: Client, taskIdInput: any): TaskItemState | null {
+  private syncFromAuthority() {
+    const runtime = getAuthorityRuntime();
+    runtime.projectionService.syncTaskBoard(this.state);
+    this.state.lastUpdate = Date.now();
+  }
+
+  private commitAuthorityMutation(proposal: MutationProposalInput) {
+    const result = getAuthorityRuntime().mutationPipeline.propose(proposal);
+    if (!result.ok) {
+      throw new Error(result.error || "authority mutation rejected");
+    }
+    return result;
+  }
+
+  private getAuthorityTaskOrError(client: Client, taskIdInput: any): AuthorityTaskState | null {
     const taskId = taskIdInput ? String(taskIdInput) : "";
     if (!taskId) {
-      client.send("error", { code: "invalid_request", message: "taskId为必填项" });
+      client.send("error", { code: "invalid_request", message: "taskId is required" });
       return null;
     }
-    const task = this.state.tasks.get(taskId);
+
+    const task = getAuthorityRuntime().state.tasks.get(taskId);
     if (!task) {
-      client.send("error", { code: "task_not_found", message: "找不到指定任务" });
+      client.send("error", { code: "task_not_found", message: "Task not found" });
       return null;
     }
+
     return task;
   }
 
-  private updateSummary() {
-    let pending = 0;
-    let running = 0;
-    let completed = 0;
-    let failed = 0;
-    let canceled = 0;
+  private syncAgentStateForTask(
+    taskId: string,
+    agentId: string,
+    taskStatus: string,
+    progress: number,
+    proposer: string,
+    now: number,
+  ) {
+    const runtime = getAuthorityRuntime();
+    const agent = runtime.state.agents.get(agentId);
+    if (!agent) {
+      return;
+    }
 
-    this.state.tasks.forEach((task) => {
-      switch (task.status) {
-        case "pending":
-          pending += 1;
-          break;
-        case "running":
-          running += 1;
-          break;
-        case "completed":
-          completed += 1;
-          break;
-        case "failed":
-        case "timeout":
-          failed += 1;
-          break;
-        case "canceled":
-          canceled += 1;
-          break;
-        default:
-          break;
-      }
+    if (taskStatus === "running" || taskStatus === "processing") {
+      const activeCount = [...runtime.state.tasks.values()].filter(
+        (task) =>
+          task.assignedTo === agentId &&
+          task.status !== "completed" &&
+          task.status !== "failed" &&
+          task.status !== "canceled" &&
+          task.status !== "timeout",
+      ).length;
+
+      this.commitAuthorityMutation({
+        proposer,
+        targetPath: `agents.${agentId}.status`,
+        operation: "update",
+        payload: "processing",
+        reason: "task_room_agent_sync",
+      });
+      this.commitAuthorityMutation({
+        proposer,
+        targetPath: `agents.${agentId}.currentTaskId`,
+        operation: "update",
+        payload: taskId,
+        reason: "task_room_agent_sync",
+      });
+      this.commitAuthorityMutation({
+        proposer,
+        targetPath: `agents.${agentId}.taskProgress`,
+        operation: "update",
+        payload: progress,
+        reason: "task_room_agent_sync",
+      });
+      this.commitAuthorityMutation({
+        proposer,
+        targetPath: `agents.${agentId}.currentLoad`,
+        operation: "update",
+        payload: Math.min(1, Math.max(1, activeCount) / 10),
+        reason: "task_room_agent_sync",
+      });
+    } else {
+      const remainingTasks = [...runtime.state.tasks.values()].filter(
+        (task) =>
+          task.assignedTo === agentId &&
+          task.id !== taskId &&
+          task.status !== "completed" &&
+          task.status !== "failed" &&
+          task.status !== "canceled" &&
+          task.status !== "timeout",
+      ).length;
+
+      this.commitAuthorityMutation({
+        proposer,
+        targetPath: `agents.${agentId}.status`,
+        operation: "update",
+        payload: remainingTasks > 0 ? "ready" : "idle",
+        reason: "task_room_agent_sync",
+      });
+      this.commitAuthorityMutation({
+        proposer,
+        targetPath: `agents.${agentId}.currentTaskId`,
+        operation: "update",
+        payload: "",
+        reason: "task_room_agent_sync",
+      });
+      this.commitAuthorityMutation({
+        proposer,
+        targetPath: `agents.${agentId}.taskProgress`,
+        operation: "update",
+        payload: this.isTerminalTaskStatus(taskStatus) ? 0 : progress,
+        reason: "task_room_agent_sync",
+      });
+      this.commitAuthorityMutation({
+        proposer,
+        targetPath: `agents.${agentId}.currentLoad`,
+        operation: "update",
+        payload: Math.min(1, remainingTasks / 10),
+        reason: "task_room_agent_sync",
+      });
+    }
+
+    this.commitAuthorityMutation({
+      proposer,
+      targetPath: `agents.${agentId}.lastHeartbeat`,
+      operation: "update",
+      payload: now,
+      reason: "task_room_agent_sync",
     });
+  }
 
-    this.state.totalTasks = this.state.tasks.size;
-    this.state.pendingTasks = pending;
-    this.state.runningTasks = running;
-    this.state.completedTasks = completed;
-    this.state.failedTasks = failed;
-    this.state.canceledTasks = canceled;
-    this.state.lastUpdate = Date.now();
+  private isTerminalTaskStatus(status: string) {
+    return status === "completed" || status === "failed" || status === "canceled" || status === "timeout";
+  }
+
+  private priorityToScore(priority: string): number {
+    switch (String(priority || "").toLowerCase()) {
+      case "critical":
+        return 4;
+      case "high":
+        return 3;
+      case "low":
+        return 1;
+      default:
+        return 2;
+    }
+  }
+
+  private toAuthorityTaskPayload(task: AuthorityTaskState, overrides: Record<string, unknown> = {}) {
+    return {
+      id: task.id,
+      type: task.type,
+      title: task.title,
+      department: task.department,
+      status: task.status,
+      priority: task.priority,
+      priorityScore: task.priorityScore,
+      progress: task.progress,
+      payload: task.payload,
+      result: task.result,
+      error: task.error,
+      assignedTo: task.assignedTo,
+      sourceRoom: task.sourceRoom,
+      timeoutMs: task.timeoutMs,
+      createdAt: task.createdAt,
+      startedAt: task.startedAt,
+      updatedAt: task.updatedAt,
+      finishedAt: task.finishedAt,
+      ...overrides,
+    };
   }
 
   private serializeTasks() {
@@ -358,20 +598,6 @@ export class TaskRoom extends Room<TaskState> {
       canceledTasks: this.state.canceledTasks,
     };
   }
-
-  onJoin(client: Client) {
-    logger.info(`[TaskRoom] 客户端 ${client.sessionId} 加入任务房间`);
-    client.send("task_snapshot", {
-      tasks: this.serializeTasks(),
-      summary: this.serializeSummary(),
-      timestamp: Date.now(),
-    });
-  }
-
-  onLeave(client: Client) {
-    logger.info(`[TaskRoom] 客户端 ${client.sessionId} 离开任务房间`);
-  }
 }
 
 export default TaskRoom;
-

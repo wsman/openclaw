@@ -1,33 +1,11 @@
-/**
- * 🤖 AgentRoom - Agent生命周期管理房间
- * 
- * @constitution
- * §101 同步公理：代码变更必须触发文档更新
- * §102 熵减原则：所有变更必须降低或维持系统熵值
- * §106 Agent身份公理：每个Agent必须拥有唯一身份标识和明确职责
- * §110 协作效率公理：Agent响应时间必须控制在合理范围内
- * §152 单一真理源公理：Agent状态同步基于唯一数据源
- * 
- * @filename AgentRoom.ts
- * @version 1.0.0
- * @category rooms
- * @last_updated 2026-02-26
- * 
- * 功能：
- * - Agent生命周期管理（spawn/terminate/health）
- * - Agent任务调度和监控
- * - Agent性能指标收集
- * - 多Agent协作状态同步
- */
-
-import { Room, Client } from "colyseus";
-import { AgentState, AgentTask, AgentMetrics, AgentRegistry } from "../schema/AgentState";
-import { logger } from "../utils/logger";
+﻿import { Room, Client } from "colyseus";
 import { v4 as uuidv4 } from "uuid";
+import { AgentMetrics, AgentRegistry, AgentState, AgentTask } from "../schema/AgentState";
+import { AuthorityTaskState } from "../schema/AuthorityState";
+import { getAuthorityRuntime } from "../runtime/authorityRuntime";
+import { MutationProposalInput } from "../services/authority/types";
+import { logger } from "../utils/logger";
 
-/**
- * AgentRoom配置
- */
 interface AgentRoomConfig {
   maxAgents: number;
   healthCheckInterval: number;
@@ -38,109 +16,76 @@ interface AgentRoomConfig {
 const DEFAULT_CONFIG: AgentRoomConfig = {
   maxAgents: 100,
   healthCheckInterval: 5000,
-  taskTimeout: 60000, // 1分钟
+  taskTimeout: 60000,
   maxTasksPerAgent: 10,
 };
 
-/**
- * Agent类型定义
- */
 type AgentType = "director" | "ministry" | "cabinet" | "worker" | "specialist";
 
-/**
- * Agent能力定义
- */
-interface AgentCapability {
-  name: string;
-  description: string;
-  cost: number; // 计算成本估算
-  dependencies?: string[];
-}
-
-/**
- * 🤖 AgentRoom - Agent管理房间
- * 负责Agent生命周期和任务调度的核心实现
- */
 export class AgentRoom extends Room<AgentRegistry> {
   private config!: AgentRoomConfig;
-  private taskQueue: Map<string, AgentTask[]> = new Map(); // agentId -> tasks
-  private pendingSpawns: Set<string> = new Set();
+  private taskQueue = new Map<string, AgentTask[]>();
   private lastHealthCheck = 0;
 
   onCreate(options: any) {
-    logger.info(`[AgentRoom] 创建Agent管理房间 ${this.roomId}...`);
-    
-    // 合并配置
-    this.config = { ...DEFAULT_CONFIG, ...options.config };
-    
-    // 初始化状态
+    logger.info(`[AgentRoom] Creating agent room ${this.roomId}...`);
+
+    this.config = { ...DEFAULT_CONFIG, ...(options?.config || {}) };
+
     this.setState(new AgentRegistry());
     this.state.roomId = this.roomId;
     this.state.createdAt = Date.now();
     this.state.lastUpdate = Date.now();
-    
-    // 设置更新循环
-    this.setSimulationInterval((deltaTime) => this.update(deltaTime), 1000);
-    
-    // 设置消息处理器
+
     this.setupMessageHandlers();
-    
-    // 初始化系统Agent
     this.initializeSystemAgents();
-    
-    logger.info(`[AgentRoom] Agent管理房间创建完成`);
+    this.syncFromAuthority();
+    this.setSimulationInterval((deltaTime) => this.update(deltaTime), 1000);
+
+    logger.info("[AgentRoom] Agent room ready");
   }
 
-  /**
-   * 设置消息处理器
-   */
   private setupMessageHandlers() {
     this.onMessage("*", (client, type, message) => {
-      const typeStr = String(type);
-      
-      switch (typeStr) {
+      switch (String(type)) {
         case "spawn_agent":
           this.handleSpawnAgent(client, message);
           break;
-          
         case "terminate_agent":
           this.handleTerminateAgent(client, message);
           break;
-          
         case "assign_task":
           this.handleAssignTask(client, message);
           break;
-          
         case "update_task_status":
           this.handleUpdateTaskStatus(client, message);
           break;
-          
         case "request_agent_status":
           this.handleAgentStatusRequest(client, message);
           break;
-          
         case "query_agents":
           this.handleQueryAgents(client, message);
           break;
-          
         case "set_agent_capabilities":
           this.handleSetCapabilities(client, message);
           break;
-          
         default:
-          logger.debug(`[AgentRoom] 未处理的消息类型：${typeStr}`);
+          logger.debug(`[AgentRoom] Unhandled message type: ${String(type)}`);
       }
     });
   }
 
-  /**
-   * 初始化系统Agent
-   */
   private initializeSystemAgents() {
+    const runtime = getAuthorityRuntime();
+    if (runtime.state.agents.size > 0) {
+      logger.info("[AgentRoom] Using Authority Core seeded agents");
+      return;
+    }
+
     const systemAgents = [
       {
         id: "agent:office_director",
-        name: "办公厅主任",
+        name: "Office Director",
         type: "director" as AgentType,
         capabilities: ["complexity_analysis", "agent_coordination", "task_decomposition", "result_integration"],
         llmProvider: "simulated",
@@ -148,7 +93,7 @@ export class AgentRoom extends Room<AgentRegistry> {
       },
       {
         id: "agent:tech_ministry",
-        name: "科技部",
+        name: "Technology Ministry",
         type: "ministry" as AgentType,
         capabilities: ["system_development", "architecture_optimization", "technical_innovation"],
         llmProvider: "simulated",
@@ -156,7 +101,7 @@ export class AgentRoom extends Room<AgentRegistry> {
       },
       {
         id: "agent:monitor_ministry",
-        name: "监督部",
+        name: "Supervision Ministry",
         type: "ministry" as AgentType,
         capabilities: ["compliance_monitoring", "entropy_audit", "system_integrity"],
         llmProvider: "simulated",
@@ -164,86 +109,119 @@ export class AgentRoom extends Room<AgentRegistry> {
       },
       {
         id: "agent:cabinet",
-        name: "内阁",
+        name: "Cabinet",
         type: "cabinet" as AgentType,
         capabilities: ["policy_coordination", "inter_departmental_sync", "resource_allocation"],
         llmProvider: "simulated",
         llmModel: "simulated",
       },
     ];
-    
-    systemAgents.forEach(agentConfig => {
+
+    systemAgents.forEach((agent) => {
       this.spawnAgent(
-        agentConfig.id,
-        agentConfig.name,
-        agentConfig.type,
-        agentConfig.capabilities,
-        agentConfig.llmProvider,
-        agentConfig.llmModel
+        agent.id,
+        agent.name,
+        agent.type,
+        agent.capabilities,
+        agent.llmProvider,
+        agent.llmModel,
       );
     });
-    
-    logger.info(`[AgentRoom] 初始化了 ${systemAgents.length} 个系统Agent`);
   }
 
-  /**
-   * 处理Agent创建请求
-   */
   private handleSpawnAgent(client: Client, message: any) {
-    const { name, type, capabilities = [], llmProvider = "simulated", llmModel = "simulated" } = message;
-    
+    const {
+      name,
+      type,
+      capabilities = [],
+      llmProvider,
+      llmModel,
+      department,
+      role,
+      trustLevel = 0.7,
+      lane = "default",
+    } = message || {};
+
     if (!name || !type) {
-      client.send("error", { code: "invalid_request", message: "缺少必要参数" });
+      client.send("error", { code: "invalid_request", message: "Missing required parameters" });
       return;
     }
-    
-    // 检查Agent数量限制
+
+    if (!llmProvider || !llmModel) {
+      client.send("error", {
+        code: "missing_model_params",
+        message: "llmProvider and llmModel must be explicitly specified",
+      });
+      return;
+    }
+
     if (this.state.agents.size >= this.config.maxAgents) {
-      client.send("error", { code: "agent_limit_reached", message: "已达最大Agent数量" });
+      client.send("error", { code: "agent_limit_reached", message: "Agent limit reached" });
       return;
     }
-    
+
     const agentId = `agent:${uuidv4()}`;
-    
+
     try {
-      const agent = this.spawnAgent(agentId, name, type, capabilities, llmProvider, llmModel);
-      
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `agents.${agentId}`,
+        operation: "set",
+        payload: {
+          id: agentId,
+          name: String(name),
+          department: String(department || this.deriveDepartment(type, name)),
+          role: String(role || this.deriveRole(type)),
+          status: "idle",
+          model: String(llmModel),
+          provider: String(llmProvider),
+          trustLevel: Number(trustLevel),
+          lane: String(lane),
+          capabilities: this.toCapabilityMap(capabilities),
+          available: true,
+          createdAt: Date.now(),
+          lastHeartbeat: Date.now(),
+        },
+        reason: "agent_spawn_request",
+      });
+
+      this.syncFromAuthority();
+
       client.send("agent_spawned", {
         agentId,
         name,
         type,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
-      
-      // 广播Agent创建通知
-      this.broadcast("agent_event", {
-        event: "spawned",
-        agentId,
-        name,
-        type,
-        timestamp: Date.now()
-      }, { except: client });
-      
+
+      this.broadcast(
+        "agent_event",
+        {
+          event: "spawned",
+          agentId,
+          name,
+          type,
+          timestamp: Date.now(),
+        },
+        { except: client },
+      );
     } catch (error: any) {
       client.send("error", { code: "spawn_failed", message: error.message });
     }
   }
 
-  /**
-   * 创建Agent
-   */
   private spawnAgent(
     agentId: string,
     name: string,
     type: AgentType,
     capabilities: string[],
     llmProvider: string,
-    llmModel: string
+    llmModel: string,
   ): AgentState {
     if (this.state.agents.has(agentId)) {
-      throw new Error(`Agent ${agentId} 已存在`);
+      throw new Error(`Agent ${agentId} already exists`);
     }
-    
+
     const agent = new AgentState();
     agent.id = agentId;
     agent.name = name;
@@ -255,405 +233,547 @@ export class AgentRoom extends Room<AgentRegistry> {
     agent.llmEnabled = llmProvider !== "simulated";
     agent.lastActive = Date.now();
     agent.createdAt = Date.now();
-    
-    // 设置能力
-    capabilities.forEach(cap => {
-      agent.capabilities.set(cap, "enabled");
+
+    capabilities.forEach((capability) => {
+      agent.capabilities.set(capability, "enabled");
     });
-    
-    // 初始化指标
+
     agent.metrics = new AgentMetrics();
     agent.metrics.tasksCompleted = 0;
     agent.metrics.averageResponseTime = 0;
     agent.metrics.successRate = 1.0;
     agent.metrics.lastTaskTime = 0;
-    
-    // 添加到注册表
+
     this.state.agents.set(agentId, agent);
-    this.state.totalAgents++;
-    this.state.activeAgents++;
-    
-    // 初始化任务队列
+    this.state.totalAgents += 1;
+    this.state.activeAgents += 1;
     this.taskQueue.set(agentId, []);
-    
-    logger.info(`[AgentRoom] Agent创建成功: ${name} (${agentId})`);
-    
+
     return agent;
   }
 
-  /**
-   * 处理Agent终止请求
-   */
   private handleTerminateAgent(client: Client, message: any) {
-    const { agentId, reason = "manual" } = message;
-    
-    const agent = this.state.agents.get(agentId);
+    const { agentId, reason = "manual" } = message || {};
+    const runtime = getAuthorityRuntime();
+    const agent = runtime.state.agents.get(String(agentId || ""));
+
     if (!agent) {
-      client.send("error", { code: "agent_not_found", message: `Agent ${agentId} 不存在` });
+      client.send("error", { code: "agent_not_found", message: "Agent not found" });
       return;
     }
-    
-    // 检查是否有进行中的任务
-    const tasks = this.taskQueue.get(agentId) || [];
-    const activeTasks = tasks.filter(t => t.status === "processing" || t.status === "pending");
-    
+
+    const activeTasks = this.getActiveAuthorityTasks(agent.id);
     if (activeTasks.length > 0) {
-      client.send("error", { 
-        code: "agent_busy", 
-        message: `Agent有 ${activeTasks.length} 个活跃任务，请先完成或取消` 
+      client.send("error", {
+        code: "agent_busy",
+        message: `Agent still has ${activeTasks.length} active tasks`,
       });
       return;
     }
-    
-    // 终止Agent
-    this.terminateAgent(agentId, reason);
-    
-    client.send("agent_terminated", {
-      agentId,
-      reason,
-      timestamp: Date.now()
-    });
-    
-    // 广播终止通知
-    this.broadcast("agent_event", {
-      event: "terminated",
-      agentId,
-      reason,
-      timestamp: Date.now()
-    }, { except: client });
+
+    const now = Date.now();
+
+    try {
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `agents.${agent.id}.status`,
+        operation: "update",
+        payload: "terminated",
+        reason: "agent_terminate_request",
+      });
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `agents.${agent.id}.available`,
+        operation: "update",
+        payload: false,
+        reason: "agent_terminate_request",
+      });
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `agents.${agent.id}.currentTaskId`,
+        operation: "update",
+        payload: "",
+        reason: "agent_terminate_request",
+      });
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `agents.${agent.id}.taskProgress`,
+        operation: "update",
+        payload: 0,
+        reason: "agent_terminate_request",
+      });
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `agents.${agent.id}.currentLoad`,
+        operation: "update",
+        payload: 0,
+        reason: "agent_terminate_request",
+      });
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `agents.${agent.id}.metadata.terminatedAt`,
+        operation: "update",
+        payload: String(now),
+        reason: "agent_terminate_request",
+      });
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `agents.${agent.id}.metadata.terminationReason`,
+        operation: "update",
+        payload: String(reason),
+        reason: "agent_terminate_request",
+      });
+
+      this.syncFromAuthority();
+
+      client.send("agent_terminated", {
+        agentId: agent.id,
+        reason,
+        timestamp: now,
+      });
+
+      this.broadcast(
+        "agent_event",
+        {
+          event: "terminated",
+          agentId: agent.id,
+          reason,
+          timestamp: now,
+        },
+        { except: client },
+      );
+    } catch (error: any) {
+      client.send("error", { code: "terminate_failed", message: error.message });
+    }
   }
 
-  /**
-   * 终止Agent
-   */
-  private terminateAgent(agentId: string, reason: string) {
-    const agent = this.state.agents.get(agentId);
-    if (!agent) return;
-    
-    agent.status = "terminated";
-    agent.available = false;
-    agent.terminatedAt = Date.now();
-    agent.terminationReason = reason;
-    
-    // 从活跃计数中移除
-    this.state.activeAgents--;
-    
-    // 清理任务队列
-    this.taskQueue.delete(agentId);
-    
-    logger.info(`[AgentRoom] Agent终止: ${agent.name} (${agentId}), 原因: ${reason}`);
-  }
-
-  /**
-   * 处理任务分配请求
-   */
   private handleAssignTask(client: Client, message: any) {
-    const { agentId, taskType, taskData, priority = "normal" } = message;
-    
-    const agent = this.state.agents.get(agentId);
+    const { agentId, taskType, taskData, priority = "normal", timeoutMs } = message || {};
+    const runtime = getAuthorityRuntime();
+    const targetId = String(agentId || "");
+    const agent = runtime.state.agents.get(targetId);
+
     if (!agent) {
-      client.send("error", { code: "agent_not_found", message: `Agent ${agentId} 不存在` });
+      client.send("error", { code: "agent_not_found", message: "Agent not found" });
       return;
     }
-    
-    if (!agent.available) {
-      client.send("error", { code: "agent_unavailable", message: `Agent ${agent.name} 当前不可用` });
+
+    if (!agent.available || agent.status === "terminated") {
+      client.send("error", { code: "agent_unavailable", message: "Agent is unavailable" });
       return;
     }
-    
-    // 检查任务队列限制
-    const tasks = this.taskQueue.get(agentId) || [];
-    if (tasks.length >= this.config.maxTasksPerAgent) {
-      client.send("error", { code: "task_queue_full", message: "Agent任务队列已满" });
+
+    const activeTasks = this.getActiveAuthorityTasks(targetId);
+    if (activeTasks.length >= this.config.maxTasksPerAgent) {
+      client.send("error", { code: "task_queue_full", message: "Agent task queue is full" });
       return;
     }
-    
-    // 创建任务
-    const task = new AgentTask();
-    task.id = `task:${uuidv4()}`;
-    task.agentId = agentId;
-    task.type = taskType;
-    task.data = JSON.stringify(taskData);
-    task.priority = priority;
-    task.status = "pending";
-    task.createdAt = Date.now();
-    task.timeout = this.config.taskTimeout;
-    
-    // 添加到队列
-    tasks.push(task);
-    this.taskQueue.set(agentId, tasks);
-    
-    // 更新Agent状态
-    if (agent.status === "idle") {
-      agent.status = "ready";
+
+    const taskId = `task:${uuidv4()}`;
+    const now = Date.now();
+    const resolvedPriority = String(priority);
+
+    try {
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `tasks.${taskId}`,
+        operation: "set",
+        payload: {
+          id: taskId,
+          type: String(taskType || "generic"),
+          title: String(message?.title || taskType || taskId),
+          department: agent.department || "UNASSIGNED",
+          status: "pending",
+          priority: resolvedPriority,
+          priorityScore: this.priorityToScore(resolvedPriority),
+          progress: 0,
+          payload: JSON.stringify(taskData ?? {}),
+          assignedTo: targetId,
+          sourceRoom: this.roomId,
+          timeoutMs: Number(timeoutMs || this.config.taskTimeout),
+          createdAt: now,
+          updatedAt: now,
+        },
+        reason: "agent_task_assignment",
+      });
+
+      if (agent.status === "idle") {
+        this.commitAuthorityMutation({
+          proposer: `session:${client.sessionId}`,
+          targetPath: `agents.${targetId}.status`,
+          operation: "update",
+          payload: "ready",
+          reason: "agent_task_assignment",
+        });
+      }
+
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `agents.${targetId}.currentLoad`,
+        operation: "update",
+        payload: Math.min(1, (activeTasks.length + 1) / this.config.maxTasksPerAgent),
+        reason: "agent_task_assignment",
+      });
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `agents.${targetId}.lastHeartbeat`,
+        operation: "update",
+        payload: now,
+        reason: "agent_task_assignment",
+      });
+
+      this.syncFromAuthority();
+
+      client.send("task_assigned", {
+        taskId,
+        agentId: targetId,
+        timestamp: now,
+      });
+
+      this.broadcast(
+        "agent_event",
+        {
+          event: "task_assigned",
+          taskId,
+          agentId: targetId,
+          timestamp: now,
+        },
+        { except: client },
+      );
+    } catch (error: any) {
+      client.send("error", { code: "task_assignment_failed", message: error.message });
     }
-    
-    // 更新统计
-    this.state.totalTasks++;
-    this.state.pendingTasks++;
-    
-    client.send("task_assigned", {
-      taskId: task.id,
-      agentId,
-      timestamp: Date.now()
-    });
-    
-    logger.info(`[AgentRoom] 任务分配: ${task.id} -> ${agent.name}`);
   }
 
-  /**
-   * 处理任务状态更新
-   */
   private handleUpdateTaskStatus(client: Client, message: any) {
-    const { taskId, status, result, error } = message;
-    
-    // 查找任务所属的Agent
-    let targetAgentId: string | null = null;
-    let targetTask: AgentTask | null = null;
-    
-    for (const [agentId, tasks] of this.taskQueue) {
-      const task = tasks.find(t => t.id === taskId);
-      if (task) {
-        targetAgentId = agentId;
-        targetTask = task;
-        break;
-      }
-    }
-    
-    if (!targetAgentId || !targetTask) {
-      client.send("error", { code: "task_not_found", message: `任务 ${taskId} 不存在` });
+    const { taskId, status, result, error } = message || {};
+    const runtime = getAuthorityRuntime();
+    const task = runtime.state.tasks.get(String(taskId || ""));
+
+    if (!task) {
+      client.send("error", { code: "task_not_found", message: "Task not found" });
       return;
     }
-    
-    const agent = this.state.agents.get(targetAgentId);
-    
-    // 更新任务状态
-    targetTask.status = status;
-    targetTask.updatedAt = Date.now();
-    
-    if (status === "completed") {
-      targetTask.completedAt = Date.now();
-      targetTask.result = JSON.stringify(result);
-      this.state.pendingTasks--;
-      this.state.completedTasks++;
-      
-      if (agent) {
-        agent.metrics.tasksCompleted++;
-        agent.status = "idle";
-        agent.lastActive = Date.now();
+
+    const now = Date.now();
+    const nextStatus = String(status || task.status);
+    const normalizedStatus = nextStatus === "running" ? "processing" : nextStatus;
+    const nextProgress =
+      normalizedStatus === "completed"
+        ? 100
+        : Math.max(0, Math.min(100, Number(message?.progress ?? task.progress)));
+
+    try {
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `tasks.${task.id}`,
+        operation: "update",
+        payload: this.toAuthorityTaskPayload(task, {
+          status: normalizedStatus,
+          progress: nextProgress,
+          result: normalizedStatus === "completed" ? JSON.stringify(result ?? {}) : task.result,
+          error:
+            normalizedStatus === "failed" || normalizedStatus === "timeout"
+              ? String(error || task.error || "Unknown error")
+              : normalizedStatus === "completed"
+                ? ""
+                : task.error,
+          startedAt: normalizedStatus === "processing" ? (task.startedAt || now) : task.startedAt,
+          updatedAt: now,
+          finishedAt: this.isTerminalTaskStatus(normalizedStatus) ? now : task.finishedAt,
+        }),
+        reason: "agent_task_status_update",
+      });
+
+      if (task.assignedTo && runtime.state.agents.has(task.assignedTo)) {
+        if (normalizedStatus === "processing") {
+          this.commitAuthorityMutation({
+            proposer: `session:${client.sessionId}`,
+            targetPath: `agents.${task.assignedTo}.status`,
+            operation: "update",
+            payload: "processing",
+            reason: "agent_task_status_update",
+          });
+          this.commitAuthorityMutation({
+            proposer: `session:${client.sessionId}`,
+            targetPath: `agents.${task.assignedTo}.currentTaskId`,
+            operation: "update",
+            payload: task.id,
+            reason: "agent_task_status_update",
+          });
+          this.commitAuthorityMutation({
+            proposer: `session:${client.sessionId}`,
+            targetPath: `agents.${task.assignedTo}.taskProgress`,
+            operation: "update",
+            payload: nextProgress,
+            reason: "agent_task_status_update",
+          });
+        } else {
+          const remainingTasks = this.getActiveAuthorityTasks(task.assignedTo, task.id).length;
+          this.commitAuthorityMutation({
+            proposer: `session:${client.sessionId}`,
+            targetPath: `agents.${task.assignedTo}.status`,
+            operation: "update",
+            payload: remainingTasks > 0 ? "ready" : "idle",
+            reason: "agent_task_status_update",
+          });
+          this.commitAuthorityMutation({
+            proposer: `session:${client.sessionId}`,
+            targetPath: `agents.${task.assignedTo}.currentTaskId`,
+            operation: "update",
+            payload: "",
+            reason: "agent_task_status_update",
+          });
+          this.commitAuthorityMutation({
+            proposer: `session:${client.sessionId}`,
+            targetPath: `agents.${task.assignedTo}.taskProgress`,
+            operation: "update",
+            payload: normalizedStatus === "completed" ? 100 : 0,
+            reason: "agent_task_status_update",
+          });
+          this.commitAuthorityMutation({
+            proposer: `session:${client.sessionId}`,
+            targetPath: `agents.${task.assignedTo}.currentLoad`,
+            operation: "update",
+            payload: Math.min(1, remainingTasks / this.config.maxTasksPerAgent),
+            reason: "agent_task_status_update",
+          });
+        }
+
+        this.commitAuthorityMutation({
+          proposer: `session:${client.sessionId}`,
+          targetPath: `agents.${task.assignedTo}.lastHeartbeat`,
+          operation: "update",
+          payload: now,
+          reason: "agent_task_status_update",
+        });
       }
-      
-    } else if (status === "failed") {
-      targetTask.error = error || "Unknown error";
-      this.state.pendingTasks--;
-      this.state.failedTasks++;
-      
-      if (agent) {
-        agent.status = "idle";
-      }
-    } else if (status === "processing") {
-      targetTask.startedAt = Date.now();
-      
-      if (agent) {
-        agent.status = "processing";
-        agent.currentTaskId = taskId;
-      }
+
+      this.syncFromAuthority();
+
+      this.broadcast("task_status_updated", {
+        taskId: task.id,
+        agentId: task.assignedTo,
+        status: normalizedStatus,
+        timestamp: now,
+      });
+    } catch (mutationError: any) {
+      client.send("error", { code: "task_update_failed", message: mutationError.message });
     }
-    
-    // 广播任务状态更新
-    this.broadcast("task_status_updated", {
-      taskId,
-      agentId: targetAgentId,
-      status,
-      timestamp: Date.now()
-    });
-    
-    logger.debug(`[AgentRoom] 任务状态更新: ${taskId} -> ${status}`);
   }
 
-  /**
-   * 处理Agent状态请求
-   */
   private handleAgentStatusRequest(client: Client, message: any) {
-    const { agentId } = message;
-    
+    this.syncFromAuthority();
+    const agentId = message?.agentId ? String(message.agentId) : "";
+
     if (agentId) {
       const agent = this.state.agents.get(agentId);
       if (!agent) {
-        client.send("error", { code: "agent_not_found", message: `Agent ${agentId} 不存在` });
+        client.send("error", { code: "agent_not_found", message: "Agent not found" });
         return;
       }
-      
-      const tasks = this.taskQueue.get(agentId) || [];
-      
+
       client.send("agent_status", {
         agent,
-        tasks,
-        timestamp: Date.now()
+        tasks: this.taskQueue.get(agentId) || [],
+        timestamp: Date.now(),
       });
-    } else {
-      // 返回所有Agent状态
-      const allAgents = Array.from(this.state.agents.values()) as AgentState[];
-      client.send("all_agents_status", {
-        agents: allAgents,
-        stats: {
-          total: this.state.totalAgents,
-          active: this.state.activeAgents,
-          idle: allAgents.filter((a: AgentState) => a.status === "idle").length,
-          processing: allAgents.filter((a: AgentState) => a.status === "processing").length,
-        },
-        timestamp: Date.now()
-      });
+      return;
     }
+
+    const allAgents = Array.from(this.state.agents.values()) as AgentState[];
+    client.send("all_agents_status", {
+      agents: allAgents,
+      stats: {
+        total: this.state.totalAgents,
+        active: this.state.activeAgents,
+        idle: allAgents.filter((agent) => agent.status === "idle").length,
+        processing: allAgents.filter((agent) => agent.status === "processing").length,
+      },
+      timestamp: Date.now(),
+    });
   }
 
-  /**
-   * 处理Agent查询
-   */
   private handleQueryAgents(client: Client, message: any) {
-    const { type, capability, status, available } = message;
-    
+    this.syncFromAuthority();
+    const { type, capability, status, available } = message || {};
+
     let agents = Array.from(this.state.agents.values()) as AgentState[];
-    
-    // 应用过滤条件
+
     if (type) {
-      agents = agents.filter((a: AgentState) => a.type === type);
+      agents = agents.filter((agent) => agent.type === type);
     }
     if (capability) {
-      agents = agents.filter((a: AgentState) => a.capabilities.has(capability));
+      agents = agents.filter((agent) => agent.capabilities.has(capability));
     }
     if (status) {
-      agents = agents.filter((a: AgentState) => a.status === status);
+      agents = agents.filter((agent) => agent.status === status);
     }
     if (available !== undefined) {
-      agents = agents.filter((a: AgentState) => a.available === available);
+      agents = agents.filter((agent) => agent.available === Boolean(available));
     }
-    
+
     client.send("query_result", {
       agents,
       count: agents.length,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
-  /**
-   * 处理能力设置
-   */
   private handleSetCapabilities(client: Client, message: any) {
-    const { agentId, capabilities } = message;
-    
-    const agent = this.state.agents.get(agentId);
+    const agentId = message?.agentId ? String(message.agentId) : "";
+    const capabilityList = Array.isArray(message?.capabilities) ? message.capabilities : [];
+    const runtime = getAuthorityRuntime();
+    const agent = runtime.state.agents.get(agentId);
+
     if (!agent) {
-      client.send("error", { code: "agent_not_found", message: `Agent ${agentId} 不存在` });
+      client.send("error", { code: "agent_not_found", message: "Agent not found" });
       return;
     }
-    
-    // 清空现有能力
-    agent.capabilities.clear();
-    
-    // 设置新能力
-    capabilities.forEach((cap: string) => {
-      agent.capabilities.set(cap, "enabled");
-    });
-    
-    client.send("capabilities_updated", {
-      agentId,
-      capabilities,
-      timestamp: Date.now()
-    });
-    
-    logger.info(`[AgentRoom] Agent能力更新: ${agent.name} -> ${capabilities.join(", ")}`);
+
+    try {
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `agents.${agentId}.capabilities`,
+        operation: "update",
+        payload: this.toCapabilityMap(capabilityList),
+        reason: "agent_capabilities_update",
+      });
+      this.commitAuthorityMutation({
+        proposer: `session:${client.sessionId}`,
+        targetPath: `agents.${agentId}.lastHeartbeat`,
+        operation: "update",
+        payload: Date.now(),
+        reason: "agent_capabilities_update",
+      });
+
+      this.syncFromAuthority();
+
+      client.send("capabilities_updated", {
+        agentId,
+        capabilities: capabilityList,
+        timestamp: Date.now(),
+      });
+
+      logger.info(`[AgentRoom] Capabilities updated for ${agent.name}`);
+    } catch (mutationError: any) {
+      client.send("error", { code: "capabilities_update_failed", message: mutationError.message });
+    }
   }
 
-  /**
-   * 主更新循环
-   */
-  private update(deltaTime: number) {
+  private update(_deltaTime: number) {
     const now = Date.now();
-    
-    // 定期健康检查
+
+    this.syncFromAuthority();
+
     if (now - this.lastHealthCheck > this.config.healthCheckInterval) {
       this.performHealthCheck();
       this.lastHealthCheck = now;
     }
-    
-    // 检查任务超时
+
     this.checkTaskTimeouts();
-    
-    // 更新状态
     this.state.lastUpdate = now;
   }
 
-  /**
-   * 执行健康检查
-   */
   private performHealthCheck() {
     const now = Date.now();
-    const staleThreshold = 60000; // 1分钟无响应视为不健康
-    
-    this.state.agents.forEach(agent => {
-      if (!agent.available) return;
-      
+    const staleThreshold = 60000;
+
+    this.state.agents.forEach((agent) => {
+      if (!agent.available) {
+        return;
+      }
+
       const timeSinceLastActive = now - agent.lastActive;
-      
       if (timeSinceLastActive > staleThreshold && agent.status !== "idle") {
-        // Agent可能卡住
-        logger.warn(`[AgentRoom] Agent ${agent.name} 可能卡住，最后活动: ${timeSinceLastActive}ms前`);
-        
-        // 广播告警
+        logger.warn(`[AgentRoom] Agent ${agent.name} may be stale`);
         this.broadcast("agent_health_alert", {
           agentId: agent.id,
           agentName: agent.name,
           issue: "stale",
           lastActive: agent.lastActive,
-          timestamp: now
+          timestamp: now,
         });
       }
     });
   }
 
-  /**
-   * 检查任务超时
-   */
   private checkTaskTimeouts() {
+    const runtime = getAuthorityRuntime();
     const now = Date.now();
-    
-    this.taskQueue.forEach((tasks, agentId) => {
-      tasks.forEach(task => {
-        if (task.status === "processing" || task.status === "pending") {
-          const taskAge = now - task.createdAt;
-          
-          if (taskAge > task.timeout) {
-            task.status = "timeout";
-            task.error = "Task timeout";
-            task.updatedAt = now;
-            
-            this.state.pendingTasks--;
-            this.state.failedTasks++;
-            
-            const agent = this.state.agents.get(agentId);
-            if (agent && agent.status === "processing") {
-              agent.status = "idle";
-            }
-            
-            logger.warn(`[AgentRoom] 任务超时: ${task.id}`);
-            
-            this.broadcast("task_timeout", {
-              taskId: task.id,
-              agentId,
-              timeout: task.timeout,
-              timestamp: now
-            });
-          }
-        }
+    const timedOutTasks = [...runtime.state.tasks.values()].filter((task) => {
+      if (task.status !== "pending" && task.status !== "running" && task.status !== "processing") {
+        return false;
+      }
+      const start = task.startedAt || task.createdAt;
+      return task.timeoutMs > 0 && now - start > task.timeoutMs;
+    });
+
+    if (timedOutTasks.length === 0) {
+      return;
+    }
+
+    timedOutTasks.forEach((task) => {
+      this.commitAuthorityMutation({
+        proposer: "system",
+        targetPath: `tasks.${task.id}`,
+        operation: "update",
+        payload: this.toAuthorityTaskPayload(task, {
+          status: "timeout",
+          error: "Task timeout",
+          updatedAt: now,
+          finishedAt: now,
+        }),
+        reason: "agent_room_timeout",
+        riskLevel: "medium",
+      });
+
+      if (task.assignedTo && runtime.state.agents.has(task.assignedTo)) {
+        this.commitAuthorityMutation({
+          proposer: "system",
+          targetPath: `agents.${task.assignedTo}.status`,
+          operation: "update",
+          payload: "idle",
+          reason: "agent_room_timeout",
+        });
+        this.commitAuthorityMutation({
+          proposer: "system",
+          targetPath: `agents.${task.assignedTo}.currentTaskId`,
+          operation: "update",
+          payload: "",
+          reason: "agent_room_timeout",
+        });
+        this.commitAuthorityMutation({
+          proposer: "system",
+          targetPath: `agents.${task.assignedTo}.taskProgress`,
+          operation: "update",
+          payload: 0,
+          reason: "agent_room_timeout",
+        });
+        this.commitAuthorityMutation({
+          proposer: "system",
+          targetPath: `agents.${task.assignedTo}.currentLoad`,
+          operation: "update",
+          payload: Math.min(1, this.getActiveAuthorityTasks(task.assignedTo, task.id).length / this.config.maxTasksPerAgent),
+          reason: "agent_room_timeout",
+        });
+      }
+
+      this.broadcast("task_timeout", {
+        taskId: task.id,
+        agentId: task.assignedTo,
+        timeout: task.timeoutMs,
+        timestamp: now,
       });
     });
+
+    this.syncFromAuthority();
   }
 
-  onJoin(client: Client, options: any) {
-    logger.info(`[AgentRoom] 客户端 ${client.sessionId} 加入Agent管理房间`);
-    
-    // 发送当前状态
+  onJoin(client: Client) {
+    logger.info(`[AgentRoom] Client ${client.sessionId} joined`);
+    this.syncFromAuthority();
+
     client.send("agent_registry_state", {
       agents: Array.from(this.state.agents.values()),
       stats: {
@@ -663,19 +783,181 @@ export class AgentRoom extends Room<AgentRegistry> {
         completedTasks: this.state.completedTasks,
         failedTasks: this.state.failedTasks,
       },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
-  onLeave(client: Client, consented: boolean) {
-    logger.info(`[AgentRoom] 客户端 ${client.sessionId} 离开Agent管理房间`);
+  onLeave(client: Client) {
+    logger.info(`[AgentRoom] Client ${client.sessionId} left`);
   }
 
   onDispose() {
-    logger.info(`[AgentRoom] 销毁Agent管理房间 ${this.roomId}`);
-    
-    // 清理所有任务队列
+    logger.info(`[AgentRoom] Disposing room ${this.roomId}`);
     this.taskQueue.clear();
+  }
+
+  private commitAuthorityMutation(proposal: MutationProposalInput) {
+    const result = getAuthorityRuntime().mutationPipeline.propose(proposal);
+    if (!result.ok) {
+      throw new Error(result.error || "authority mutation rejected");
+    }
+    return result;
+  }
+
+  private syncFromAuthority() {
+    const runtime = getAuthorityRuntime();
+    runtime.projectionService.syncAgentRegistry(this.state);
+
+    const nextQueue = new Map<string, AgentTask[]>();
+    this.state.agents.forEach((_agent, agentId) => {
+      nextQueue.set(agentId, []);
+    });
+
+    runtime.state.tasks.forEach((task) => {
+      if (!task.assignedTo) {
+        return;
+      }
+
+      const queue = nextQueue.get(task.assignedTo) || [];
+      const legacyTask = new AgentTask();
+      legacyTask.id = task.id;
+      legacyTask.agentId = task.assignedTo;
+      legacyTask.type = task.type;
+      legacyTask.data = task.payload;
+      legacyTask.priority = task.priority;
+      legacyTask.status = this.toLegacyTaskStatus(task.status);
+      legacyTask.createdAt = task.createdAt;
+      legacyTask.startedAt = task.startedAt;
+      legacyTask.updatedAt = task.updatedAt;
+      legacyTask.completedAt = task.finishedAt;
+      legacyTask.timeout = task.timeoutMs;
+      legacyTask.result = task.result;
+      legacyTask.error = task.error;
+      task.metadata.forEach((value, key) => {
+        legacyTask.metadata.set(key, value);
+      });
+      queue.push(legacyTask);
+      nextQueue.set(task.assignedTo, queue);
+    });
+
+    this.taskQueue.clear();
+    nextQueue.forEach((tasks, agentId) => {
+      tasks.sort((left, right) => left.createdAt - right.createdAt);
+      this.taskQueue.set(agentId, tasks);
+    });
+    this.state.lastUpdate = Date.now();
+  }
+
+  private toLegacyTaskStatus(status: string): string {
+    return status === "running" ? "processing" : status;
+  }
+
+  private deriveDepartment(type: string, name: string): string {
+    const normalizedType = String(type || "").toLowerCase();
+    const normalizedName = String(name || "").toLowerCase();
+
+    if (normalizedType === "director") {
+      return "OFFICE";
+    }
+    if (normalizedType === "cabinet") {
+      return "CABINET";
+    }
+    if (
+      normalizedName.includes("monitor") ||
+      normalizedName.includes("supervision") ||
+      normalizedName.includes("audit") ||
+      String(name).includes("监督")
+    ) {
+      return "MOS";
+    }
+    if (normalizedName.includes("foreign") || String(name).includes("外交")) {
+      return "FOREIGN_AFFAIRS";
+    }
+    if (
+      normalizedType === "ministry" ||
+      normalizedName.includes("tech") ||
+      normalizedName.includes("technology") ||
+      String(name).includes("科技")
+    ) {
+      return "TECHNOLOGY";
+    }
+    return "OFFICE";
+  }
+
+  private deriveRole(type: string): string {
+    switch (String(type || "").toLowerCase()) {
+      case "director":
+        return "director";
+      case "cabinet":
+        return "prime_minister";
+      case "ministry":
+        return "minister";
+      case "specialist":
+        return "specialist";
+      default:
+        return "worker";
+    }
+  }
+
+  private priorityToScore(priority: string): number {
+    switch (String(priority || "").toLowerCase()) {
+      case "critical":
+        return 4;
+      case "high":
+        return 3;
+      case "low":
+        return 1;
+      default:
+        return 2;
+    }
+  }
+
+  private toCapabilityMap(capabilities: string[]): Record<string, string> {
+    return capabilities.reduce<Record<string, string>>((acc, capability) => {
+      acc[String(capability)] = "enabled";
+      return acc;
+    }, {});
+  }
+
+  private getActiveAuthorityTasks(agentId: string, excludeTaskId?: string) {
+    const runtime = getAuthorityRuntime();
+    return [...runtime.state.tasks.values()].filter(
+      (task) =>
+        task.assignedTo === agentId &&
+        task.id !== excludeTaskId &&
+        task.status !== "completed" &&
+        task.status !== "failed" &&
+        task.status !== "canceled" &&
+        task.status !== "timeout",
+    );
+  }
+
+  private isTerminalTaskStatus(status: string): boolean {
+    return status === "completed" || status === "failed" || status === "timeout" || status === "canceled";
+  }
+
+  private toAuthorityTaskPayload(task: AuthorityTaskState, overrides: Record<string, unknown> = {}) {
+    return {
+      id: task.id,
+      type: task.type,
+      title: task.title,
+      department: task.department,
+      status: task.status,
+      priority: task.priority,
+      priorityScore: task.priorityScore,
+      progress: task.progress,
+      payload: task.payload,
+      result: task.result,
+      error: task.error,
+      assignedTo: task.assignedTo,
+      sourceRoom: task.sourceRoom,
+      timeoutMs: task.timeoutMs,
+      createdAt: task.createdAt,
+      startedAt: task.startedAt,
+      updatedAt: task.updatedAt,
+      finishedAt: task.finishedAt,
+      ...overrides,
+    };
   }
 }
 

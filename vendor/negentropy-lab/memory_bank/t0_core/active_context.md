@@ -3,7 +3,7 @@
 **版本**: v7.6.0-dev (Phase 13 Final Acceptance 已完成)
 **状态**: ✅ Phase 13 Final Acceptance 已完成 | 🔄 Phase 14-15 执行中（计划窗口: 2026-03-05~2026-03-20）
 **宪法依据**: §101同步公理、§102熵减原则、§103协作同步公理、§192模型选择器公理、§193模型选择器更新公理、§110协作效率公理、§501插件系统公理、§504监控系统公理
-**最后更新**: 2026-03-07
+**最后更新**: 2026-03-10
 
 ---
 
@@ -15,7 +15,7 @@
 | **架构版本** | v7.6.0-dev (Phase 13 Final Acceptance 已完成) |
 | **核心目标** | 通过用户与AI Agent的实时对话，共同完善知识库内容 |
 | **技术栈** | Colyseus + TypeScript + Node.js + 文件系统存储 + WebSocket + HTTP + Python MCP |
-| **仓库定位** | Backend/API-only（前端位于`/home/wsman/OpenDoge/opendoge-ui`，Linux环境；或`D:\Users\WSMAN\Desktop\OpenDoge\opendoge-ui`，Windows环境） |
+| **仓库定位** | Backend/API-only（前端位于外部仓`opendoge-ui`；当前工作环境为 Windows 10，常用路径为`D:\Users\WSMAN\Desktop\OpenDoge\opendoge-ui`，其他环境需改成对应绝对路径） |
 | **部署模式** | 容器化部署，支持三服务架构和负载均衡 |
 
 ---
@@ -35,7 +35,7 @@
 ## 🏗️ 架构组件实现追踪
 
 > **说明**: 本章节追踪七层自治架构各组件的实现状态，确保文档与代码一致性。
-> **最后更新**: 2026-03-07
+> **最后更新**: 2026-03-10
 > **运行基线**: 运行时入口、职责边界与实现状态以 `memory_bank/t0_core/runtime_architecture_baseline.md` 为准。
 
 ### 七层架构实现状态
@@ -45,10 +45,10 @@
 | **L5** | 接口表现层 | ✅ 已实现 | `server/gateway/websocket/`, `server/gateway/openai-http.ts` | WebSocket RPC + HTTP REST API |
 | **L4** | 应用逻辑层 | ✅ 已实现 | `server/services/`, `server/agents/` | TypeScript Node.js服务 |
 | **L3** | MCP微内核层 | ✅ 已实现 | `engine/mcp/`, `engine/mcp_core/` | Python MCP微内核服务 |
-| **L2.5** | 内部事务局(IAB) | 🟡 功能集成 | `server/gateway/monitoring/core/ConstitutionMonitor.ts`, `EntropyService.ts` | 审计功能集成于现有监控服务 |
+| **L2.5** | 内部事务局(IAB) | 🟡 功能集成 | `server/services/authority/AuthorityMonitoringService.ts`, `server/gateway/monitoring/core/ConstitutionMonitor.ts`, `EntropyService.ts` | 审计/监控能力分布集成于 authority 与 gateway 监控服务 |
 | **L2** | 执行代理层 | ✅ 已实现 | `server/agents/` | 三层架构完整实现 |
 | **L1** | 记忆银行层 | ✅ 已实现 | `memory_bank/` | T0-T3四层架构 |
-| **L0.8** | ToolCallBridge | 🟡 接口在位 | `memory_bank/t2_standards/DS-23_tool_call_bridge.md`, `server/types/system/IToolCallBridge.ts` | 广播实现待补齐 |
+| **L0.8** | ToolCallBridge | 🟡 子系统已落地 | `memory_bank/t2_standards/DS-23_tool_call_bridge.md`, `server/types/system/IToolCallBridge.ts`, `server/services/authority/AuthorityToolCallBridge.ts` | Authority runtime 已接入广播/审计/活跃调用跟踪；统一平台实现仍待收敛 |
 | **L0.5** | Legacy兼容层 | 🟡 局部实现 | `server/adapters/OpenClawLogAdapter.ts` | 通用兼容适配器仍待补齐 |
 | **L0** | 遗留隔离层 | 📋 架构规划 | 无代码实现 | 隔离区设计完成，实现待开发 |
 
@@ -61,7 +61,7 @@
 ### 关键差异说明
 
 1. **L2.5 内部事务局(IAB)**: 原设计为独立服务，实际实现中审计功能集成于 `ConstitutionMonitor` 和 `EntropyService`
-2. **L0.8 ToolCallBridge**: `DS-23_tool_call_bridge.md` 与 `IToolCallBridge` 类型接口已存在，但事件广播实现仍未落地
+2. **L0.8 ToolCallBridge**: `DS-23_tool_call_bridge.md` 与 `IToolCallBridge` 契约已存在；Authority 子系统已落地 `AuthorityToolCallBridge` 并接入 `authorityRuntime`，但跨子系统统一实现仍未收敛
 3. **L0.5 Legacy兼容层**: 已存在 `OpenClawLogAdapter` 这类局部适配器实现，但 `LegacyCommandAdapter` 等通用兼容适配器仍未开发
 
 ---
@@ -73,14 +73,21 @@
 | **Gateway生态系统** | 🟡 持续对齐 | WebSocket RPC已启用，HTTP/插件/监控存在简化实现或非默认挂载项 |
 | **OpenClaw决策服务** | ✅ 完整实现 | 决策控制器/策略引擎/断路器/灰度发布/回滚演练已完成 |
 | **Agent三层架构** | 🟢 就绪 | L1+L2+L3完整 |
-| **插件系统** | 🟡 核心可用 | PluginManager/PluginValidator可用，热重载监视器待实现 |
-| **监控系统** | 🟡 组件齐全 | 11个服务类已实现；默认运行态明确接入 `CostTracker`，其余能力需显式装配或按路由挂载 |
-| **LLM集成** | 🟡 分层存在 | `server/services`含ModelSelectorService，Gateway路径以模型注册表与failover为主 |
+| **插件系统** | 🟡 双体系并行 | `server/plugins/` 提供核心/authority 兼容语义，`server/gateway/plugins/` 提供 Gateway 运行时插件管理；热重载监视器仍待实现 |
+| **监控系统** | 🟡 组件齐全 | 11个服务/模块代码已存在；默认 npm 主运行态接入 authority 监控路由与开发态 `/colyseus` 面板，Gateway 监控工厂未统一自动装配 |
+| **LLM集成** | 🟡 分层存在 | `server/services`含ModelSelectorService；`server/gateway/` 中 HTTP OpenAI/OpenResponses 与流式能力属于独立或简化实现，非默认 npm 主链路 |
 | **测试覆盖率** | 🟡 以最新报告为准 | 仓库未维护统一实时覆盖率快照 |
 | **全量测试基线** | ✅ 通过 | `npm test -- --run`：`Test Files 15 passed / 273 tests`，全部通过；OpenClaw决策模块核心功能完成，WebSocket+HTTP双端集成验收通过 |
 | **契约守护** | 🟢 就绪 | 93 RPC / 19 Events 基线已建立，canonical实现覆盖率 100% (93/93)，`check:contract:drift`漂移审计已启用 |
 | **生产运维闭环** | 🟢 已演练 | `ops:preflight:prod`、`ops:deploy:smoke`、live rollback 演练通过 |
 | **持续治理工具** | 🟢 已启用 | `report:contract:monthly`、`report:testdebt:skip`、`report:perf:trend` 已纳入治理链路 |
+
+### 运行时入口提醒
+- **默认开发入口**: `npm run dev` → `server/index.ts`
+- **默认生产入口**: `npm start` → `dist/server/index.js`
+- **Legacy入口**: `src/index.ts` → `npm run dev:legacy` / `npm run start:legacy`
+- **Gateway模块门面**: `server/gateway/index.ts` 供脚本或调用方显式装配，不是当前 npm 默认主入口
+- **质量快照语义**: 质量指标以最近一次脚本输出为准；静态文档中的数字仅表示最近一次人工同步快照
 
 ---
 
@@ -292,16 +299,16 @@ node scripts/perf-trend-audit.js
 ### LLM集成系统
 - **LLMService**: 存在两条实现路径（`server/services/LLMService.ts` 与 `server/gateway/llm-service.ts`）
 - **ModelSelectorService**: 位于`server/services/ModelSelectorService.ts`，Gateway WebSocket当前以`models.select`+failover能力为主
-- **流式响应**: Gateway WebSocket支持文本分块流式；HTTP OpenAI兼容端点为简化实现
+- **流式响应**: Gateway WebSocket支持文本分块流式；HTTP OpenAI/OpenResponses 主要位于`server/gateway/`独立或简化实现，默认 npm 主链路不直接暴露 `/v1/*`
 - **成本优化**: CostTracker已实现，成本优化效果以验收报告与线上观测为准
 
 ### 插件系统
-- **Gateway运行时PluginType(9种)**: HTTP_MIDDLEWARE、WEBSOCKET_MIDDLEWARE、EVENT_HANDLER、SCHEDULED_TASK、DATA_TRANSFORMER、EXTERNAL_INTEGRATION、MONITORING、LOGGING、SECURITY
-- **核心接口PluginKind(6类)**: core、agent、monitoring、channel、gateway、memory
+- **Gateway运行时插件体系**: `server/gateway/plugins/`，提供 PluginType(9种) 运行时分类：HTTP_MIDDLEWARE、WEBSOCKET_MIDDLEWARE、EVENT_HANDLER、SCHEDULED_TASK、DATA_TRANSFORMER、EXTERNAL_INTEGRATION、MONITORING、LOGGING、SECURITY
+- **核心/authority兼容插件体系**: `server/plugins/`，提供 PluginKind(6类) 语义：core、agent、monitoring、channel、gateway、memory
 - **零停机热重载**: 生命周期接口已实现，目录监听热重载监视器待实现
 - **宪法合规**: 所有插件加载前通过宪法合规验证
 
-### 监控系统 - Operation Panopticon (11个服务)
+### 监控系统 - Operation Panopticon（11个服务/模块证据）
 - **核心监控**:
   - ConstitutionMonitor: 宪法合规引擎，10分钟扫描，合规率监控
   - EntropyService: 熵值计算服务，四维熵值模型，30秒计算周期
@@ -315,6 +322,7 @@ node scripts/perf-trend-audit.js
   - TaskQueueVisualizer: 任务队列可视化，队列健康度监控
   - TaskSchedulerEnhanced: 增强版任务调度，Cron/间隔/依赖链任务
   - PerformanceMetricsEnhanced: 性能指标增强，响应时间分布与资源使用率
+- **默认运行态说明**: `server/index.ts` 主链路当前主要接入 `AuthorityMonitoringService` 相关路由与开发态 `/colyseus` 面板；`server/gateway/monitoring/index.ts` 的监控工厂未在 npm 主链路统一自动装配
 
 ---
 
@@ -328,8 +336,8 @@ node scripts/perf-trend-audit.js
 
 ### 协议支持
 - **WebSocket RPC（JSON-RPC风格）**: 完整协议支持
-- **HTTP REST API**: OpenAI兼容端点
-- **双协议同步**: HTTP与WebSocket状态同步
+- **HTTP REST API**: OpenAI兼容/Tools Invoke 路由存在于独立 Gateway 与集成桥接路径中，是否开放取决于所选运行时
+- **双协议同步**: 完整语义以独立 Gateway 运行时为主，不等同于默认 npm 主链路全部启用
 
 ---
 
@@ -349,7 +357,7 @@ node scripts/perf-trend-audit.js
 
 | 指标 | 目标值 | 当前状态 |
 |------|--------|----------|
-| **宪法合规率** | > 90% | 100.00% 🟢（代码/文档/目录三项全通过） |
+| **宪法合规率** | > 90% | 100.00% ✅（2026-03-10 最近一次脚本快照；代码/文档/目录三项全通过） |
 | **系统熵值** | ΔH < 0 | ΔH = -0.15 🟢 |
 | **响应延迟** | < 3秒 | 以最新压测与监控数据为准 |
 | **服务可用性** | > 99.9% | 以部署环境监控为准 |

@@ -13,7 +13,7 @@
  */
 import { Router } from 'express';
 import { Server } from 'colyseus';
-import { activeRooms } from '../index';
+import { activeRooms } from '../runtime/activeRooms';
 
 export function createOpenClawRouter(gameServer: Server) {
     const router = Router();

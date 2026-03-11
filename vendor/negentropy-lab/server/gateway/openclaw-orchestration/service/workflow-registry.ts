@@ -1,3 +1,18 @@
+/**
+ * 📚 WorkflowRegistry - 工作流注册表
+ * 
+ * @constitution
+ * §101 同步公理: 代码与文档必须原子性同步
+ * §102 熵减原则: 标准化工作流定义，降低系统熵值
+ * §105 数据完整性公理: 工作流注册必须经过验证
+ * §152 单一真理源公理: 工作流定义统一管理
+ * 
+ * @filename workflow-registry.ts
+ * @version 1.0.0
+ * @category orchestration/service
+ * @last_updated 2026-03-09
+ */
+
 import {
   type WorkflowDefinition,
   validateWorkflowDefinition,
@@ -175,7 +190,7 @@ export class WorkflowRegistry {
       const validation = validateWorkflowDefinition(workflow);
       if (!validation.ok) {
         throw new Error(
-          `Invalid workflow definition \"${workflow.id}\": ${validation.errors.join("; ")}`,
+          `Invalid workflow definition \"${workflow.id}\": ${('errors' in validation ? validation.errors : []).join("; ")}`,
         );
       }
       this.workflows.set(workflow.id, workflow);

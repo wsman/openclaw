@@ -56,11 +56,14 @@ npm run check:consistency
 Repository-ready workflow:
 - `.github/workflows/constitution-consistency.yml`
 
-Local pre-commit quality gate:
-- `.husky/pre-commit` (runs `check:constitution` + `check:consistency`)
+Local Git quality gates:
+- `.husky/pre-commit` (runs `git diff --cached --check`; `docs-only` changes skip repository-wide governance checks)
+- `.husky/pre-push` (runs `check:constitution` + `check:consistency -- --timeout-ms 120000`)
+- Troubleshooting checklist: `docs/architecture/husky-precommit-troubleshooting-checklist.md`
+- Observation checklist: `docs/architecture/husky-gate-observation-checklist.md`
 
 Recommended policy:
-- `check:constitution` and `check:consistency` must both pass before merge.
+- `pre-commit` stays fast and staged-aware; repository-wide governance checks must pass at `pre-push` and before merge in CI.
 
 ## 5. Rule Tuning
 

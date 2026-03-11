@@ -34,21 +34,24 @@ jobs:
         run: npm run check:contract:drift
 
       - name: Mainline gateway regression
-        run: >-
-          npx vitest run
-          tests/unit/gateway/WebSocketHandler.batch1-rpc.test.ts
-          tests/unit/gateway/WebSocketHandler.batch2-performance.test.ts
-          tests/unit/gateway/WebSocketHandler.batch3-4.test.ts
-          tests/unit/gateway/WebSocketHandler.batch4-ui.test.ts
-          tests/unit/gateway/WebSocketHandler.batch5-p0-gap.test.ts
-          tests/unit/gateway/WebSocketHandler.batch6-p1-p2-gap.test.ts
-          tests/integration/gateway/gateway-e2e.test.ts
+        run: npm run test:gateway:mainline
+
+      - name: Cluster websocket acceptance gate
+        run: npm run gate:cluster:acceptance -- --mode ci
 
       - name: Constitution
         run: npm run check:constitution
 
       - name: Consistency strict
         run: npm run check:consistency -- --strict --timeout-ms 120000
+
+      - name: Upload cluster gate artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-dual-gate-cluster-artifacts
+          path: reports/cluster-websocket-gate-*.json
+          if-no-files-found: warn
 
   level-b-extended:
     name: Level B Extended Gate

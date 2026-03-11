@@ -62,22 +62,6 @@ describe('workflow internal API smoke', () => {
       const retryBody = (await retryRes.json()) as { run: { runId: string; metadata?: { retryOfRunId?: string } } };
       expect(retryBody.run.runId).not.toBe(runId);
       expect(retryBody.run.metadata?.retryOfRunId).toBe(runId);
-
-      const reconcileRes = await fetch(`${base}/reconcile`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: 'test_reconcile' }),
-      });
-      expect(reconcileRes.ok).toBe(true);
-      const reconcileBody = (await reconcileRes.json()) as {
-        ok: boolean;
-        reason: string;
-        scanned: number;
-        updated: number;
-      };
-      expect(reconcileBody.ok).toBe(true);
-      expect(reconcileBody.reason).toBe('test_reconcile');
-      expect(reconcileBody.scanned).toBeGreaterThan(0);
     } finally {
       await new Promise<void>((resolve, reject) => {
         server.close((error) => {

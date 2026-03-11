@@ -1,3 +1,18 @@
+/**
+ * 🔄 WorkflowRunStore - 工作流运行存储
+ * 
+ * @constitution
+ * §101 同步公理: 代码与文档必须原子性同步
+ * §102 熵减原则: 标准化存储模式，降低系统熵值
+ * §105 数据完整性公理: 所有状态变更必须是原子的
+ * §152 单一真理源公理: 工作流运行状态统一管理
+ * 
+ * @filename run-store.ts
+ * @version 1.0.0
+ * @category orchestration/runtime
+ * @last_updated 2026-03-09
+ */
+
 import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname } from "path";
 import type {

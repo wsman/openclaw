@@ -1,7 +1,7 @@
 {
   "sourceRoot": "D:\\Users\\WSMAN\\Desktop\\Coding Task\\Negentropy-Lab",
-  "syncedAt": "2026-03-08T09:48:35.798Z",
-  "sourceHead": "9434798619b652cdf8e7283c675950719b594f64",
+  "syncedAt": "2026-03-11T04:00:42.846Z",
+  "sourceHead": "9284af09c3cb2cf7a52c0682d918ce2dbe8fe7c8",
   "includeRootDirs": [
     ".github",
     "config",
@@ -41,6 +41,7 @@
     ".cdd",
     ".git",
     ".husky",
+    "__pycache__",
     "coverage",
     "data",
     "dist",

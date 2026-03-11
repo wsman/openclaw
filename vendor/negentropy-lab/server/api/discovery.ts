@@ -15,15 +15,23 @@
 import express from 'express';
 import { logger } from '../utils/logger';
 import { MDNSDiscoverer } from '../discovery/mdns/MDNSDiscoverer';
-import { ServiceInfo, DiscoveryOptions } from '../discovery/types/ServiceInfo';
-
-const router = express.Router();
+import { ServiceInfo } from '../discovery/types/ServiceInfo';
 
 /**
  * 全局MDNSDiscoverer实例引用
  * 由server/index.ts初始化后设置
  */
 let discoverer: MDNSDiscoverer | null = null;
+
+type DiscovererProvider = MDNSDiscoverer | null | (() => MDNSDiscoverer | null);
+
+function resolveDiscoverer(provider?: DiscovererProvider): MDNSDiscoverer | null {
+  if (!provider) {
+    return discoverer;
+  }
+
+  return typeof provider === 'function' ? provider() : provider;
+}
 
 /**
  * 设置MDNSDiscoverer实例
@@ -33,6 +41,9 @@ export function setDiscoverer(instance: MDNSDiscoverer): void {
   discoverer = instance;
   logger.info('[Discovery API] MDNSDiscoverer已连接');
 }
+
+export function createDiscoveryRouter(provider?: DiscovererProvider) {
+  const router = express.Router();
 
 /**
  * GET /api/discovery/nodes
@@ -44,7 +55,8 @@ export function setDiscoverer(instance: MDNSDiscoverer): void {
  */
 router.get('/nodes', (req, res) => {
   try {
-    if (!discoverer) {
+    const instance = resolveDiscoverer(provider);
+    if (!instance) {
       return res.status(503).json({
         error: 'MDNS服务未就绪',
         message: 'mDNS发现服务尚未初始化'
@@ -53,7 +65,7 @@ router.get('/nodes', (req, res) => {
 
     const { status = 'all', connectionStatus = 'all' } = req.query;
     
-    let services = discoverer.getServices();
+    let services = instance.getServices();
     
     // 过滤状态
     if (status !== 'all') {
@@ -117,14 +129,15 @@ router.get('/nodes', (req, res) => {
  */
 router.get('/nodes/:id', (req, res) => {
   try {
-    if (!discoverer) {
+    const instance = resolveDiscoverer(provider);
+    if (!instance) {
       return res.status(503).json({
         error: 'MDNS服务未就绪'
       });
     }
 
     const { id } = req.params;
-    const services = discoverer.getServices();
+    const services = instance.getServices();
     const service = services.find(s => s.id === id);
 
     if (!service) {
@@ -192,7 +205,8 @@ router.post('/heartbeat', (req, res) => {
       });
     }
 
-    if (!discoverer) {
+    const instance = resolveDiscoverer(provider);
+    if (!instance) {
       return res.status(503).json({
         error: 'MDNS服务未就绪'
       });
@@ -212,6 +226,8 @@ router.post('/heartbeat', (req, res) => {
       status: 'active',
       rtt: rtt,
       connectionStatus: rtt && rtt > 200 ? 'degraded' : 'good',
+      role,
+      capabilities,
       txt: {
         role,
         load: load?.toString() || '0',
@@ -220,8 +236,7 @@ router.post('/heartbeat', (req, res) => {
       }
     };
 
-    // 注意：这里只是示例，实际上MDNSDiscoverer需要支持手动添加服务
-    // 可以扩展MDNSDiscoverer.addManualService()方法
+    instance.upsertManualService(serviceInfo);
 
     logger.info(`[Discovery API] 收到手动心跳: ${nodeId}, RTT: ${rtt}ms, 负载: ${load}%`);
 
@@ -246,13 +261,14 @@ router.post('/heartbeat', (req, res) => {
  */
 router.get('/stats', (req, res) => {
   try {
-    if (!discoverer) {
+    const instance = resolveDiscoverer(provider);
+    if (!instance) {
       return res.status(503).json({
         error: 'MDNS服务未就绪'
       });
     }
 
-    const services = discoverer.getServices();
+    const services = instance.getServices();
     const now = Date.now();
 
     const stats = {
@@ -291,6 +307,9 @@ router.get('/stats', (req, res) => {
     });
   }
 });
+
+  return router;
+}
 
 /**
  * 计算健康评分 (0-100)
@@ -338,5 +357,7 @@ function generateHealthRecommendations(service: ServiceInfo): string[] {
 
   return recommendations.length > 0 ? recommendations : ['节点状态正常'];
 }
+
+const router = createDiscoveryRouter();
 
 export default router;

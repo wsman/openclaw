@@ -2,7 +2,7 @@ import { Room, Client } from "colyseus";
 import { ChatState, ChatMessage, UserState, AgentState } from "../schema/ChatState";
 import { logger } from "../utils/logger";
 import { uuid } from "../utils/uuid";
-import { activeRooms } from "../index";
+import { activeRooms } from "../runtime/activeRooms";
 import * as fs from 'fs';
 import * as path from 'path';
 

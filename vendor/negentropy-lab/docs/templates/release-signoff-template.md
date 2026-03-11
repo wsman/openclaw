@@ -16,7 +16,9 @@
 - [ ] `npm run check:constitution`
 - [ ] `npm run check:consistency -- --strict --timeout-ms 120000`
 - [ ] `npm run check:contract:strict`
-- [ ] 主干核心回归（Batch1-6 + gateway-e2e）
+- [ ] `npm run test:gateway:mainline`
+- [ ] `npm run gate:cluster:acceptance -- --mode release`
+- [ ] `npm run build`
 
 ## 风险与回滚
 

@@ -35,6 +35,15 @@ jobs:
       - name: Constitution
         run: npm run check:constitution
 
+      - name: Mainline gateway regression
+        run: npm run test:gateway:mainline
+
+      - name: Cluster websocket acceptance gate
+        run: npm run gate:cluster:acceptance -- --mode release
+
+      - name: Build release artifact
+        run: npm run build
+
       - name: Upload release contract artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -43,4 +52,5 @@ jobs:
           path: |
             reports/contract-count-report.json
             reports/contract-drift-audit.json
+            reports/cluster-websocket-gate-*.json
           if-no-files-found: warn

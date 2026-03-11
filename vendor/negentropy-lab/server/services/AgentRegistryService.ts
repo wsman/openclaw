@@ -20,6 +20,8 @@ import { TYPES } from '../config/inversify.types';
 import { IAgentRegistryService, AgentRegistration, AgentHeartbeat, AgentRegistryConfig, AgentCapacity, AgentRegistryStats } from '../types/system/IAgentRegistry';
 import { AgentInfo } from './IntelligentRouter';
 import * as crypto from 'crypto';
+import { getClusterRuntime } from '../cluster/runtime';
+import { DistributedAgentRecord } from '../cluster/types';
 
 @injectable()
 export class AgentRegistryService implements IAgentRegistryService {
@@ -68,6 +70,7 @@ export class AgentRegistryService implements IAgentRegistryService {
         // 保存注册信息和Agent信息
         this.registrations.set(registration.agentId, registration);
         this.agents.set(registration.agentId, agentInfo);
+        await this.syncAgentToBackplane(agentInfo, registration.metadata);
 
         logger.info(`[AgentRegistryService] 注册Agent: ${registration.agentId} (${registration.name}) v${registration.version}`);
     }
@@ -79,6 +82,7 @@ export class AgentRegistryService implements IAgentRegistryService {
         const existed = this.registrations.delete(agentId);
         this.agents.delete(agentId);
         this.heartbeats.delete(agentId);
+        await this.removeAgentFromBackplane(agentId);
         
         if (existed) {
             logger.info(`[AgentRegistryService] 注销Agent: ${agentId}`);
@@ -108,6 +112,7 @@ export class AgentRegistryService implements IAgentRegistryService {
         
         // 更新Agent缓存
         this.agents.set(heartbeat.agentId, agent);
+        await this.syncAgentToBackplane(agent, heartbeat.metrics as Record<string, unknown> | undefined);
         
         logger.debug(`[AgentRegistryService] 更新Agent心跳: ${heartbeat.agentId}, 负载: ${heartbeat.load}, 健康状态: ${heartbeat.healthStatus}`);
     }
@@ -116,14 +121,40 @@ export class AgentRegistryService implements IAgentRegistryService {
      * 获取Agent信息
      */
     async getAgentInfo(agentId: string): Promise<AgentInfo | undefined> {
-        return this.agents.get(agentId);
+        const local = this.agents.get(agentId);
+        if (local) {
+            return local;
+        }
+
+        const backplane = getClusterRuntime()?.backplane;
+        if (!backplane) {
+            return undefined;
+        }
+
+        const remoteAgent = (await backplane.listAgents()).find((agent) => agent.agentId === agentId);
+        return remoteAgent ? this.toAgentInfo(remoteAgent) : undefined;
     }
 
     /**
      * 获取所有Agent信息
      */
     async getAllAgents(): Promise<AgentInfo[]> {
-        return Array.from(this.agents.values());
+        const localAgents = Array.from(this.agents.values());
+        const backplane = getClusterRuntime()?.backplane;
+        if (!backplane) {
+            return localAgents;
+        }
+
+        const remoteAgents = await backplane.listAgents();
+        const merged = new Map<string, AgentInfo>();
+        localAgents.forEach((agent) => merged.set(agent.agentId, agent));
+        remoteAgents.forEach((agent) => {
+            if (!merged.has(agent.agentId)) {
+                merged.set(agent.agentId, this.toAgentInfo(agent));
+            }
+        });
+
+        return Array.from(merged.values());
     }
 
     /**
@@ -171,6 +202,7 @@ export class AgentRegistryService implements IAgentRegistryService {
         // 合并状态
         Object.assign(agent, status);
         this.agents.set(agentId, agent);
+        await this.syncAgentToBackplane(agent);
         
         logger.info(`[AgentRegistryService] 更新Agent状态: ${agentId} -> ${JSON.stringify(status)}`);
     }
@@ -279,6 +311,10 @@ export class AgentRegistryService implements IAgentRegistryService {
      * 重置注册表
      */
     async reset(): Promise<void> {
+        const backplane = getClusterRuntime()?.backplane;
+        if (backplane) {
+            await Promise.all(Array.from(this.agents.keys()).map((agentId) => backplane.removeAgent(agentId)));
+        }
         this.agents.clear();
         this.registrations.clear();
         this.heartbeats.clear();
@@ -471,5 +507,50 @@ export class AgentRegistryService implements IAgentRegistryService {
         }
 
         logger.info(`[AgentRegistryService] 模拟注册了 ${testAgents.length} 个测试Agent`);
+    }
+
+    private async syncAgentToBackplane(agent: AgentInfo, metadata?: Record<string, unknown>): Promise<void> {
+        const backplane = getClusterRuntime()?.backplane;
+        const localNodeId = getClusterRuntime()?.topologyStore.getSnapshot('memory').localNodeId;
+        if (!backplane || !localNodeId) {
+            return;
+        }
+
+        const record: DistributedAgentRecord = {
+            agentId: agent.agentId,
+            nodeId: localNodeId,
+            name: agent.name,
+            version: agent.version,
+            expertise: agent.expertise,
+            capacity: agent.capacity,
+            currentLoad: agent.currentLoad,
+            healthStatus: agent.healthStatus,
+            lastHeartbeat: agent.lastHeartbeat,
+            metadata,
+        };
+
+        await backplane.upsertAgent(record, this.config.heartbeatTimeoutMs * 2);
+    }
+
+    private async removeAgentFromBackplane(agentId: string): Promise<void> {
+        const backplane = getClusterRuntime()?.backplane;
+        if (!backplane) {
+            return;
+        }
+
+        await backplane.removeAgent(agentId);
+    }
+
+    private toAgentInfo(record: DistributedAgentRecord): AgentInfo {
+        return {
+            agentId: record.agentId,
+            name: record.name,
+            expertise: record.expertise,
+            capacity: record.capacity,
+            currentLoad: record.currentLoad,
+            healthStatus: record.healthStatus,
+            lastHeartbeat: record.lastHeartbeat,
+            version: record.version,
+        };
     }
 }

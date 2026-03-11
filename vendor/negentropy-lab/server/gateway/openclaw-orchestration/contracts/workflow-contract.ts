@@ -1,3 +1,18 @@
+/**
+ * 📋 Workflow Contract - 工作流契约定义
+ * 
+ * @constitution
+ * §101 同步公理: 代码与文档必须原子性同步
+ * §102 熵减原则: 标准化契约定义，降低系统熵值
+ * §105 数据完整性公理: 工作流定义必须经过验证
+ * §152 单一真理源公理: 工作流契约统一管理
+ * 
+ * @filename workflow-contract.ts
+ * @version 1.0.0
+ * @category orchestration/contracts
+ * @last_updated 2026-03-09
+ */
+
 export const WORKFLOW_TRIGGER_TYPES = ["manual"] as const;
 export type WorkflowTriggerType = (typeof WORKFLOW_TRIGGER_TYPES)[number];
 

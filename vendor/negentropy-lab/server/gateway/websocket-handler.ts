@@ -23,6 +23,7 @@ import {
   OPENCLAW_EVENTS,
   isOpenClawRpcMethod,
 } from './contracts/openclaw-contract';
+import { IWebSocketHandler, WebSocketClusterBroadcaster } from '../cluster/websocket';
 import { normalizeOpenClawRpcMethod, OPENCLAW_RPC_ALIAS_MAP } from './contracts/openclaw-alias-map';
 import { GatewayEventBus } from './events/gateway-event-bus';
 import { getDecisionController, DecisionControllerConfig } from './openclaw-decision';
@@ -60,6 +61,7 @@ export interface WsRpcMessage {
  * WebSocket 连接配置
  */
 export interface WsConnectionConfig {
+  path?: string;
   maxPayloadBytes?: number;
   maxBufferedBytes?: number;
   handshakeTimeoutMs?: number;
@@ -201,6 +203,8 @@ class GatewayRpcError extends Error {
  */
 export class GatewayWebSocketHandler {
   private wss: WebSocket.Server | null = null;
+  private attachedServer: http.Server | null = null;
+  private upgradeListener?: (req: http.IncomingMessage, socket: any, head: Buffer) => void;
   private connections = new Map<WebSocket, WsConnectionMetadata>();
   private methodHandlers = new Map<string, (params: any, conn: WsConnectionMetadata) => Promise<any>>();
   private readCache = new Map<string, RpcCacheEntry>();
@@ -254,6 +258,7 @@ export class GatewayWebSocketHandler {
   private streamChunkIntervalMs: number;
   private streamChunkSize: number;
   private maxPayloadBytes: number;
+  private readonly path: string;
   private handshakeTimeoutMs: number;
   private enablePerMessageDeflate: boolean;
   private perMessageDeflateThreshold: number;
@@ -274,8 +279,10 @@ export class GatewayWebSocketHandler {
   private readonly contractEvents = new Set<string>(OPENCLAW_EVENTS);
   private readonly eventBus = new GatewayEventBus();
   private decisionController: ReturnType<typeof getDecisionController> | null = null;
+  private clusterBroadcaster: WebSocketClusterBroadcaster | null = null;
 
   constructor(config: WsConnectionConfig = {}) {
+    this.path = String(config.path || '/gateway');
     this.readCacheTtlMs = Math.max(0, Number(config.readCacheTtlMs ?? 1500));
     this.maxReadCacheEntries = Math.max(10, Number(config.maxReadCacheEntries ?? 500));
     this.sessionStatePath = String(
@@ -324,16 +331,30 @@ export class GatewayWebSocketHandler {
   }
 
   /**
+   * 设置集群广播器
+   */
+  setClusterBroadcaster(broadcaster: WebSocketClusterBroadcaster | null): void {
+    this.clusterBroadcaster = broadcaster;
+    if (broadcaster) {
+      logger.info('[Gateway WS] 集群广播器已设置');
+    }
+  }
+
+  /**
    * 启动 WebSocket 服务器
    */
   attachToServer(server: http.Server): void {
+    if (this.wss || this.attachedServer || this.upgradeListener) {
+      throw new Error('[Gateway WS] WebSocket handler is already attached');
+    }
+
     const WsServerCtor = (WebSocket as any).Server || (WebSocket as any).WebSocketServer;
     if (!WsServerCtor) {
       throw new Error('WebSocket server constructor not found (expected Server/WebSocketServer)');
     }
 
     const wss = new WsServerCtor({
-      server,
+      noServer: true,
       maxPayload: this.maxPayloadBytes,
       perMessageDeflate: this.enablePerMessageDeflate
         ? {
@@ -347,7 +368,40 @@ export class GatewayWebSocketHandler {
       this.handleConnection(ws, req);
     });
 
-    logger.info('[Gateway WS] WebSocket 服务器已附加到 HTTP 服务器');
+    const upgradeListener = (req: http.IncomingMessage, socket: any, head: Buffer) => {
+      if (!this.shouldHandleUpgrade(req)) {
+        return;
+      }
+
+      try {
+        wss.handleUpgrade(req, socket, head, (ws: WebSocket) => {
+          wss.emit('connection', ws, req);
+        });
+      } catch (error: any) {
+        logger.error(`[Gateway WS] 处理升级请求失败: ${error?.message || 'unknown error'}`);
+        if (socket && typeof socket.destroy === 'function') {
+          socket.destroy();
+        }
+      }
+    };
+
+    this.attachedServer = server;
+    this.upgradeListener = upgradeListener;
+    server.on('upgrade', upgradeListener);
+
+    logger.info(`[Gateway WS] WebSocket 服务器已附加到 HTTP 服务器, 路径: ${this.path}`);
+  }
+
+  private shouldHandleUpgrade(req: http.IncomingMessage): boolean {
+    const upgradeHeader = req.headers.upgrade;
+    if (!upgradeHeader || upgradeHeader.toLowerCase() !== 'websocket') {
+      return false;
+    }
+
+    const requestUrl = req.url || '';
+    const queryIndex = requestUrl.indexOf('?');
+    const pathname = queryIndex >= 0 ? requestUrl.slice(0, queryIndex) : requestUrl;
+    return pathname === this.path;
   }
 
   /**
@@ -398,6 +452,16 @@ export class GatewayWebSocketHandler {
       clearTimeout(handshakeTimeout);
       this.cancelStreamsForConnection(connectionId);
       void this.releaseBrowserSessionsForConnection(connectionId);
+      
+      // 同步连接断开状态到集群
+      if (this.clusterBroadcaster) {
+        void this.clusterBroadcaster.syncConnectionStatus(
+          connectionId,
+          'disconnected',
+          { code, reason: reason?.toString?.() || '' },
+        );
+      }
+      
       if (this.connections.has(ws)) {
         this.connections.delete(ws);
         this.transportMetrics.connectionsClosed += 1;
@@ -554,6 +618,19 @@ export class GatewayWebSocketHandler {
       logger.info(
         `[Gateway WS] 连接认证成功: ${metadata.connectionId}, 用户: ${metadata.user}, 权限: ${metadata.scope}`,
       );
+
+      // 同步连接状态到集群
+      if (this.clusterBroadcaster) {
+        void this.clusterBroadcaster.syncConnectionStatus(
+          metadata.connectionId,
+          'connected',
+          {
+            authenticated: metadata.authenticated,
+            scope: metadata.scope,
+            user: metadata.user,
+          },
+        );
+      }
 
       return {
         gateway: {
@@ -4456,8 +4533,12 @@ export class GatewayWebSocketHandler {
 
   /**
    * 广播事件到所有认证的连接
+   * @param event 事件名称
+   * @param payload 事件负载
+   * @param scope 权限范围（可选）
+   * @param skipCluster 是否跳过集群广播（用于避免回环）
    */
-  broadcastEvent(event: string, payload: any, scope?: string): void {
+  broadcastEvent(event: string, payload: any, scope?: string, skipCluster: boolean = false): void {
     this.eventBus.emitEvent(event, payload);
     const message: WsRpcMessage = {
       type: 'event',
@@ -4470,6 +4551,26 @@ export class GatewayWebSocketHandler {
         this.sendMessage(ws, message);
       }
     });
+
+    // 集群广播（仅在非跳过时）
+    if (this.clusterBroadcaster && !skipCluster) {
+      void this.clusterBroadcaster.broadcastToCluster(event, payload, scope);
+    }
+  }
+
+  /**
+   * 获取所有连接（用于集群同步）
+   */
+  getConnections(): Map<WebSocket, {
+    connectionId: string;
+    authenticated: boolean;
+    scope?: string;
+    user?: string;
+    clientIp: string;
+    connectedAt: Date;
+    lastActivity: Date;
+  }> {
+    return new Map(this.connections.entries());
   }
 
   emitContractEvent(event: string, payload: any, scope?: string): void {
@@ -4550,6 +4651,22 @@ export class GatewayWebSocketHandler {
     });
     this.connections.clear();
     this.transportMetrics.connectionsClosed += toClose;
+  }
+
+  shutdown(reason?: string): void {
+    this.closeAllConnections(reason);
+
+    if (this.attachedServer && this.upgradeListener) {
+      this.attachedServer.off('upgrade', this.upgradeListener);
+    }
+
+    this.upgradeListener = undefined;
+    this.attachedServer = null;
+
+    if (this.wss) {
+      this.wss.close();
+      this.wss = null;
+    }
   }
 
   /**

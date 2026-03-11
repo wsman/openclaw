@@ -37,6 +37,7 @@ export class MDNSDiscoverer extends EventEmitter {
     private options: DiscoveryOptions = {};
     private heartbeatTimer: any = null; // Type safety fix
     private timeoutCheckTimer: any = null; // Type safety fix
+    private presenceMetadata: Record<string, string> = {};
 
     constructor(options?: DiscoveryOptions) {
         super();
@@ -94,9 +95,15 @@ export class MDNSDiscoverer extends EventEmitter {
     private broadcastPresence(): void {
         if (!this.mdns) return;
 
-        const serviceName = this.options.name || 'gateway-node';
+        const serviceName = `${this.options.name || 'gateway-node'}-${this.options.id || 'unknown'}`;
         const serviceType = this.options.serviceType || '_http._tcp.local';
         const port = this.options.port || 3000;
+        const host = this.presenceMetadata.host || this.options.host || serviceName;
+        const capabilities = (this.options.capabilities || []).join(',');
+        const metadata = {
+            ...this.options.metadata,
+            ...this.presenceMetadata,
+        };
         
         // Construct standard DNS-SD records
         this.mdns.respond({
@@ -113,7 +120,7 @@ export class MDNSDiscoverer extends EventEmitter {
                         port: port,
                         weight: 0,
                         priority: 10,
-                        target: serviceName // Simple target
+                        target: host
                     }
                 },
                 {
@@ -123,7 +130,15 @@ export class MDNSDiscoverer extends EventEmitter {
                         `id=${this.options.id || 'unknown'}`,
                         `role=${this.options.role || 'gateway'}`,
                         `status=active`,
-                        `timestamp=${Date.now()}` // For RTT calculation
+                        `timestamp=${Date.now()}`,
+                        `clusterId=${this.options.clusterId || 'default'}`,
+                        `host=${host}`,
+                        `httpPort=${this.options.port || 3000}`,
+                        `wsPort=${this.options.wsPort || this.options.port || 3000}`,
+                        `rpcPort=${this.options.rpcPort || this.options.port || 3000}`,
+                        `capabilities=${capabilities}`,
+                        `version=${this.options.version || '1.0.0'}`,
+                        ...Object.entries(metadata).map(([key, value]) => `${key}=${value}`),
                     ]
                 }
             ]
@@ -200,8 +215,8 @@ export class MDNSDiscoverer extends EventEmitter {
                 id: serviceId,
                 name: serviceName,
                 type: 'mdns',
-                host: srv.data.target,
-                port: srv.data.port,
+                host: txtData.host || srv.data.target,
+                port: Number(txtData.httpPort || srv.data.port),
                 protocol: 'tcp',
                 addresses: [],
                 txt: txtData,
@@ -211,7 +226,14 @@ export class MDNSDiscoverer extends EventEmitter {
                 connectionStatus: connectionStatus,
                 weight: srv.data.weight,
                 priority: srv.data.priority,
-                ttl: srv.ttl
+                ttl: srv.ttl,
+                clusterId: txtData.clusterId,
+                role: txtData.role,
+                version: txtData.version,
+                capabilities: (txtData.capabilities || '').split(',').filter(Boolean),
+                httpPort: Number(txtData.httpPort || srv.data.port),
+                wsPort: Number(txtData.wsPort || txtData.httpPort || srv.data.port),
+                rpcPort: Number(txtData.rpcPort || txtData.httpPort || srv.data.port),
             };
 
             if (!this.services.has(serviceId)) {
@@ -251,5 +273,40 @@ export class MDNSDiscoverer extends EventEmitter {
     
     public getServices(): ServiceInfo[] {
         return Array.from(this.services.values());
+    }
+
+    public setPresenceMetadata(metadata: Record<string, string>): void {
+        this.presenceMetadata = {
+            ...this.presenceMetadata,
+            ...metadata,
+        };
+    }
+
+    public upsertManualService(service: ServiceInfo): void {
+        const existing = this.services.get(service.id);
+        const next: ServiceInfo = {
+            ...existing,
+            ...service,
+            lastSeen: service.lastSeen || Date.now(),
+            status: service.status || 'active',
+        };
+
+        this.services.set(service.id, next);
+        this.emit(existing ? 'service-updated' : 'service-found', next);
+    }
+
+    public removeService(serviceId: string): void {
+        const existing = this.services.get(serviceId);
+        if (!existing) {
+            return;
+        }
+
+        this.services.delete(serviceId);
+        this.emit('service-lost', {
+            ...existing,
+            status: 'offline',
+            connectionStatus: 'lost',
+            lastSeen: Date.now(),
+        } satisfies ServiceInfo);
     }
 }

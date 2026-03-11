@@ -167,38 +167,6 @@ describe('orchestration-service', () => {
     expect(run.steps.planner.metadata?.wakeReason).toBe('waiting_for_child');
   });
 
-  it('supports manual reconcile entry to recover stale orphan waiting steps', async () => {
-    const store = new WorkflowRunStore();
-    const service = createOrchestrationService({
-      store,
-      runtimeConfig: {
-        staleWaitingMs: 1,
-        sweepIntervalMs: 60_000,
-      },
-    });
-
-    const started = service.startWorkflow({ workflowId: 'serial_planner_executor_complete' });
-    const spawn = started.actions.find((action) => action.type === 'spawn_subagent');
-    expect(spawn).toBeDefined();
-
-    store.unbindChildSession({ childSessionKey: spawn!.payload.childSessionKey });
-    await new Promise((resolve) => setTimeout(resolve, 5));
-
-    const summary = service.reconcileRuns({
-      runId: started.run!.runId,
-      reason: 'manual_test_reconcile',
-    });
-
-    expect(summary.ok).toBe(true);
-    expect(summary.scanned).toBe(1);
-    expect(summary.updated).toBeGreaterThan(0);
-    expect(summary.reason).toBe('manual_test_reconcile');
-
-    const run = service.getRun(started.run!.runId)!;
-    expect(run.steps.planner.status).toBe('ready');
-    expect(run.steps.planner.metadata?.wakeReason).toBe('sweep_orphan_detected');
-  });
-
   it('marks timed_out when waiting step exceeds timeout without retries', async () => {
     const timeoutWorkflow: WorkflowDefinition = {
       id: 'timeout_once',

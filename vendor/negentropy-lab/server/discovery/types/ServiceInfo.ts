@@ -30,6 +30,13 @@ export interface ServiceInfo {
   txt?: Record<string, string>; // TXT records for metadata
   lastSeen?: number;
   status?: 'active' | 'inactive' | 'unknown' | 'offline'; // Updated
+  clusterId?: string;
+  role?: string;
+  version?: string;
+  capabilities?: string[];
+  httpPort?: number;
+  wsPort?: number;
+  rpcPort?: number;
   
   // New fields for Operation CPR
   rtt?: number; 
@@ -49,6 +56,13 @@ export interface DiscoveryOptions {
   timeout?: number;
   interface?: string;
   port?: number; // Added for broadcasting
+  host?: string;
+  wsPort?: number;
+  rpcPort?: number;
+  clusterId?: string;
+  version?: string;
+  capabilities?: string[];
+  metadata?: Record<string, string>;
 }
 
 export interface BroadcastOptions {

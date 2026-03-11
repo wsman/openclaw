@@ -15,7 +15,7 @@
 import { logger } from '../utils/logger';
 import * as http from 'http';
 import express, { Request, Response } from 'express';
-import { GatewayWebSocketHandler, WsConnectionConfig } from './websocket-handler-fixed';
+import { GatewayWebSocketHandler, WsConnectionConfig } from './websocket-handler';
 import { GatewayAuthManager, createDefaultAuthManager } from './auth';
 
 // 类型定义

@@ -1,3 +1,18 @@
+/**
+ * 🎼 OpenClaw Orchestration Module - 工作流编排模块
+ * 
+ * @constitution
+ * §101 同步公理: 代码与文档必须原子性同步
+ * §102 熵减原则: 标准化模块导出，降低系统熵值
+ * §105 数据完整性公理: 模块边界必须清晰定义
+ * §152 单一真理源公理: 编排模块统一入口
+ * 
+ * @filename index.ts
+ * @version 1.0.0
+ * @category orchestration
+ * @last_updated 2026-03-09
+ */
+
 export {
   WORKFLOW_CONDITIONS,
   WORKFLOW_STEP_TYPES,
@@ -48,8 +63,6 @@ export {
   type CancelRunRequest,
   type ListRunsRequest,
   type OrchestrationResult,
-  type ReconcileRunsRequest,
-  type ReconcileRunsResult,
   type RetryWorkflowRequest,
   type StartWorkflowRequest,
   type WorkflowRuntimeEvent,

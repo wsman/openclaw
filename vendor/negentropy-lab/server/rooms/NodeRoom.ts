@@ -23,6 +23,8 @@ import { Room, Client } from "colyseus";
 import { NodeTopology, NodeState, NodeConnection, NodeResources, NodeCapabilities } from "../schema/NodeState";
 import { logger } from "../utils/logger";
 import { v4 as uuidv4 } from "uuid";
+import { getClusterRuntime } from "../cluster/runtime";
+import { ClusterNodeRecord } from "../cluster/types";
 
 /**
  * NodeRoom配置
@@ -70,6 +72,7 @@ export class NodeRoom extends Room<NodeTopology> {
     
     // 初始化本地节点
     this.initializeLocalNode();
+    this.syncFromClusterRuntime();
     
     logger.info(`[NodeRoom] 节点拓扑管理房间创建完成`);
   }
@@ -472,6 +475,7 @@ export class NodeRoom extends Room<NodeTopology> {
    */
   private update(deltaTime: number) {
     const now = Date.now();
+    this.syncFromClusterRuntime();
     
     // 定期健康检查
     if (now - this.lastHealthCheck > this.config.heartbeatInterval) {
@@ -529,6 +533,7 @@ export class NodeRoom extends Room<NodeTopology> {
 
   onJoin(client: Client, options: any) {
     logger.info(`[NodeRoom] 客户端 ${client.sessionId} 加入节点拓扑管理房间`);
+    this.syncFromClusterRuntime();
     
     // 发送当前拓扑状态
     client.send("topology_state", {
@@ -560,6 +565,65 @@ export class NodeRoom extends Room<NodeTopology> {
     
     // 清理映射
     this.nodeClientMap.clear();
+  }
+
+  private syncFromClusterRuntime() {
+    const runtime = getClusterRuntime();
+    if (!runtime) {
+      return;
+    }
+
+    const clusterNodes = runtime.topologyStore.list();
+    if (clusterNodes.length === 0) {
+      return;
+    }
+
+    const seen = new Set<string>();
+    clusterNodes.forEach((clusterNode) => {
+      seen.add(clusterNode.nodeId);
+      this.applyClusterNode(clusterNode);
+    });
+
+    const nodesToRemove: string[] = [];
+    this.state.nodes.forEach((node, nodeId) => {
+      if (!seen.has(nodeId)) {
+        nodesToRemove.push(nodeId);
+      }
+    });
+
+    nodesToRemove.forEach((nodeId) => {
+      this.state.nodes.delete(nodeId);
+    });
+
+    this.state.totalNodes = this.state.nodes.size;
+    this.state.onlineNodes = Array.from(this.state.nodes.values()).filter((node) => node.available).length;
+  }
+
+  private applyClusterNode(clusterNode: ClusterNodeRecord) {
+    const node = this.state.nodes.get(clusterNode.nodeId) || new NodeState();
+    const isNew = !this.state.nodes.has(clusterNode.nodeId);
+
+    node.id = clusterNode.nodeId;
+    node.name = clusterNode.name;
+    node.type = clusterNode.role === "gateway" ? "master" : "worker";
+    node.host = clusterNode.host;
+    node.port = clusterNode.httpPort;
+    node.ipAddress = clusterNode.host;
+    node.region = clusterNode.clusterId;
+    node.status = clusterNode.status === "offline" ? "offline" : clusterNode.status === "degraded" ? "busy" : "online";
+    node.available = clusterNode.status === "active" || clusterNode.status === "degraded";
+    node.lastHeartbeat = clusterNode.lastSeen;
+    node.lastUpdate = clusterNode.lastSeen;
+    node.version = clusterNode.version;
+    node.loadFactor = clusterNode.load;
+    node.capabilities.canRoute = clusterNode.capabilities.includes("gateway") || clusterNode.capabilities.includes("route");
+    node.capabilities.canProcessLLM = clusterNode.capabilities.includes("llm");
+    node.capabilities.canSpawnAgents = clusterNode.capabilities.includes("agent");
+    node.capabilities.canStoreData = clusterNode.capabilities.includes("storage");
+
+    if (isNew) {
+      this.state.nodes.set(clusterNode.nodeId, node);
+    }
   }
 }
 
