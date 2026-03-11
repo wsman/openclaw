@@ -244,10 +244,8 @@ OpenClaw 仍然以 `src/gateway/` 作为控制平面核心，负责：
   - 手动启动一个已注册 workflow
 - `/negentropy workflow retry <runId>`
   - 基于既有 run 发起 retry
-- `/negentropy workflow reconcile [runId] [--include-terminal] [--reason <text>]`
-  - 可针对单个 run，也可不带 `runId` 对当前 run 集合执行 reconcile
-  - 未显式提供 `--reason` 时，bridge 会生成
-    `manual_reconcile:<source>:<requestedBy>` 风格的默认 reason
+- 手动 reconcile 已在上游 vendor 移除
+  - `openclaw-orchestration` 现在会在服务启动恢复和后台 sweep 中自动处理 stale / orphan waiting run
 - `/negentropy workflow cancel <runId> [--emergency]`
   - 默认是普通 cancel；带 `--emergency` 时走 emergency stop 语义
 - `/negentropy workflow emergency-stop <runId>`
@@ -264,12 +262,13 @@ OpenClaw 仍然以 `src/gateway/` 作为控制平面核心，负责：
 - `autoDispatchSubagents !== false` 只控制 bridge 是否自动执行 vendor
   返回的 `spawn_subagent` action；它不改变命令面本身仍是人工入口的事实
 - 这组命令最终映射到 vendor `/internal/openclaw/workflows` 下的
-  `run`、`retry`、`reconcile`、`cancel`、`list`、`get`、`log`
+  `run`、`retry`、`cancel`、`list`、`get`、`log`
   等内部 API；生命周期桥接事件则单独走 `event`
+- 手动 reconcile 端点已移除；run recovery 改为服务启动恢复与后台 sweep
 
 另外，`extensions/negentropy-lab/index.ts` 顶层 `usageText()` 目前列出了
-大部分 workflow 子命令，但尚未把 `workflow reconcile` 和 `workflow stop`
-别名写进去；维护时应以 `extensions/negentropy-lab/src/workflow-command.ts`
+支持的 workflow 子命令，并包含 `workflow stop`
+别名；维护时应以 `extensions/negentropy-lab/src/workflow-command.ts`
 里的解析逻辑为准。
 
 ### 5.3 Vendor 工作流后端
@@ -313,7 +312,7 @@ pnpm negentropy:v11:live-smoke
 ```
 
 该脚本完成了 workflow run / retry / cancel / emergency-stop / timeout /
-trace / reconcile 等路径的本地 smoke 验证。
+trace 等路径的本地 smoke 验证。
 
 这比旧版文档更进一步，因为它不再只是“脚本存在”，而是已经有一次本地验证结果。
 

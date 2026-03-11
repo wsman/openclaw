@@ -470,8 +470,6 @@ async function main(): Promise<Record<string, unknown>> {
   const traceText = await runCommand(`workflow trace ${serialRunId} 50`);
   assert.match(traceText, /Trace tail/);
 
-  const reconcileText = await runCommand(`workflow reconcile ${serialRunId} --reason live_smoke_manual_reconcile`);
-  assert.match(reconcileText, /Workflow reconcile completed/i);
   maybeStop("trace");
 
   const orphanResponse = await fetch(`${workflowBaseUrl}/event`, {
@@ -576,7 +574,6 @@ async function main(): Promise<Record<string, unknown>> {
       list: true,
       status: true,
       trace: true,
-      reconcile: true,
       cancel: true,
       emergencyStop: true,
       retry: true,

@@ -52,6 +52,7 @@ const NEGENTROPY_EXCLUDE_NAMES = new Set([
   ".cdd",
   ".git",
   ".husky",
+  "__pycache__",
   "coverage",
   "data",
   "dist",
@@ -235,19 +236,27 @@ async function gitHead(targetPath) {
 }
 
 function shouldCopyNegentropyRootEntry(entryName) {
-  if (NEGENTROPY_EXCLUDE_NAMES.has(entryName)) {
-    return false;
-  }
-  if (entryName.startsWith(".tmp")) {
-    return false;
-  }
-  if (entryName.startsWith("failed-suite-results")) {
-    return false;
-  }
-  if (entryName.startsWith("test-results")) {
+  if (shouldExcludeNegentropyEntry(entryName)) {
     return false;
   }
   return NEGENTROPY_INCLUDE_ROOT_DIRS.has(entryName) || NEGENTROPY_INCLUDE_ROOT_FILES.has(entryName);
+}
+
+function shouldExcludeNegentropyEntry(entryName) {
+  if (NEGENTROPY_EXCLUDE_NAMES.has(entryName)) {
+    return true;
+  }
+  if (entryName.startsWith(".tmp")) {
+    return true;
+  }
+  if (entryName.startsWith("failed-suite-results")) {
+    return true;
+  }
+  if (entryName.startsWith("test-results")) {
+    return true;
+  }
+  // Keep Python bytecode out of vendor snapshots even if it exists in the source checkout.
+  return entryName.endsWith(".pyc");
 }
 
 async function copyRecursive(sourcePath, destinationPath) {
@@ -256,10 +265,7 @@ async function copyRecursive(sourcePath, destinationPath) {
     await fs.mkdir(destinationPath, { recursive: true });
     const entries = await fs.readdir(sourcePath, { withFileTypes: true });
     for (const entry of entries) {
-      if (NEGENTROPY_EXCLUDE_NAMES.has(entry.name)) {
-        continue;
-      }
-      if (entry.name.startsWith(".tmp")) {
+      if (shouldExcludeNegentropyEntry(entry.name)) {
         continue;
       }
       await copyRecursive(path.join(sourcePath, entry.name), path.join(destinationPath, entry.name));

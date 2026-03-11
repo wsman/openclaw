@@ -54,6 +54,10 @@ vendor/
 vendor/*
 !vendor/negentropy-lab/
 !vendor/negentropy-lab/**
+vendor/negentropy-lab/node_modules/
+vendor/negentropy-lab/**/__pycache__/
+vendor/negentropy-lab/**/*.pyc
+vendor/negentropy-lab/dist/
 vendor/negentropy-lab/.openclaw-vendor.json
 apps/ios/Clawdbot.xcodeproj/
 apps/ios/Clawdbot.xcodeproj/**

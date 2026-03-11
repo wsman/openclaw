@@ -88,10 +88,11 @@ The extension registers `/negentropy` command handlers:
 - `/negentropy workflow trace <runId> [limit]`
 - `/negentropy workflow run <name>`
 - `/negentropy workflow retry <runId>`
-- `/negentropy workflow reconcile [runId] [--include-terminal] [--reason <text>]`
 - `/negentropy workflow cancel <runId> [--emergency]`
 - `/negentropy workflow emergency-stop <runId>`
 - `/negentropy workflow stop <runId>`
+
+Workflow recovery now runs automatically during service startup recovery and background sweeps; there is no manual reconcile command.
 
 When `workflowEnabled=false`, workflow subcommands return a disabled-by-config
 message instead of calling the workflow backend.
