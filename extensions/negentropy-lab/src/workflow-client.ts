@@ -1,7 +1,6 @@
 import type {
   WorkflowEventPayload,
   WorkflowListResponse,
-  WorkflowReconcileResponse,
   WorkflowRunResponse,
   WorkflowRunView,
   WorkflowTraceResponse,
@@ -37,12 +36,6 @@ export type CancelWorkflowInput = {
   emergency?: boolean;
 };
 
-export type ReconcileWorkflowInput = {
-  runId?: string;
-  includeTerminal?: boolean;
-  reason?: string;
-};
-
 export class WorkflowClient {
   constructor(
     private readonly config: WorkflowClientConfig,
@@ -55,10 +48,6 @@ export class WorkflowClient {
 
   async retryWorkflow(input: RetryWorkflowInput): Promise<WorkflowRunResponse> {
     return this.post<WorkflowRunResponse>("/retry", input);
-  }
-
-  async reconcileWorkflow(input: ReconcileWorkflowInput): Promise<WorkflowReconcileResponse> {
-    return this.post<WorkflowReconcileResponse>("/reconcile", input);
   }
 
   async sendEvent(payload: WorkflowEventPayload): Promise<WorkflowRunResponse> {

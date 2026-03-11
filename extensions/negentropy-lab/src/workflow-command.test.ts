@@ -21,19 +21,10 @@ describe("workflow command", () => {
     },
   };
 
-  it("runs, retries, reconciles, traces, and cancels workflows through command facade", async () => {
+  it("runs, retries, traces, and cancels workflows through command facade", async () => {
     const bridge = {
       runWorkflow: vi.fn().mockResolvedValue({ run: baseRun, actions: [] }),
       retryWorkflow: vi.fn().mockResolvedValue({ run: { ...baseRun, runId: "wf-2" }, actions: [] }),
-      reconcileWorkflow: vi.fn().mockResolvedValue({
-        ok: true,
-        triggeredAt: new Date().toISOString(),
-        reason: "manual_reconcile",
-        scanned: 2,
-        updated: 1,
-        deletedTerminalRuns: 0,
-        touchedRunIds: ["wf-1"],
-      }),
       cancelWorkflow: vi
         .fn()
         .mockResolvedValue({ run: { ...baseRun, status: "canceled" }, actions: [] }),
@@ -83,18 +74,16 @@ describe("workflow command", () => {
 
     const reconcileResult = await handleWorkflowCommand({
       bridge: bridge as any,
-      tokens: ["reconcile", "wf-1", "--reason", "manual", "recover"],
+      tokens: ["reconcile", "wf-1"],
       ctx: {
         channel: "webchat",
-        commandBody: "/negentropy workflow reconcile wf-1 --reason manual recover",
+        commandBody: "/negentropy workflow reconcile wf-1",
         config: {} as any,
         isAuthorizedSender: true,
       },
     });
-    expect(reconcileResult.text).toContain("Workflow reconcile completed");
-    expect(bridge.reconcileWorkflow).toHaveBeenCalledWith(
-      expect.objectContaining({ runId: "wf-1", reason: "manual recover" }),
-    );
+    expect(reconcileResult.text).toContain("Manual workflow reconcile is no longer available");
+    expect(reconcileResult.text).toContain("background sweeps");
 
     const traceResult = await handleWorkflowCommand({
       bridge: bridge as any,
@@ -127,7 +116,7 @@ describe("workflow command", () => {
     );
   });
 
-  it("includes reconcile and stop in usage text for invalid workflow commands", async () => {
+  it("shows supported workflow commands in usage text for invalid workflow commands", async () => {
     const result = await handleWorkflowCommand({
       bridge: {} as any,
       tokens: ["trace"],
@@ -140,7 +129,8 @@ describe("workflow command", () => {
     });
 
     expect(result.text).toContain("Missing runId");
-    expect(result.text).toContain("/negentropy workflow reconcile");
+    expect(result.text).toContain("/negentropy workflow retry");
     expect(result.text).toContain("/negentropy workflow stop");
+    expect(result.text).not.toContain("/negentropy workflow reconcile");
   });
 });

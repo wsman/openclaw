@@ -3,7 +3,6 @@ import type { WorkflowClient } from "./workflow-client.js";
 import type {
   WorkflowAction,
   WorkflowEventPayload,
-  WorkflowReconcileResponse,
   WorkflowRunResponse,
   WorkflowRunView,
   WorkflowTraceResponse,
@@ -22,14 +21,6 @@ export type WorkflowBridge = {
     requestedBy?: string;
     sessionKey?: string;
   }) => Promise<WorkflowRunResponse>;
-  reconcileWorkflow: (input: {
-    runId?: string;
-    includeTerminal?: boolean;
-    source?: string;
-    requestedBy?: string;
-    sessionKey?: string;
-    reason?: string;
-  }) => Promise<WorkflowReconcileResponse>;
   cancelWorkflow: (input: { runId: string; emergency?: boolean; reason?: string }) => Promise<WorkflowRunResponse>;
   listRuns: (input?: { workflowId?: string; status?: string; limit?: number }) => Promise<WorkflowRunView[]>;
   getRun: (runId: string) => Promise<WorkflowRunView>;
@@ -178,16 +169,6 @@ export function createWorkflowBridge(params: {
       });
       await executeActions(response);
       return response;
-    },
-
-    async reconcileWorkflow(input) {
-      return params.client.reconcileWorkflow({
-        runId: input.runId,
-        includeTerminal: input.includeTerminal,
-        reason:
-          input.reason ??
-          `manual_reconcile:${input.source ?? "workflow-command"}:${input.requestedBy ?? "unknown"}`,
-      });
     },
 
     async cancelWorkflow(input) {

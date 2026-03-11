@@ -112,8 +112,9 @@ describe("negentropy extension plugin", () => {
       channel: "webchat",
     });
     expect(invalidMode.text).toContain("Invalid mode");
-    expect(invalidMode.text).toContain("/negentropy workflow reconcile");
+    expect(invalidMode.text).toContain("/negentropy workflow retry");
     expect(invalidMode.text).toContain("/negentropy workflow stop");
+    expect(invalidMode.text).not.toContain("/negentropy workflow reconcile");
 
     const rollback = await command.handler({
       args: "rollback",

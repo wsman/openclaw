@@ -138,16 +138,6 @@ export type WorkflowTraceResponse = {
   total: number;
 };
 
-export type WorkflowReconcileResponse = {
-  ok: boolean;
-  triggeredAt: string;
-  reason: string;
-  scanned: number;
-  updated: number;
-  deletedTerminalRuns: number;
-  touchedRunIds: string[];
-};
-
 export type WorkflowEventPayload = {
   type:
     | "subagent_spawning"

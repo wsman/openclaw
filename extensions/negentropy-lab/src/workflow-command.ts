@@ -55,7 +55,6 @@ function usageText(): string {
     "- /negentropy workflow trace <runId> [limit]",
     "- /negentropy workflow run <name>",
     "- /negentropy workflow retry <runId>",
-    "- /negentropy workflow reconcile [runId] [--include-terminal] [--reason <text>]",
     "- /negentropy workflow cancel <runId> [--emergency]",
     "- /negentropy workflow emergency-stop <runId>",
     "- /negentropy workflow stop <runId>",
@@ -184,45 +183,11 @@ export async function handleWorkflowCommand(params: {
   }
 
   if (action === "reconcile") {
-    const includeTerminal = rest.includes("--include-terminal");
-    const reasonFlagIndex = rest.findIndex((token) => token === "--reason");
-    const reason =
-      reasonFlagIndex >= 0
-        ? rest
-            .slice(reasonFlagIndex + 1)
-            .filter((token) => !token.startsWith("--"))
-            .join(" ")
-            .trim() || undefined
-        : undefined;
-
-    const positional = rest.filter((token, index) => {
-      if (token.startsWith("--")) {
-        return false;
-      }
-      if (reasonFlagIndex >= 0 && index > reasonFlagIndex) {
-        return false;
-      }
-      return true;
-    });
-    const runId = positional.length > 0 ? positional[0] : undefined;
-
-    const summary = await params.bridge.reconcileWorkflow({
-      runId,
-      includeTerminal,
-      reason,
-      source: params.ctx.channel,
-      requestedBy: params.ctx.senderId,
-    });
-
-    const touchedTail = summary.touchedRunIds.slice(0, 8).join(", ");
     return {
       text: [
-        `Workflow reconcile completed (${summary.reason}).`,
-        `triggeredAt: ${summary.triggeredAt}`,
-        `scanned: ${summary.scanned}`,
-        `updated: ${summary.updated}`,
-        `deletedTerminalRuns: ${summary.deletedTerminalRuns}`,
-        `touchedRunIds: ${summary.touchedRunIds.length}${touchedTail ? ` (${touchedTail}${summary.touchedRunIds.length > 8 ? ", ..." : ""})` : ""}`,
+        "Manual workflow reconcile is no longer available.",
+        "Negentropy now recovers workflow runs automatically during startup recovery and background sweeps.",
+        "Use /negentropy workflow status <runId>, /negentropy workflow trace <runId>, or /negentropy workflow retry <runId> instead.",
       ].join("\n"),
     };
   }
