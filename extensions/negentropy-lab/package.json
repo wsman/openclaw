@@ -1,0 +1,16 @@
+{
+  "name": "@openclaw/negentropy-lab",
+  "version": "2026.3.3",
+  "private": true,
+  "description": "OpenClaw gateway decision-policy bridge for Negentropy Lab",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "install": {
+      "localPath": "extensions/negentropy-lab",
+      "defaultChoice": "local"
+    }
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "id": "negentropy-lab",
+  "name": "Negentropy Lab",
+  "description": "Only official OpenClaw runtime bridge and contract consumer for Negentropy request policy, workflow seam, and host diagnostics.",
+  "uiHints": {
+    "mode": {
+      "label": "Decision Mode",
+      "help": "OFF disables enforcement, SHADOW logs/replays decisions, ENFORCE blocks or rewrites live traffic."
+    },
+    "serviceUrl": {
+      "label": "Decision Service URL",
+      "placeholder": "http://127.0.0.1:3000/internal/openclaw/decision"
+    },
+    "timeoutMs": {
+      "label": "Timeout (ms)",
+      "advanced": true
+    },
+    "bypassMethods": {
+      "label": "Bypass Methods",
+      "advanced": true
+    },
+    "healthPaths": {
+      "label": "Health Paths",
+      "advanced": true
+    },
+    "enforceFailClosed": {
+      "label": "Fail Closed",
+      "advanced": true
+    },
+    "enableRollbackSwitch": {
+      "label": "Enable Rollback Switch",
+      "advanced": true
+    },
+    "signingKey": {
+      "label": "Signing Key",
+      "advanced": true,
+      "sensitive": true
+    },
+    "workflowEnabled": {
+      "label": "Enable Workflow Bridge",
+      "help": "Manual workflow bridge only. V1 keeps orchestration seam-only and does not enable global auto-orchestration or control-plane ownership.",
+      "advanced": true
+    },
+    "orchestrationApiBaseUrl": {
+      "label": "Workflow API Base URL",
+      "placeholder": "http://127.0.0.1:3000/internal/openclaw/workflows",
+      "advanced": true
+    },
+    "workflowTimeoutMs": {
+      "label": "Workflow API Timeout (ms)",
+      "advanced": true
+    },
+    "autoDispatchSubagents": {
+      "label": "Auto Dispatch Workflow Subagents",
+      "help": "Bridge upstream spawn_subagent actions through runtime.subagent.run automatically. This stays seam-only and does not turn the extension into a workflow brain.",
+      "advanced": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "mode": {
+        "type": "string",
+        "enum": ["OFF", "SHADOW", "ENFORCE"]
+      },
+      "serviceUrl": {
+        "type": "string"
+      },
+      "timeoutMs": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "bypassMethods": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "healthPaths": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "enforceFailClosed": {
+        "type": "boolean"
+      },
+      "enableRollbackSwitch": {
+        "type": "boolean"
+      },
+      "signingKey": {
+        "type": "string"
+      },
+      "workflowEnabled": {
+        "type": "boolean"
+      },
+      "orchestrationApiBaseUrl": {
+        "type": "string"
+      },
+      "workflowTimeoutMs": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "autoDispatchSubagents": {
+        "type": "boolean"
+      }
+    }
+  }
+}
