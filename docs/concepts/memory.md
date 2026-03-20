@@ -12,7 +12,15 @@ OpenClaw memory is **plain Markdown in the agent workspace**. The files are the
 source of truth; the model only "remembers" what gets written to disk.
 
 Memory search tools are provided by the active memory plugin (default:
-`memory-core`). Disable memory plugins with `plugins.slots.memory = "none"`.
+`memory-core`). You can switch the slot to `memory-duckdb` or
+`memory-lancedb`, or disable memory plugins with `plugins.slots.memory =
+"none"`.
+
+`memory-duckdb` is packaged as a side-by-side owner candidate. When it is
+installed but not selected, it stays discoverable and disabled so the current
+memory owner keeps the generic memory surfaces. When selected, it can run in
+`canonical` mode or in `shadow-read`, which keeps read/status surfaces available
+but rejects writes.
 
 ## Memory files (Markdown)
 

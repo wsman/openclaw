@@ -95,6 +95,11 @@ Both show up under `openclaw plugins list`. See [Plugin Bundles](/plugins/bundle
 </AccordionGroup>
 
 Looking for third-party plugins? See [Community Plugins](/plugins/community).
+- `memory-core` -- bundled memory search (default via `plugins.slots.memory`)
+- `memory-duckdb` -- bundled DuckDB-backed side-by-side memory owner candidate with canonical spool + guarded SQL read facade (set `plugins.slots.memory = "memory-duckdb"` to activate it; otherwise it stays discoverable and disabled)
+- `memory-lancedb` -- install-on-demand long-term memory with auto-recall/capture (set `plugins.slots.memory = "memory-lancedb"`)
+
+Looking for third-party plugins? See [Community Plugins](/plugins/community).
 
 ## Configuration
 
@@ -182,6 +187,30 @@ Some categories are exclusive (only one active at a time):
 | `contextEngine` | Active context engine | `legacy` (built-in) |
 
 ## CLI reference
+- `memory`: active memory plugin (`"none"` disables memory plugins)
+- `contextEngine`: active context engine plugin (`"legacy"` is the built-in default)
+
+If multiple plugins declare `kind: "memory"` or `kind: "context-engine"`, only
+the selected plugin loads for that slot. Others are disabled with diagnostics.
+Declare `kind` in your [plugin manifest](/plugins/manifest).
+
+This is how `memory-duckdb` is packaged: it can be installed alongside
+`memory-core` and `memory-lancedb`, but it does not claim the generic memory
+surfaces until the slot explicitly selects it.
+
+## Plugin IDs
+
+Default plugin ids:
+
+- Package packs: `package.json` `name`
+- Standalone file: file base name (`~/.../voice-call.ts` -> `voice-call`)
+
+If a plugin exports `id`, OpenClaw uses it but warns when it does not match the
+configured id.
+
+## CLI reference
+
+## Inspection
 
 ```bash
 openclaw plugins list                    # compact inventory
