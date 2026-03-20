@@ -1,0 +1,625 @@
+{
+  "version": "2026-03-21-m1",
+  "seam": {
+    "version": "2026-03-21-m1",
+    "host": {
+      "owner": "OpenClaw",
+      "role": "host-seam-owner"
+    },
+    "negentropy": {
+      "sourceRoot": {
+        "configKey": "custom.stack.local.negentropy.sourceRoot",
+        "role": "external-source-truth",
+        "requiredMarkers": ["package.json", "README.md", "server", "docs", "memory_bank"],
+        "forbiddenResponsibilities": [
+          "OpenClaw runtime bridge owner",
+          "repo-local vendor snapshot owner",
+          "host diagnostics owner"
+        ]
+      },
+      "vendorRoot": {
+        "relativePath": "vendor/negentropy-lab",
+        "role": "minimal-vendor-snapshot",
+        "requiredMarkers": [".openclaw-vendor.json", "LICENSE", "package.json", "server"],
+        "forbiddenResponsibilities": [
+          "control-plane owner",
+          "OpenClaw runtime bridge owner",
+          "local sourceRoot replacement"
+        ],
+        "policy": {
+          "inventoryMode": "minimal-vendor-snapshot",
+          "allowlistManifestPath": "custom/negentropy-baselines.json",
+          "driftBaselinePath": "custom/negentropy-baselines.json",
+          "requiredTopLevelEntries": [".openclaw-vendor.json", "LICENSE", "package.json", "server"],
+          "forbiddenTopLevelEntries": [
+            "README.md",
+            "docs",
+            ".github",
+            "config",
+            "engine",
+            "memory_bank",
+            "monitoring",
+            "plugins",
+            "scripts",
+            "src",
+            "templates",
+            "tests"
+          ]
+        }
+      },
+      "extensionRoot": {
+        "relativePath": "extensions/negentropy-lab",
+        "role": "runtime-bridge",
+        "requiredMarkers": ["index.ts", "README.md", "openclaw.plugin.json", "src"],
+        "forbiddenResponsibilities": [
+          "control-plane main truth source",
+          "vendor source mirror",
+          "AuthorityState write-back owner"
+        ]
+      }
+    }
+  },
+  "bridge": {
+    "version": "2026-03-21-m1",
+    "extension": {
+      "relativePath": "extensions/negentropy-lab",
+      "pluginManifestPath": "extensions/negentropy-lab/openclaw.plugin.json",
+      "pluginEntryPath": "extensions/negentropy-lab/index.ts",
+      "readmePath": "extensions/negentropy-lab/README.md",
+      "consumerBaselinePath": "custom/negentropy-baselines.json",
+      "gatewayRequestPath": "extensions/negentropy-lab/src/gateway-request.ts",
+      "workflowConfigPath": "extensions/negentropy-lab/src/workflow-config.ts",
+      "workflowBridgePath": "extensions/negentropy-lab/src/workflow-bridge.ts",
+      "workflowTypesPath": "extensions/negentropy-lab/src/workflow-types.ts",
+      "diagnosticsHelperPath": "extensions/negentropy-lab/src/diagnostics.ts",
+      "decisionContractSnapshotPath": "extensions/negentropy-lab/src/decision-contract.snapshot.ts",
+      "decisionContractAlignmentTestPath": "extensions/negentropy-lab/src/decision-contract-alignment.test.ts",
+      "requiredManifestDescriptionTokens": [
+        "official",
+        "runtime bridge",
+        "contract consumer",
+        "host diagnostics"
+      ],
+      "requiredEntryDescriptionTokens": [
+        "official",
+        "runtime bridge",
+        "contract consumer",
+        "host-visible diagnostics"
+      ],
+      "bridgeOnlyConfigKeys": {
+        "workflowEnabled": {
+          "schemaType": "boolean",
+          "requiredHelpTokens": [
+            "Manual workflow bridge only",
+            "seam-only",
+            "global auto-orchestration",
+            "control-plane ownership"
+          ]
+        },
+        "orchestrationApiBaseUrl": {
+          "schemaType": "string",
+          "requiredPlaceholderTokens": ["/internal/openclaw/workflows"]
+        },
+        "autoDispatchSubagents": {
+          "schemaType": "boolean",
+          "requiredHelpTokens": ["runtime.subagent.run", "seam-only", "workflow brain"]
+        }
+      },
+      "requiredReadmeTokens": [
+        "only official runtime entry",
+        "runtime bridge layer",
+        "host-visible diagnostics carrier",
+        "control-plane owner",
+        "vendor/negentropy-lab",
+        "sourceRoot",
+        "vendor snapshot",
+        "contract consumer model",
+        "custom/negentropy-baselines.json",
+        "decision contract snapshot version",
+        "workflow contract snapshot version",
+        "host diagnostics surface version",
+        "host memory summary contract snapshot version",
+        "business artifact absorb contract snapshot version",
+        "skill candidate absorb contract snapshot version",
+        "memory-business projection contract snapshot version",
+        "read-only snapshot or fixture inputs",
+        "vendor runtime-owner implementation files are not part of the consumer model",
+        "memory-business-contracts.snapshot.ts",
+        "workflowEnabled",
+        "orchestrationApiBaseUrl",
+        "autoDispatchSubagents",
+        "global autonomous orchestration",
+        "runtime.subagent.run",
+        "AuthorityState",
+        "ResultEnvelope",
+        "smallpond-evo",
+        "external capability service",
+        "write-back owner"
+      ],
+      "requiredGatewayRequestTokens": ["./decision-contract.snapshot.js", "./decision-bridge.js"],
+      "forbiddenGatewayRequestTokens": ["vendor/negentropy-lab"],
+      "requiredWorkflowConfigTokens": [
+        "NEGENTROPY_WORKFLOW_API_URL",
+        "workflowEnabled",
+        "orchestrationApiBaseUrl",
+        "autoDispatchSubagents",
+        "/internal/openclaw/workflows"
+      ],
+      "requiredWorkflowBridgeTokens": ["runtime.subagent.run", "spawn_subagent"],
+      "requiredWorkflowTypesTokens": [
+        "WorkflowEventPayload",
+        "\"spawn_subagent\"",
+        "\"send_session_message\"",
+        "\"trace\""
+      ],
+      "requiredDiagnosticsTokens": [
+        "consumerBaselineVersion",
+        "workflowContractSnapshotVersion",
+        "hostDiagnosticsSurfaceVersion",
+        "hostMemorySummaryContractVersion",
+        "businessArtifactAbsorbContractVersion",
+        "skillCandidateAbsorbContractVersion",
+        "memoryBusinessProjectionContractVersion"
+      ],
+      "forbiddenWorkflowBridgeTokens": ["AuthorityState"],
+      "dependencyBoundaryPaths": [
+        "extensions/negentropy-lab/index.ts",
+        "extensions/negentropy-lab/src/decision-bridge.ts",
+        "extensions/negentropy-lab/src/diagnostics.ts",
+        "extensions/negentropy-lab/src/gateway-request.ts",
+        "extensions/negentropy-lab/src/memory-business-contracts.snapshot.ts",
+        "extensions/negentropy-lab/src/workflow-bridge.ts",
+        "extensions/negentropy-lab/src/workflow-client.ts",
+        "extensions/negentropy-lab/src/workflow-command.ts",
+        "extensions/negentropy-lab/src/workflow-config.ts",
+        "extensions/negentropy-lab/src/workflow-events.ts",
+        "extensions/negentropy-lab/src/workflow-types.ts"
+      ],
+      "forbiddenDependencyTokens": [
+        "vendor/negentropy-lab/server/gateway/openclaw-decision/api/",
+        "vendor/negentropy-lab/server/gateway/openclaw-decision/bridge/",
+        "vendor/negentropy-lab/server/gateway/openclaw-decision/config/",
+        "vendor/negentropy-lab/server/gateway/openclaw-decision/observability/",
+        "vendor/negentropy-lab/server/gateway/openclaw-decision/policy/",
+        "vendor/negentropy-lab/server/gateway/openclaw-decision/resilience/",
+        "vendor/negentropy-lab/server/gateway/openclaw-decision/scripts/",
+        "vendor/negentropy-lab/server/gateway/openclaw-decision/security/",
+        "vendor/negentropy-lab/server/gateway/openclaw-decision/translator/",
+        "vendor/negentropy-lab/server/gateway/openclaw-orchestration/actions/",
+        "vendor/negentropy-lab/server/gateway/openclaw-orchestration/api/",
+        "vendor/negentropy-lab/server/gateway/openclaw-orchestration/runtime/",
+        "vendor/negentropy-lab/server/gateway/openclaw-orchestration/service/",
+        "smallpond-evo",
+        "AuthorityState",
+        "ResultEnvelope"
+      ]
+    },
+    "vendor": {
+      "relativePath": "vendor/negentropy-lab",
+      "canonicalDecisionContractPath": "vendor/negentropy-lab/server/gateway/openclaw-decision/contracts/decision-contract.ts",
+      "canonicalWorkflowContractPath": "vendor/negentropy-lab/server/gateway/openclaw-orchestration/contracts/workflow-contract.ts"
+    }
+  },
+  "diagnostics": {
+    "version": "2026-03-21-m1",
+    "custom": {
+      "readmePath": "custom/README.md",
+      "requiredReadmeTokens": [
+        "custom/negentropy-baselines.json",
+        "custom/negentropy-discipline.md",
+        "custom:negentropy:check-diagnostics"
+      ],
+      "requiredStatusKeys": [
+        "surface",
+        "upstreamReachable",
+        "pluginConfigured",
+        "extensionMode",
+        "failOpenOrClosed",
+        "rollbackSwitchEnabled",
+        "contractSnapshotVersion",
+        "minimalVendorSnapshotVersion",
+        "discipline",
+        "workflowBridge"
+      ],
+      "requiredUpstreamKeys": ["sourceRoot"],
+      "requiredWorkflowBridgeKeys": [
+        "workflowEnabled",
+        "orchestrationApiBaseUrl",
+        "autoDispatchSubagents"
+      ],
+      "requiredDisciplineKeys": ["sourceRoot", "vendorRoot", "extensionRoot"],
+      "requiredDisciplineDocTokens": [
+        "host-facing diagnostics",
+        "upstreamReachable",
+        "extensionMode",
+        "failOpenOrClosed",
+        "contractSnapshotVersion",
+        "minimalVendorSnapshotVersion",
+        "AuthorityState",
+        "raw capability emitter payload",
+        "smallpond"
+      ],
+      "requiredPackageScripts": [
+        "custom:negentropy:check-diagnostics",
+        "gate:negentropy:host-diagnostics"
+      ]
+    },
+    "extension": {
+      "relativePath": "extensions/negentropy-lab",
+      "readmePath": "extensions/negentropy-lab/README.md",
+      "diagnosticsHelperPath": "extensions/negentropy-lab/src/diagnostics.ts",
+      "diagnosticsTestPath": "extensions/negentropy-lab/src/diagnostics-surface.test.ts",
+      "requiredTopLevelKeys": [
+        "surface",
+        "upstreamReachable",
+        "extensionMode",
+        "failOpenOrClosed",
+        "rollbackSwitchEnabled",
+        "workflowBridge",
+        "contractSnapshotVersion",
+        "minimalVendorSnapshotVersion",
+        "discipline",
+        "diagnosticsBaselineVersion"
+      ],
+      "requiredReadmeTokens": [
+        "host-facing diagnostics",
+        "upstreamReachable",
+        "extensionMode",
+        "failOpenOrClosed",
+        "contractSnapshotVersion",
+        "minimalVendorSnapshotVersion",
+        "AuthorityState",
+        "write-back",
+        "smallpond"
+      ],
+      "requiredStatusTokens": [
+        "Negentropy host diagnostics",
+        "surface: host-facing only",
+        "upstreamReachable.decisionApi",
+        "upstreamReachable.workflowApi",
+        "consumerBaselineVersion",
+        "workflowContractSnapshotVersion",
+        "hostDiagnosticsSurfaceVersion",
+        "hostMemorySummaryContractVersion",
+        "businessArtifactAbsorbContractVersion",
+        "skillCandidateAbsorbContractVersion",
+        "memoryBusinessProjectionContractVersion",
+        "minimalVendorSnapshotVersion",
+        "sourceRootDiscipline",
+        "vendorRootDiscipline"
+      ],
+      "forbiddenStatusTokens": [
+        "AuthorityState",
+        "raw capability emitter payload",
+        "write-back owner",
+        "smallpond capability internals"
+      ]
+    }
+  },
+  "extensionConsumer": {
+    "version": "2026-03-21-m1",
+    "extension": {
+      "relativePath": "extensions/negentropy-lab",
+      "readmePath": "extensions/negentropy-lab/README.md",
+      "customReadmePath": "custom/README.md",
+      "bridgeDisciplinePath": "custom/negentropy-discipline.md",
+      "diagnosticsHelperPath": "extensions/negentropy-lab/src/diagnostics.ts",
+      "requiredReadmeTokens": [
+        "contract consumer model",
+        "custom/negentropy-baselines.json",
+        "decision contract snapshot version",
+        "workflow contract snapshot version",
+        "host diagnostics surface version",
+        "host memory summary contract snapshot version",
+        "business artifact absorb contract snapshot version",
+        "skill candidate absorb contract snapshot version",
+        "memory-business projection contract snapshot version",
+        "read-only snapshot or fixture inputs",
+        "vendor runtime-owner implementation files are not part of the consumer model",
+        "extensions/negentropy-lab/src/memory-business-contracts.snapshot.ts"
+      ],
+      "requiredCustomReadmeTokens": [
+        "custom/negentropy-baselines.json",
+        "custom/negentropy-discipline.md",
+        "custom:negentropy:check-bridge-seam"
+      ],
+      "requiredBridgeDisciplineTokens": [
+        "contract consumer packaging",
+        "decision contract snapshot",
+        "workflow contract snapshot",
+        "host diagnostics surface version",
+        "host memory summary contract snapshot",
+        "business artifact absorb contract snapshot",
+        "skill candidate absorb contract snapshot",
+        "memory-business projection contract snapshot",
+        "P6-B2 complete"
+      ],
+      "requiredDiagnosticsTokens": [
+        "consumerBaselineVersion",
+        "workflowContractSnapshotVersion",
+        "hostDiagnosticsSurfaceVersion",
+        "hostMemorySummaryContractVersion",
+        "businessArtifactAbsorbContractVersion",
+        "skillCandidateAbsorbContractVersion",
+        "memoryBusinessProjectionContractVersion"
+      ],
+      "consumers": {
+        "decisionContractSnapshot": {
+          "canonicalSourcePath": "vendor/negentropy-lab/server/gateway/openclaw-decision/contracts/decision-contract.ts",
+          "localConsumedFormPath": "extensions/negentropy-lab/src/decision-contract.snapshot.ts",
+          "anchorPath": "extensions/negentropy-lab/src/decision-contract.snapshot.ts",
+          "anchorToken": "DECISION_CONTRACT_VERSION = '1.0.0'",
+          "version": "1.0.0",
+          "forbiddenSubstitutes": [
+            "vendor/negentropy-lab/server/gateway/openclaw-decision/api/",
+            "vendor/negentropy-lab/server/gateway/openclaw-decision/service/",
+            "AuthorityState",
+            "ResultEnvelope"
+          ]
+        },
+        "workflowContractSnapshot": {
+          "canonicalSourcePath": "vendor/negentropy-lab/server/gateway/openclaw-orchestration/contracts/workflow-contract.ts",
+          "localConsumedFormPath": "extensions/negentropy-lab/src/workflow-types.ts",
+          "anchorPath": "vendor/negentropy-lab/server/gateway/openclaw-orchestration/contracts/workflow-contract.ts",
+          "anchorToken": "@version 1.0.0",
+          "version": "1.0.0",
+          "forbiddenSubstitutes": [
+            "vendor/negentropy-lab/server/gateway/openclaw-orchestration/api/",
+            "vendor/negentropy-lab/server/gateway/openclaw-orchestration/runtime/",
+            "vendor/negentropy-lab/server/gateway/openclaw-orchestration/service/"
+          ]
+        },
+        "hostDiagnosticsSurface": {
+          "canonicalSourcePath": "custom/negentropy-baselines.json",
+          "localConsumedFormPath": "extensions/negentropy-lab/src/diagnostics.ts",
+          "anchorPath": "custom/negentropy-baselines.json",
+          "anchorToken": "\"requiredTopLevelKeys\": [",
+          "version": "2026-03-21-m1",
+          "forbiddenSubstitutes": [
+            "raw capability emitter payload",
+            "smallpond capability internals",
+            "AuthorityState"
+          ]
+        },
+        "hostMemorySummaryContractSnapshot": {
+          "canonicalSourcePath": "vendor/negentropy-lab/server/gateway/contracts/host-memory-summary-contract.ts",
+          "localConsumedFormPath": "extensions/negentropy-lab/src/memory-business-contracts.snapshot.ts",
+          "anchorPath": "extensions/negentropy-lab/src/memory-business-contracts.snapshot.ts",
+          "anchorToken": "HOST_MEMORY_SUMMARY_CONTRACT_SNAPSHOT_VERSION = '2026-03-19-n6a1'",
+          "version": "2026-03-19-n6a1",
+          "forbiddenSubstitutes": [
+            "vendor/negentropy-lab/server/gateway/memory-business-absorb.ts",
+            "AuthorityState",
+            "ResultEnvelope",
+            "smallpond-evo"
+          ]
+        },
+        "businessArtifactAbsorbContractSnapshot": {
+          "canonicalSourcePath": "vendor/negentropy-lab/server/gateway/contracts/business-artifact-absorb-contract.ts",
+          "localConsumedFormPath": "extensions/negentropy-lab/src/memory-business-contracts.snapshot.ts",
+          "anchorPath": "extensions/negentropy-lab/src/memory-business-contracts.snapshot.ts",
+          "anchorToken": "BUSINESS_ARTIFACT_ABSORB_CONTRACT_SNAPSHOT_VERSION = '2026-03-20-n6c1'",
+          "version": "2026-03-20-n6c1",
+          "forbiddenSubstitutes": [
+            "vendor/negentropy-lab/server/gateway/memory-business-absorb.ts",
+            "AuthorityState",
+            "ResultEnvelope",
+            "smallpond-evo"
+          ]
+        },
+        "skillCandidateAbsorbContractSnapshot": {
+          "canonicalSourcePath": "vendor/negentropy-lab/server/gateway/contracts/skill-candidate-absorb-contract.ts",
+          "localConsumedFormPath": "extensions/negentropy-lab/src/memory-business-contracts.snapshot.ts",
+          "anchorPath": "extensions/negentropy-lab/src/memory-business-contracts.snapshot.ts",
+          "anchorToken": "SKILL_CANDIDATE_ABSORB_CONTRACT_SNAPSHOT_VERSION = '2026-03-20-n6c1'",
+          "version": "2026-03-20-n6c1",
+          "forbiddenSubstitutes": [
+            "vendor/negentropy-lab/server/gateway/memory-business-absorb.ts",
+            "AuthorityState",
+            "ResultEnvelope",
+            "smallpond-evo"
+          ]
+        },
+        "memoryBusinessProjectionContractSnapshot": {
+          "canonicalSourcePath": "vendor/negentropy-lab/server/gateway/contracts/memory-business-projection-contract.ts",
+          "localConsumedFormPath": "extensions/negentropy-lab/src/memory-business-contracts.snapshot.ts",
+          "anchorPath": "extensions/negentropy-lab/src/memory-business-contracts.snapshot.ts",
+          "anchorToken": "MEMORY_BUSINESS_PROJECTION_CONTRACT_SNAPSHOT_VERSION = '2026-03-19-n6a1'",
+          "version": "2026-03-19-n6a1",
+          "forbiddenSubstitutes": [
+            "vendor/negentropy-lab/server/gateway/memory-business-absorb.ts",
+            "AuthorityState",
+            "ResultEnvelope",
+            "smallpond-evo"
+          ]
+        }
+      }
+    }
+  },
+  "vendor": {
+    "allowlist": {
+      "version": "2026-03-21-m1",
+      "relativeVendorRoot": "vendor/negentropy-lab",
+      "inventoryMode": "minimal-vendor-snapshot",
+      "purpose": ["compatibility fixtures", "contract snapshots", "fallback metadata"],
+      "includePaths": [
+        ".openclaw-vendor.json",
+        "LICENSE",
+        "package.json",
+        "server/gateway/control-plane-contracts.ts",
+        "server/gateway/contracts/business-artifact-absorb-contract.ts",
+        "server/gateway/contracts/host-memory-summary-contract.ts",
+        "server/gateway/contracts/memory-business-projection-contract.ts",
+        "server/gateway/contracts/n6-contract-utils.ts",
+        "server/gateway/contracts/skill-candidate-absorb-contract.ts",
+        "server/gateway/openclaw-decision/contracts/decision-contract.schema.json",
+        "server/gateway/openclaw-decision/contracts/decision-contract.ts",
+        "server/gateway/openclaw-orchestration/contracts/workflow-contract.ts"
+      ],
+      "excludeNames": [
+        ".cdd",
+        ".git",
+        ".husky",
+        "__pycache__",
+        "coverage",
+        "data",
+        "dist",
+        "logs",
+        "node_modules",
+        "reports",
+        "storage"
+      ]
+    },
+    "driftBaseline": {
+      "version": "2026-03-21-m1",
+      "relativeVendorRoot": "vendor/negentropy-lab",
+      "inventoryMode": "minimal-vendor-snapshot",
+      "expectedTopLevelEntries": [".openclaw-vendor.json", "LICENSE", "package.json", "server"],
+      "requiredPaths": [
+        "server/gateway/control-plane-contracts.ts",
+        "server/gateway/contracts/business-artifact-absorb-contract.ts",
+        "server/gateway/contracts/host-memory-summary-contract.ts",
+        "server/gateway/contracts/memory-business-projection-contract.ts",
+        "server/gateway/contracts/n6-contract-utils.ts",
+        "server/gateway/contracts/skill-candidate-absorb-contract.ts",
+        "server/gateway/openclaw-decision/contracts/decision-contract.schema.json",
+        "server/gateway/openclaw-decision/contracts/decision-contract.ts",
+        "server/gateway/openclaw-orchestration/contracts/workflow-contract.ts"
+      ],
+      "removedFromBroadSnapshot": [
+        "README.md",
+        "docs",
+        ".github",
+        "config",
+        "engine",
+        "memory_bank",
+        "monitoring",
+        "plugins",
+        "scripts",
+        "src",
+        "templates",
+        "tests",
+        ".clinerules",
+        ".eslintrc.json",
+        ".gitignore",
+        "CHANGELOG.md",
+        "constitution-compliance-report.json",
+        "docker-compose.production.yml",
+        "docker-compose.v3.yml",
+        "Dockerfile.mcp",
+        "Dockerfile.node",
+        "Dockerfile.production",
+        "jest.config.js",
+        "pnpm-lock.yaml",
+        "tsconfig.build.json",
+        "tsconfig.json",
+        "tsconfig.test.json",
+        "vitest.config.mjs"
+      ]
+    },
+    "inventoryRuntime": {
+      "generatedAt": "2026-03-21T00:00:00.000Z",
+      "mode": "runtime-scan",
+      "pass": true,
+      "policyPath": "custom/negentropy-discipline.md",
+      "allowlistPath": "custom/negentropy-baselines.json",
+      "driftBaselinePath": "custom/negentropy-baselines.json",
+      "vendorRoot": "vendor/negentropy-lab",
+      "inventoryMode": "minimal-vendor-snapshot",
+      "allowlistVersion": "2026-03-21-m1",
+      "driftBaselineVersion": "2026-03-21-m1",
+      "fileCount": 12,
+      "actualTopLevelEntries": [".openclaw-vendor.json", "LICENSE", "package.json", "server"],
+      "requiredPaths": [
+        "server/gateway/control-plane-contracts.ts",
+        "server/gateway/contracts/business-artifact-absorb-contract.ts",
+        "server/gateway/contracts/host-memory-summary-contract.ts",
+        "server/gateway/contracts/memory-business-projection-contract.ts",
+        "server/gateway/contracts/n6-contract-utils.ts",
+        "server/gateway/contracts/skill-candidate-absorb-contract.ts",
+        "server/gateway/openclaw-decision/contracts/decision-contract.schema.json",
+        "server/gateway/openclaw-decision/contracts/decision-contract.ts",
+        "server/gateway/openclaw-orchestration/contracts/workflow-contract.ts"
+      ],
+      "missingRequiredPaths": [],
+      "extraFiles": [],
+      "presentRemovedFromBroadSnapshot": [],
+      "reviewCandidates": [],
+      "fileCountsByIncludePath": [
+        { "includePath": ".openclaw-vendor.json", "fileCount": 1 },
+        { "includePath": "LICENSE", "fileCount": 1 },
+        { "includePath": "package.json", "fileCount": 1 },
+        { "includePath": "server/gateway/control-plane-contracts.ts", "fileCount": 1 },
+        {
+          "includePath": "server/gateway/contracts/business-artifact-absorb-contract.ts",
+          "fileCount": 1
+        },
+        {
+          "includePath": "server/gateway/contracts/host-memory-summary-contract.ts",
+          "fileCount": 1
+        },
+        {
+          "includePath": "server/gateway/contracts/memory-business-projection-contract.ts",
+          "fileCount": 1
+        },
+        { "includePath": "server/gateway/contracts/n6-contract-utils.ts", "fileCount": 1 },
+        {
+          "includePath": "server/gateway/contracts/skill-candidate-absorb-contract.ts",
+          "fileCount": 1
+        },
+        {
+          "includePath": "server/gateway/openclaw-decision/contracts/decision-contract.schema.json",
+          "fileCount": 1
+        },
+        {
+          "includePath": "server/gateway/openclaw-decision/contracts/decision-contract.ts",
+          "fileCount": 1
+        },
+        {
+          "includePath": "server/gateway/openclaw-orchestration/contracts/workflow-contract.ts",
+          "fileCount": 1
+        }
+      ],
+      "vendorMetadata": {
+        "sourceRoot": "D:\\Users\\WSMAN\\Desktop\\Coding Task\\Negentropy-Lab",
+        "syncedAt": "2026-03-19T16:46:42.469Z",
+        "sourceHead": "4ac9b4192b10b44b34d52e31626a0c75c59e149f",
+        "inventoryMode": "minimal-vendor-snapshot",
+        "allowlistManifestPath": "custom/negentropy-baselines.json",
+        "allowlistVersion": "2026-03-21-m1",
+        "driftBaselinePath": "custom/negentropy-baselines.json",
+        "driftBaselineVersion": "2026-03-21-m1",
+        "includePaths": [
+          ".openclaw-vendor.json",
+          "LICENSE",
+          "package.json",
+          "server/gateway/control-plane-contracts.ts",
+          "server/gateway/contracts/business-artifact-absorb-contract.ts",
+          "server/gateway/contracts/host-memory-summary-contract.ts",
+          "server/gateway/contracts/memory-business-projection-contract.ts",
+          "server/gateway/contracts/n6-contract-utils.ts",
+          "server/gateway/contracts/skill-candidate-absorb-contract.ts",
+          "server/gateway/openclaw-decision/contracts/decision-contract.schema.json",
+          "server/gateway/openclaw-decision/contracts/decision-contract.ts",
+          "server/gateway/openclaw-orchestration/contracts/workflow-contract.ts"
+        ],
+        "topLevelEntries": [".openclaw-vendor.json", "LICENSE", "package.json", "server"],
+        "purpose": ["compatibility fixtures", "contract snapshots", "fallback metadata"],
+        "excludeNames": [
+          "__pycache__",
+          ".cdd",
+          ".git",
+          ".husky",
+          "coverage",
+          "data",
+          "dist",
+          "logs",
+          "node_modules",
+          "reports",
+          "storage"
+        ]
+      },
+      "issues": []
+    }
+  }
+}

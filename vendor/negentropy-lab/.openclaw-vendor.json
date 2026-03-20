@@ -1,0 +1,43 @@
+{
+  "sourceRoot": "D:\\Users\\WSMAN\\Desktop\\Coding Task\\Negentropy-Lab",
+  "syncedAt": "2026-03-19T16:46:42.469Z",
+  "sourceHead": "4ac9b4192b10b44b34d52e31626a0c75c59e149f",
+  "inventoryMode": "minimal-vendor-snapshot",
+  "allowlistManifestPath": "custom/negentropy-baselines.json",
+  "allowlistVersion": "2026-03-21-m1",
+  "driftBaselinePath": "custom/negentropy-baselines.json",
+  "driftBaselineVersion": "2026-03-21-m1",
+  "includePaths": [
+    ".openclaw-vendor.json",
+    "LICENSE",
+    "package.json",
+    "server/gateway/control-plane-contracts.ts",
+    "server/gateway/contracts/business-artifact-absorb-contract.ts",
+    "server/gateway/contracts/host-memory-summary-contract.ts",
+    "server/gateway/contracts/memory-business-projection-contract.ts",
+    "server/gateway/contracts/n6-contract-utils.ts",
+    "server/gateway/contracts/skill-candidate-absorb-contract.ts",
+    "server/gateway/openclaw-decision/contracts/decision-contract.schema.json",
+    "server/gateway/openclaw-decision/contracts/decision-contract.ts",
+    "server/gateway/openclaw-orchestration/contracts/workflow-contract.ts"
+  ],
+  "topLevelEntries": [".openclaw-vendor.json", "LICENSE", "package.json", "server"],
+  "purpose": [
+    "compatibility fixtures",
+    "contract snapshots",
+    "fallback metadata"
+  ],
+  "excludeNames": [
+    "__pycache__",
+    ".cdd",
+    ".git",
+    ".husky",
+    "coverage",
+    "data",
+    "dist",
+    "logs",
+    "node_modules",
+    "reports",
+    "storage"
+  ]
+}

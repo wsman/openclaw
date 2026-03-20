@@ -1,0 +1,210 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "decision-contract.schema.json",
+  "title": "OpenClaw-Negentropy Decision Contract v1",
+  "description": "JSON Schema for OpenClaw -> Negentropy decision request/response contract",
+  "version": "1.0.0",
+  "date": "2026-03-02",
+
+  "definitions": {
+    "DecisionAction": {
+      "type": "string",
+      "enum": ["EXECUTE", "REWRITE", "REJECT"],
+      "description": "Decision action type"
+    },
+
+    "TransportType": {
+      "type": "string",
+      "enum": ["ws", "http"],
+      "description": "Transport protocol type"
+    },
+
+    "DecisionMode": {
+      "type": "string",
+      "enum": ["OFF", "SHADOW", "ENFORCE"],
+      "description": "Decision service running mode"
+    },
+
+    "AuthMeta": {
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "sessionId": { "type": "string" },
+        "deviceId": { "type": "string" },
+        "authType": {
+          "type": "string",
+          "enum": ["jwt", "api_key", "session", "anonymous"]
+        },
+        "roles": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "rawHeaders": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+
+    "PolicyTags": {
+      "type": "object",
+      "properties": {
+        "ruleIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "category": { "type": "string" },
+        "severity": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        },
+        "custom": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+
+    "DecisionErrorCode": {
+      "type": "string",
+      "enum": [
+        "POLICY_DENY",
+        "POLICY_TIMEOUT",
+        "POLICY_RATE_LIMITED",
+        "AUTH_REQUIRED",
+        "AUTH_INVALID",
+        "AUTH_EXPIRED",
+        "AUTH_INSUFFICIENT_SCOPE",
+        "METHOD_UNKNOWN",
+        "METHOD_DISABLED",
+        "METHOD_RESTRICTED",
+        "PARAM_INVALID",
+        "PARAM_MISSING",
+        "INTERNAL_ERROR",
+        "SERVICE_UNAVAILABLE",
+        "REQUEST_TIMEOUT"
+      ]
+    }
+  },
+
+  "DecisionRequest": {
+    "type": "object",
+    "required": ["traceId", "transport", "method", "params", "ts"],
+    "properties": {
+      "traceId": {
+        "type": "string",
+        "pattern": "^dec-[a-z0-9]+-[a-z0-9]+$",
+        "description": "Trace ID for link tracking"
+      },
+      "connId": {
+        "type": "string",
+        "description": "WebSocket connection ID"
+      },
+      "transport": { "$ref": "#/definitions/TransportType" },
+      "method": {
+        "type": "string",
+        "minLength": 1,
+        "description": "RPC method name"
+      },
+      "params": {
+        "type": "object",
+        "description": "Request parameters"
+      },
+      "authMeta": { "$ref": "#/definitions/AuthMeta" },
+      "scopes": {
+        "type": "array",
+        "items": { "type": "string" }
+      },
+      "ts": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Request timestamp (ISO 8601)"
+      },
+      "sourceIp": {
+        "type": "string",
+        "format": "ipv4",
+        "description": "Source IP address"
+      },
+      "headers": {
+        "type": "object",
+        "additionalProperties": { "type": "string" }
+      },
+      "path": {
+        "type": "string",
+        "description": "Request path (HTTP only)"
+      },
+      "httpMethod": {
+        "type": "string",
+        "enum": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+        "description": "HTTP method (HTTP only)"
+      }
+    },
+    "additionalProperties": false
+  },
+
+  "DecisionResponse": {
+    "type": "object",
+    "required": ["action", "traceId", "ts"],
+    "properties": {
+      "action": { "$ref": "#/definitions/DecisionAction" },
+      "method": {
+        "type": "string",
+        "description": "Rewritten method (REWRITE only)"
+      },
+      "params": {
+        "type": "object",
+        "description": "Rewritten parameters (REWRITE only)"
+      },
+      "reason": {
+        "type": "string",
+        "description": "Human-readable reason"
+      },
+      "policyTags": { "$ref": "#/definitions/PolicyTags" },
+      "ttlMs": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Decision TTL in milliseconds"
+      },
+      "traceId": {
+        "type": "string",
+        "description": "Echo of request traceId"
+      },
+      "ts": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Decision timestamp (ISO 8601)"
+      },
+      "errorCode": { "$ref": "#/definitions/DecisionErrorCode" },
+      "errorDetail": {
+        "type": "object",
+        "description": "Error details (REJECT only)"
+      },
+      "retryAfterMs": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Suggested retry delay in milliseconds"
+      }
+    },
+    "additionalProperties": false,
+    "allOf": [
+      {
+        "if": {
+          "properties": { "action": { "const": "REWRITE" } },
+          "required": ["action"]
+        },
+        "then": {
+          "required": ["method", "params"]
+        }
+      },
+      {
+        "if": {
+          "properties": { "action": { "const": "REJECT" } },
+          "required": ["action"]
+        },
+        "then": {
+          "required": ["errorCode"]
+        }
+      }
+    ]
+  }
+}
