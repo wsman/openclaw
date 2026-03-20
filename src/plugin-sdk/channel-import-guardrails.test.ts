@@ -138,6 +138,7 @@ const LOCAL_EXTENSION_API_BARREL_GUARDS = [
   "lobster",
   "matrix",
   "mattermost",
+  "memory-duckdb",
   "memory-lancedb",
   "msteams",
   "nextcloud-talk",

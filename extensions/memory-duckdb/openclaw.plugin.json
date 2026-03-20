@@ -1,0 +1,121 @@
+{
+  "id": "memory-duckdb",
+  "kind": "memory",
+  "name": "Memory (DuckDB)",
+  "description": "Side-by-side DuckDB memory owner candidate with canonical JSONL ingest ordering, read facade SQL, and slot-selected host surfaces.",
+  "uiHints": {
+    "storagePath": {
+      "label": "Storage Path",
+      "placeholder": "~/.openclaw/memory-duckdb",
+      "advanced": true,
+      "help": "Base directory for canonical records, JSONL spool, checkpoints, and shadow state."
+    },
+    "duckdbPath": {
+      "label": "DuckDB Path",
+      "placeholder": "~/.openclaw/memory-duckdb/duckdb/memory.duckdb",
+      "advanced": true,
+      "help": "DuckDB file used by the read facade when a local native binding is available."
+    },
+    "runtimeMode": {
+      "label": "Runtime Mode",
+      "help": "Select canonical owner mode or the shadow-read read-only mode for the absorbed memory runtime."
+    },
+    "native.required": {
+      "label": "Require Native DuckDB",
+      "help": "Fail status checks if DuckDB native bindings are unavailable on the current host."
+    },
+    "ingest.maxActiveBytes": {
+      "label": "Max Active Spool Bytes",
+      "placeholder": "262144",
+      "advanced": true,
+      "help": "Rotate the active JSONL spool segment after this many bytes."
+    },
+    "replay.batchSize": {
+      "label": "Replay Batch Size",
+      "placeholder": "200",
+      "advanced": true,
+      "help": "Maximum replay batch size when applying canonical spool entries to the shadow ledger."
+    },
+    "shadow.maxCheckpointAgeSeconds": {
+      "label": "Max Checkpoint Age Seconds",
+      "placeholder": "900",
+      "advanced": true,
+      "help": "Threshold used by the status surface to flag stale or missing persisted shadow checkpoints."
+    },
+    "shadow.requireParityZeroMismatch": {
+      "label": "Require Zero Mismatch Parity",
+      "help": "Only advance the persisted shadow checkpoint when parity is ok and mismatch count is zero."
+    },
+    "diagnostics.enableHttpRoutes": {
+      "label": "Enable HTTP Routes",
+      "help": "Register plugin-owned status, search, and SQL read-facade HTTP routes when selected."
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "storagePath": {
+        "type": "string"
+      },
+      "duckdbPath": {
+        "type": "string"
+      },
+      "runtimeMode": {
+        "type": "string",
+        "enum": ["canonical", "shadow-read"]
+      },
+      "native": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "required": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ingest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "maxActiveBytes": {
+            "type": "number",
+            "minimum": 1024
+          }
+        }
+      },
+      "replay": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "batchSize": {
+            "type": "number",
+            "minimum": 1
+          }
+        }
+      },
+      "shadow": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "maxCheckpointAgeSeconds": {
+            "type": "number",
+            "minimum": 1
+          },
+          "requireParityZeroMismatch": {
+            "type": "boolean"
+          }
+        }
+      },
+      "diagnostics": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enableHttpRoutes": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "@openclaw/memory-duckdb",
+  "version": "2026.3.14",
+  "description": "OpenClaw DuckDB-backed memory owner candidate with canonical spool and read facade",
+  "type": "module",
+  "dependencies": {
+    "@sinclair/typebox": "0.34.48",
+    "duckdb": "^1.0.0"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

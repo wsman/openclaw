@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { stageBundledPluginRuntime } from "../../scripts/stage-bundled-plugin-runtime.mjs";
 import { discoverOpenClawPlugins } from "./discovery.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
@@ -16,6 +16,7 @@ function makeRepoRoot(prefix: string): string {
 }
 
 afterEach(() => {
+  vi.restoreAllMocks();
   for (const dir of tempDirs.splice(0, tempDirs.length)) {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -184,7 +185,7 @@ describe("stageBundledPluginRuntime", () => {
     ).resolves.toEqual({ text: "paired:now" });
   });
 
-  it("copies package metadata files but symlinks other non-js plugin artifacts into the runtime overlay", () => {
+  it("copies package metadata files and stages other non-js plugin artifacts into the runtime overlay", () => {
     const repoRoot = makeRepoRoot("openclaw-stage-bundled-runtime-assets-");
     const distPluginDir = path.join(repoRoot, "dist", "extensions", "diffs");
     fs.mkdirSync(path.join(distPluginDir, "assets"), { recursive: true });
@@ -229,7 +230,40 @@ describe("stageBundledPluginRuntime", () => {
     expect(fs.readFileSync(runtimePackagePath, "utf8")).toContain('"extensions": [');
     expect(fs.lstatSync(runtimeManifestPath).isSymbolicLink()).toBe(false);
     expect(fs.readFileSync(runtimeManifestPath, "utf8")).toBe("{}\n");
-    expect(fs.lstatSync(runtimeAssetPath).isSymbolicLink()).toBe(true);
+    const runtimeAssetStat = fs.lstatSync(runtimeAssetPath);
+    expect(runtimeAssetStat.isSymbolicLink() || runtimeAssetStat.isFile()).toBe(true);
+    expect(fs.readFileSync(runtimeAssetPath, "utf8")).toBe("ok\n");
+  });
+
+  it("copies non-js plugin artifacts when file symlink permissions are unavailable", () => {
+    const repoRoot = makeRepoRoot("openclaw-stage-bundled-runtime-file-fallback-");
+    const distPluginDir = path.join(repoRoot, "dist", "extensions", "diffs");
+    fs.mkdirSync(path.join(distPluginDir, "assets"), { recursive: true });
+    fs.writeFileSync(path.join(distPluginDir, "index.js"), "export default {};\n", "utf8");
+    fs.writeFileSync(path.join(distPluginDir, "assets", "info.txt"), "ok\n", "utf8");
+
+    const originalSymlinkSync = fs.symlinkSync;
+    vi.spyOn(fs, "symlinkSync").mockImplementation(((target, filePath, type) => {
+      if (type === undefined && String(filePath).endsWith(path.join("assets", "info.txt"))) {
+        const error = new Error("symlink denied");
+        Object.assign(error, { code: "EPERM" });
+        throw error;
+      }
+      return originalSymlinkSync(target, filePath, type);
+    }) as typeof fs.symlinkSync);
+
+    stageBundledPluginRuntime({ repoRoot });
+
+    const runtimeAssetPath = path.join(
+      repoRoot,
+      "dist-runtime",
+      "extensions",
+      "diffs",
+      "assets",
+      "info.txt",
+    );
+
+    expect(fs.lstatSync(runtimeAssetPath).isSymbolicLink()).toBe(false);
     expect(fs.readFileSync(runtimeAssetPath, "utf8")).toBe("ok\n");
   });
 

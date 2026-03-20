@@ -2652,6 +2652,266 @@ module.exports = {
     }
   });
 
+  it("keeps memory-duckdb discoverable but not selected when another memory plugin owns the slot", () => {
+    useNoBundledPlugins();
+    const tempState = makeTempDir();
+    const registry = loadOpenClawPlugins({
+      cache: false,
+      config: {
+        plugins: {
+          load: {
+            paths: [
+              path.resolve(process.cwd(), "extensions", "memory-core"),
+              path.resolve(process.cwd(), "extensions", "memory-duckdb"),
+            ],
+          },
+          allow: ["memory-core", "memory-duckdb"],
+          slots: {
+            memory: "memory-core",
+          },
+          entries: {
+            "memory-core": { enabled: true },
+            "memory-duckdb": {
+              enabled: true,
+              config: {
+                storagePath: path.join(tempState, "memory-duckdb"),
+                duckdbPath: path.join(tempState, "memory.duckdb"),
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const active = registry.plugins.find((entry) => entry.id === "memory-core");
+    const candidate = registry.plugins.find((entry) => entry.id === "memory-duckdb");
+
+    expect(active?.status).toBe("loaded");
+    expect(candidate?.status).toBe("disabled");
+    expect(String(candidate?.error ?? "")).toContain('memory slot set to "memory-core"');
+    expect(registry.cliRegistrars.some((entry) => entry.pluginId === "memory-duckdb")).toBe(false);
+    expect(registry.services.some((entry) => entry.pluginId === "memory-duckdb")).toBe(false);
+    expect(registry.httpRoutes.some((entry) => entry.pluginId === "memory-duckdb")).toBe(false);
+  });
+
+  it("activates memory-duckdb owner surfaces only when the memory slot selects it", () => {
+    useNoBundledPlugins();
+    const tempState = makeTempDir();
+    const registry = loadOpenClawPlugins({
+      cache: false,
+      config: {
+        plugins: {
+          load: {
+            paths: [
+              path.resolve(process.cwd(), "extensions", "memory-core"),
+              path.resolve(process.cwd(), "extensions", "memory-duckdb"),
+            ],
+          },
+          allow: ["memory-core", "memory-duckdb"],
+          slots: {
+            memory: "memory-duckdb",
+          },
+          entries: {
+            "memory-core": { enabled: true },
+            "memory-duckdb": {
+              enabled: true,
+              config: {
+                storagePath: path.join(tempState, "memory-duckdb"),
+                duckdbPath: path.join(tempState, "memory.duckdb"),
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const active = registry.plugins.find((entry) => entry.id === "memory-duckdb");
+    const disabled = registry.plugins.find((entry) => entry.id === "memory-core");
+    const toolNames = registry.tools
+      .filter((entry) => entry.pluginId === "memory-duckdb")
+      .flatMap((entry) => entry.names);
+
+    expect(active?.status).toBe("loaded");
+    expect(disabled?.status).toBe("disabled");
+    expect(registry.cliRegistrars).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          pluginId: "memory-duckdb",
+          commands: ["memory"],
+        }),
+      ]),
+    );
+    expect(registry.services).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          pluginId: "memory-duckdb",
+          service: expect.objectContaining({ id: "memory-duckdb" }),
+        }),
+      ]),
+    );
+    expect(registry.httpRoutes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          pluginId: "memory-duckdb",
+          path: "/plugin/memory-duckdb/status",
+        }),
+        expect.objectContaining({
+          pluginId: "memory-duckdb",
+          path: "/plugin/memory-duckdb/search",
+        }),
+        expect.objectContaining({ pluginId: "memory-duckdb", path: "/plugin/memory-duckdb/sql" }),
+      ]),
+    );
+    expect(toolNames).toEqual(
+      expect.arrayContaining([
+        "memory_recall",
+        "memory_search",
+        "memory_get",
+        "memory_store",
+        "memory_duckdb_status",
+        "memory_sql_query",
+      ]),
+    );
+  });
+
+  it("keeps memory plugins side-by-side while only the selected owner fully registers", () => {
+    useNoBundledPlugins();
+    const tempState = makeTempDir();
+    const registry = loadOpenClawPlugins({
+      cache: false,
+      config: {
+        plugins: {
+          load: {
+            paths: [
+              path.resolve(process.cwd(), "extensions", "memory-core"),
+              path.resolve(process.cwd(), "extensions", "memory-lancedb"),
+              path.resolve(process.cwd(), "extensions", "memory-duckdb"),
+            ],
+          },
+          allow: ["memory-core", "memory-lancedb", "memory-duckdb"],
+          slots: {
+            memory: "memory-duckdb",
+          },
+          entries: {
+            "memory-core": { enabled: true },
+            "memory-lancedb": { enabled: true },
+            "memory-duckdb": {
+              enabled: true,
+              config: {
+                storagePath: path.join(tempState, "memory-duckdb"),
+                duckdbPath: path.join(tempState, "memory.duckdb"),
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const memoryCore = registry.plugins.find((entry) => entry.id === "memory-core");
+    const memoryLancedb = registry.plugins.find((entry) => entry.id === "memory-lancedb");
+    const memoryDuckdb = registry.plugins.find((entry) => entry.id === "memory-duckdb");
+
+    expect(memoryDuckdb?.status).toBe("loaded");
+    expect(memoryCore?.status).toBe("disabled");
+    expect(memoryLancedb?.status).toBe("disabled");
+    expect(String(memoryCore?.error ?? "")).toContain('memory slot set to "memory-duckdb"');
+    expect(String(memoryLancedb?.error ?? "")).toContain('memory slot set to "memory-duckdb"');
+    expect(
+      registry.cliRegistrars.filter((entry) => entry.pluginId === "memory-duckdb").length,
+    ).toBe(1);
+    expect(registry.cliRegistrars.some((entry) => entry.pluginId === "memory-core")).toBe(false);
+    expect(registry.cliRegistrars.some((entry) => entry.pluginId === "memory-lancedb")).toBe(false);
+  });
+
+  it("restores the previous memory owner after rolling back from memory-duckdb selection", () => {
+    useNoBundledPlugins();
+    const tempState = makeTempDir();
+    const pluginPaths = [
+      path.resolve(process.cwd(), "extensions", "memory-core"),
+      path.resolve(process.cwd(), "extensions", "memory-duckdb"),
+    ];
+    const entries = {
+      "memory-core": { enabled: true },
+      "memory-duckdb": {
+        enabled: true,
+        config: {
+          storagePath: path.join(tempState, "memory-duckdb"),
+          duckdbPath: path.join(tempState, "memory.duckdb"),
+        },
+      },
+    };
+    const selectedRegistry = loadOpenClawPlugins({
+      cache: false,
+      config: {
+        plugins: {
+          load: { paths: pluginPaths },
+          allow: ["memory-core", "memory-duckdb"],
+          slots: {
+            memory: "memory-duckdb",
+          },
+          entries,
+        },
+      },
+    });
+    const rolledBackRegistry = loadOpenClawPlugins({
+      cache: false,
+      config: {
+        plugins: {
+          load: { paths: pluginPaths },
+          allow: ["memory-core", "memory-duckdb"],
+          slots: {
+            memory: "memory-core",
+          },
+          entries,
+        },
+      },
+    });
+
+    expect(selectedRegistry.plugins.find((entry) => entry.id === "memory-duckdb")?.status).toBe(
+      "loaded",
+    );
+    expect(selectedRegistry.plugins.find((entry) => entry.id === "memory-core")?.status).toBe(
+      "disabled",
+    );
+
+    const postRollbackOwner = rolledBackRegistry.plugins.find(
+      (entry) => entry.id === "memory-core",
+    );
+    const postRollbackCandidate = rolledBackRegistry.plugins.find(
+      (entry) => entry.id === "memory-duckdb",
+    );
+    const postRollbackToolNames = rolledBackRegistry.tools
+      .filter((entry) => entry.pluginId === "memory-core")
+      .flatMap((entry) => entry.names);
+
+    expect(postRollbackOwner?.status).toBe("loaded");
+    expect(postRollbackCandidate?.status).toBe("disabled");
+    expect(String(postRollbackCandidate?.error ?? "")).toContain(
+      'memory slot set to "memory-core"',
+    );
+    expect(rolledBackRegistry.cliRegistrars).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          pluginId: "memory-core",
+          commands: ["memory"],
+        }),
+      ]),
+    );
+    expect(
+      rolledBackRegistry.cliRegistrars.some((entry) => entry.pluginId === "memory-duckdb"),
+    ).toBe(false);
+    expect(postRollbackToolNames).toEqual(expect.arrayContaining(["memory_search", "memory_get"]));
+    expect(rolledBackRegistry.tools.some((entry) => entry.pluginId === "memory-duckdb")).toBe(
+      false,
+    );
+    expect(rolledBackRegistry.services.some((entry) => entry.pluginId === "memory-duckdb")).toBe(
+      false,
+    );
+    expect(rolledBackRegistry.httpRoutes.some((entry) => entry.pluginId === "memory-duckdb")).toBe(
+      false,
+    );
+  });
+
   it("resolves duplicate plugin ids by source precedence", () => {
     const scenarios = [
       {

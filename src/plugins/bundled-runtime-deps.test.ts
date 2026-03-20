@@ -30,6 +30,10 @@ describe("bundled plugin runtime dependencies", () => {
     expectPluginOwnsRuntimeDep("extensions/memory-lancedb/package.json", "@lancedb/lancedb");
   });
 
+  it("keeps memory-duckdb runtime deps plugin-local so packaged installs fetch them on demand", () => {
+    expectPluginOwnsRuntimeDep("extensions/memory-duckdb/package.json", "duckdb");
+  });
+
   it("keeps bundled Discord runtime deps plugin-local instead of mirroring them into the root package", () => {
     expectPluginOwnsRuntimeDep("extensions/discord/package.json", "@buape/carbon");
   });
