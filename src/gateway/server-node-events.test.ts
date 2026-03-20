@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/config.js";
 import type { loadSessionEntry as loadSessionEntryType } from "./session-utils.js";
 
+const agentCommandSpy = vi.hoisted(() => vi.fn());
+
 const buildSessionLookup = (
   sessionKey: string,
   entry: {
@@ -24,7 +26,6 @@ const buildSessionLookup = (
   legacyKey: undefined,
 });
 
-const ingressAgentCommandMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const registerApnsRegistrationMock = vi.hoisted(() => vi.fn());
 const loadOrCreateDeviceIdentityMock = vi.hoisted(() =>
   vi.fn(() => ({
@@ -33,7 +34,6 @@ const loadOrCreateDeviceIdentityMock = vi.hoisted(() =>
     privateKeyPem: "private",
   })),
 );
-
 vi.mock("../infra/system-events.js", () => ({
   enqueueSystemEvent: vi.fn(),
 }));
@@ -41,8 +41,9 @@ vi.mock("../infra/heartbeat-wake.js", () => ({
   requestHeartbeatNow: vi.fn(),
 }));
 vi.mock("../commands/agent.js", () => ({
-  agentCommand: ingressAgentCommandMock,
-  agentCommandFromIngress: ingressAgentCommandMock,
+  agentCommand: agentCommandSpy,
+  agentCommandFromIngress: (opts: unknown, _runtime: unknown, _deps: unknown) =>
+    agentCommandSpy(opts),
 }));
 vi.mock("../config/config.js", () => ({
   loadConfig: vi.fn(() => ({ session: { mainKey: "agent:main:main" } })),

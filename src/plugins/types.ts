@@ -1391,6 +1391,7 @@ export type PluginHookName =
   | "subagent_delivery_target"
   | "subagent_spawned"
   | "subagent_ended"
+  | "gateway_request"
   | "gateway_start"
   | "gateway_stop";
 
@@ -1418,6 +1419,7 @@ export const PLUGIN_HOOK_NAMES = [
   "subagent_delivery_target",
   "subagent_spawned",
   "subagent_ended",
+  "gateway_request",
   "gateway_start",
   "gateway_stop",
 ] as const satisfies readonly PluginHookName[];
@@ -1855,6 +1857,35 @@ export type PluginHookGatewayContext = {
   port?: number;
 };
 
+export type PluginHookGatewayRequestTransport = "ws" | "http";
+
+export type PluginHookGatewayRequestAuth = {
+  token?: string;
+  deviceToken?: string;
+  scopes?: string[];
+};
+
+export type PluginHookGatewayRequestEvent = {
+  transport: PluginHookGatewayRequestTransport;
+  method: string;
+  params: Record<string, unknown>;
+  path?: string;
+  connId?: string;
+  auth?: PluginHookGatewayRequestAuth;
+};
+
+export type PluginHookGatewayRequestResult = {
+  block?: boolean;
+  reason?: string;
+  traceId?: string;
+  errorCode?: string;
+  method?: string;
+  params?: Record<string, unknown>;
+  retryable?: boolean;
+  retryAfterMs?: number;
+  details?: unknown;
+};
+
 // gateway_start hook
 export type PluginHookGatewayStartEvent = {
   port: number;
@@ -1959,6 +1990,10 @@ export type PluginHookHandlerMap = {
     event: PluginHookSubagentEndedEvent,
     ctx: PluginHookSubagentContext,
   ) => Promise<void> | void;
+  gateway_request: (
+    event: PluginHookGatewayRequestEvent,
+    ctx: PluginHookGatewayContext,
+  ) => Promise<PluginHookGatewayRequestResult | void> | PluginHookGatewayRequestResult | void;
   gateway_start: (
     event: PluginHookGatewayStartEvent,
     ctx: PluginHookGatewayContext,

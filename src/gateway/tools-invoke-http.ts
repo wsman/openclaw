@@ -35,9 +35,15 @@ import {
   sendMethodNotAllowed,
 } from "./http-common.js";
 import { getBearerToken, getHeader } from "./http-utils.js";
+import {
+  evaluateGatewayHttpRequestPolicy,
+  HTTP_COMPAT_INGRESS_METHOD_REWRITE_ERROR,
+  resolveGatewayHttpPolicyBlockStatus,
+} from "./plugin-request-policy.js";
 
 const DEFAULT_BODY_BYTES = 2 * 1024 * 1024;
 const MEMORY_TOOL_NAMES = new Set(["memory_search", "memory_get"]);
+const TOOLS_INVOKE_HTTP_DECISION_METHOD = "http.tools.invoke";
 
 type ToolsInvokeBody = {
   tool?: unknown;
@@ -181,7 +187,87 @@ export async function handleToolsInvokeHttpRequest(
     return true;
   }
 
-  if (process.env.VITEST && MEMORY_TOOL_NAMES.has(toolName)) {
+  const action = typeof body.action === "string" ? body.action.trim() : undefined;
+
+  const argsRaw = body.args;
+  const args =
+    argsRaw && typeof argsRaw === "object" && !Array.isArray(argsRaw)
+      ? (argsRaw as Record<string, unknown>)
+      : {};
+
+  let resolvedToolName = toolName;
+  let resolvedAction = action;
+  let resolvedArgs = args;
+  let resolvedSessionKeyRaw = resolveSessionKeyFromBody(body);
+
+  const policyDecision = await evaluateGatewayHttpRequestPolicy({
+    req,
+    path: "/tools/invoke",
+    method: TOOLS_INVOKE_HTTP_DECISION_METHOD,
+    requestParams: {
+      tool: resolvedToolName,
+      action: resolvedAction,
+      args: resolvedArgs,
+      sessionKey: resolvedSessionKeyRaw,
+    },
+  });
+  if (!policyDecision.allowed) {
+    const status = resolveGatewayHttpPolicyBlockStatus(policyDecision.errorCode);
+    sendJson(res, status, {
+      ok: false,
+      error: {
+        type: status === 400 ? "invalid_request" : "permission_denied",
+        message: policyDecision.reason || "Request rejected by plugin policy",
+        ...(policyDecision.traceId ? { traceId: policyDecision.traceId } : {}),
+      },
+    });
+    return true;
+  }
+
+  if (policyDecision.method !== TOOLS_INVOKE_HTTP_DECISION_METHOD) {
+    sendJson(res, 400, {
+      ok: false,
+      error: {
+        type: "invalid_request",
+        message: HTTP_COMPAT_INGRESS_METHOD_REWRITE_ERROR,
+        ...(policyDecision.traceId ? { traceId: policyDecision.traceId } : {}),
+      },
+    });
+    return true;
+  }
+
+  if (policyDecision.params !== undefined) {
+    const rewritten = policyDecision.params;
+    const rewrittenTool =
+      typeof rewritten.tool === "string" && rewritten.tool.trim()
+        ? rewritten.tool.trim()
+        : resolvedToolName;
+    const rewrittenAction =
+      typeof rewritten.action === "string" && rewritten.action.trim()
+        ? rewritten.action.trim()
+        : resolvedAction;
+    const rewrittenArgsRaw = rewritten.args;
+    const rewrittenArgs =
+      rewrittenArgsRaw && typeof rewrittenArgsRaw === "object" && !Array.isArray(rewrittenArgsRaw)
+        ? (rewrittenArgsRaw as Record<string, unknown>)
+        : resolvedArgs;
+    const rewrittenSessionKey =
+      typeof rewritten.sessionKey === "string" && rewritten.sessionKey.trim()
+        ? rewritten.sessionKey.trim()
+        : resolvedSessionKeyRaw;
+
+    resolvedToolName = rewrittenTool;
+    resolvedAction = rewrittenAction;
+    resolvedArgs = rewrittenArgs;
+    resolvedSessionKeyRaw = rewrittenSessionKey;
+  }
+
+  if (!resolvedToolName) {
+    sendInvalidRequest(res, "tools.invoke requires body.tool");
+    return true;
+  }
+
+  if (process.env.VITEST && MEMORY_TOOL_NAMES.has(resolvedToolName)) {
     const reasons = resolveMemoryToolDisableReasons(cfg);
     if (reasons.length > 0) {
       const suffix = reasons.length > 0 ? ` (${reasons.join(", ")})` : "";
@@ -198,15 +284,7 @@ export async function handleToolsInvokeHttpRequest(
     }
   }
 
-  const action = typeof body.action === "string" ? body.action.trim() : undefined;
-
-  const argsRaw = body.args;
-  const args =
-    argsRaw && typeof argsRaw === "object" && !Array.isArray(argsRaw)
-      ? (argsRaw as Record<string, unknown>)
-      : {};
-
-  const rawSessionKey = resolveSessionKeyFromBody(body);
+  const rawSessionKey = resolvedSessionKeyRaw;
   const sessionKey =
     !rawSessionKey || rawSessionKey === "main" ? resolveMainSessionKey(cfg) : rawSessionKey;
 
@@ -304,11 +382,11 @@ export async function handleToolsInvokeHttpRequest(
   const gatewayDenySet = new Set(gatewayDenyNames);
   const gatewayFiltered = subagentFiltered.filter((t) => !gatewayDenySet.has(t.name));
 
-  const tool = gatewayFiltered.find((t) => t.name === toolName);
+  const tool = gatewayFiltered.find((t) => t.name === resolvedToolName);
   if (!tool) {
     sendJson(res, 404, {
       ok: false,
-      error: { type: "not_found", message: `Tool not available: ${toolName}` },
+      error: { type: "not_found", message: `Tool not available: ${resolvedToolName}` },
     });
     return true;
   }
@@ -318,8 +396,8 @@ export async function handleToolsInvokeHttpRequest(
     const toolArgs = mergeActionIntoArgsIfSupported({
       // oxlint-disable-next-line typescript/no-explicit-any
       toolSchema: (tool as any).parameters,
-      action,
-      args,
+      action: resolvedAction,
+      args: resolvedArgs,
     });
     const hookResult = await runBeforeToolCallHook({
       toolName,

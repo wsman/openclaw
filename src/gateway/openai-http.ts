@@ -29,6 +29,11 @@ import { sendJson, setSseHeaders, writeDone } from "./http-common.js";
 import { handleGatewayPostJsonEndpoint } from "./http-endpoint-helpers.js";
 import { resolveGatewayRequestContext } from "./http-utils.js";
 import { normalizeInputHostnameAllowlist } from "./input-allowlist.js";
+import {
+  evaluateGatewayHttpRequestPolicy,
+  HTTP_COMPAT_INGRESS_METHOD_REWRITE_ERROR,
+  resolveGatewayHttpPolicyBlockStatus,
+} from "./plugin-request-policy.js";
 
 type OpenAiHttpOptions = {
   auth: ResolvedGatewayAuth;
@@ -95,6 +100,8 @@ function resolveOpenAiChatCompletionsLimits(
     },
   };
 }
+
+const OPENAI_HTTP_DECISION_METHOD = "http.openai.chat.completions";
 
 function writeSse(res: ServerResponse, data: unknown) {
   res.write(`data: ${JSON.stringify(data)}\n\n`);
@@ -427,7 +434,36 @@ export async function handleOpenAiHttpRequest(
     return true;
   }
 
-  const payload = coerceRequest(handled.body);
+  const policyDecision = await evaluateGatewayHttpRequestPolicy({
+    req,
+    path: "/v1/chat/completions",
+    method: OPENAI_HTTP_DECISION_METHOD,
+    requestParams: handled.body as Record<string, unknown>,
+  });
+  if (!policyDecision.allowed) {
+    const status = resolveGatewayHttpPolicyBlockStatus(policyDecision.errorCode);
+    sendJson(res, status, {
+      error: {
+        message: policyDecision.reason || "Request rejected by plugin policy",
+        type: status === 400 ? "invalid_request_error" : "permission_denied",
+        ...(policyDecision.traceId ? { trace_id: policyDecision.traceId } : {}),
+      },
+    });
+    return true;
+  }
+
+  if (policyDecision.method !== OPENAI_HTTP_DECISION_METHOD) {
+    sendJson(res, 400, {
+      error: {
+        message: HTTP_COMPAT_INGRESS_METHOD_REWRITE_ERROR,
+        type: "invalid_request_error",
+        ...(policyDecision.traceId ? { trace_id: policyDecision.traceId } : {}),
+      },
+    });
+    return true;
+  }
+
+  const payload = coerceRequest(policyDecision.params);
   const stream = Boolean(payload.stream);
   const model = typeof payload.model === "string" ? payload.model : "openclaw";
   const user = typeof payload.user === "string" ? payload.user : undefined;

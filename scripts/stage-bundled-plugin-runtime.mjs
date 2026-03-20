@@ -12,8 +12,48 @@ function relativeSymlinkTarget(sourcePath, targetPath) {
   return relativeTarget || ".";
 }
 
+function shouldMaterializeSymlinkFallback(error, type) {
+  if (type === "dir" || type === "junction") {
+    return false;
+  }
+  const code = error && typeof error === "object" ? error.code : undefined;
+  return code === "EPERM" || code === "EACCES" || code === "UNKNOWN";
+}
+
+function materializeSymlinkTarget(sourcePath, targetPath) {
+  const resolvedSourcePath = fs.realpathSync(sourcePath);
+  const stat = fs.statSync(resolvedSourcePath);
+  if (stat.isDirectory()) {
+    fs.cpSync(resolvedSourcePath, targetPath, { recursive: true });
+    return;
+  }
+  fs.copyFileSync(resolvedSourcePath, targetPath);
+}
+
 function symlinkPath(sourcePath, targetPath, type) {
-  fs.symlinkSync(relativeSymlinkTarget(sourcePath, targetPath), targetPath, type);
+  try {
+    fs.symlinkSync(relativeSymlinkTarget(sourcePath, targetPath), targetPath, type);
+  } catch (error) {
+    // Windows builds often run without file-symlink privileges. Materialize the
+    // artifact so dist-runtime still mirrors the canonical dist plugin tree.
+    if (shouldMaterializeSymlinkFallback(error, type)) {
+      materializeSymlinkTarget(sourcePath, targetPath);
+      return;
+    }
+    throw error;
+  }
+}
+
+function cloneSymlinkPath(sourcePath, targetPath) {
+  try {
+    fs.symlinkSync(fs.readlinkSync(sourcePath), targetPath);
+  } catch (error) {
+    if (shouldMaterializeSymlinkFallback(error)) {
+      materializeSymlinkTarget(sourcePath, targetPath);
+      return;
+    }
+    throw error;
+  }
 }
 
 function shouldWrapRuntimeJsFile(sourcePath) {
@@ -63,7 +103,7 @@ function stagePluginRuntimeOverlay(sourceDir, targetDir) {
     }
 
     if (dirent.isSymbolicLink()) {
-      fs.symlinkSync(fs.readlinkSync(sourcePath), targetPath);
+      cloneSymlinkPath(sourcePath, targetPath);
       continue;
     }
 

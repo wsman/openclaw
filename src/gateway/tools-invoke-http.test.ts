@@ -1,7 +1,12 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { runBeforeToolCallHook as runBeforeToolCallHookType } from "../agents/pi-tools.before-tool-call.js";
+import {
+  initializeGlobalHookRunner,
+  resetGlobalHookRunner,
+} from "../plugins/hook-runner-global.js";
+import { createMockPluginRegistry } from "../plugins/hooks.test-helpers.js";
 
 type RunBeforeToolCallHook = typeof runBeforeToolCallHookType;
 type RunBeforeToolCallHookArgs = Parameters<RunBeforeToolCallHook>[0];
@@ -56,6 +61,10 @@ vi.mock("./auth.js", () => ({
 vi.mock("../logger.js", () => ({
   logWarn: () => {},
 }));
+
+afterEach(() => {
+  resetGlobalHookRunner();
+});
 
 vi.mock("../plugins/config-state.js", () => ({
   isTestDefaultMemorySlotDisabled: () => false,
@@ -684,5 +693,89 @@ describe("POST /tools/invoke", () => {
     const body = await expectOkInvokeResponse(res);
     expect(body.result?.observedFormat).toBe("pdf");
     expect(body.result?.observedFileFormat).toBeUndefined();
+  });
+
+  it("applies gateway_request plugin reject/rewrite for HTTP tools invoke", async () => {
+    try {
+      const gatewayRequestHook = vi
+        .fn()
+        .mockResolvedValueOnce({
+          block: true,
+          reason: "tool denied by decision",
+          traceId: "trace-reject",
+          errorCode: "PERMISSION_DENIED",
+        })
+        .mockResolvedValueOnce({
+          method: "http.tools.invoke",
+          params: {
+            tool: "agents_list",
+            action: "json",
+            args: {},
+            sessionKey: "main",
+          },
+          traceId: "trace-rewrite",
+        })
+        .mockResolvedValueOnce({
+          method: "chat.send",
+          params: {
+            tool: "agents_list",
+            action: "json",
+            args: {},
+            sessionKey: "main",
+          },
+          traceId: "trace-cross-method",
+        })
+        .mockResolvedValueOnce({
+          block: true,
+          reason: "invalid payload",
+          errorCode: "INVALID_REQUEST",
+          traceId: "trace-invalid",
+        });
+      initializeGlobalHookRunner(
+        createMockPluginRegistry([{ hookName: "gateway_request", handler: gatewayRequestHook }]),
+      );
+
+      allowAgentsListForMain();
+      const rejected = await invokeAgentsListAuthed({ sessionKey: "main" });
+      expect(rejected.status).toBe(403);
+      const rejectedBody = await rejected.json();
+      expect(rejectedBody.ok).toBe(false);
+      expect(rejectedBody.error?.type).toBe("permission_denied");
+      expect(rejectedBody.error?.message).toContain("tool denied by decision");
+      expect(rejectedBody.error?.traceId).toBeTruthy();
+
+      allowAgentsListForMain();
+      const rewritten = await invokeToolAuthed({
+        tool: "tools_invoke_test",
+        args: { mode: "input" },
+        sessionKey: "main",
+      });
+      expect(rewritten.status).toBe(200);
+      const rewrittenBody = await rewritten.json();
+      expect(rewrittenBody.ok).toBe(true);
+      expect(rewrittenBody).toHaveProperty("result");
+
+      allowAgentsListForMain();
+      const crossMethod = await invokeAgentsListAuthed({ sessionKey: "main" });
+      expect(crossMethod.status).toBe(400);
+      const crossBody = await crossMethod.json();
+      expect(crossBody.ok).toBe(false);
+      expect(crossBody.error?.type).toBe("invalid_request");
+      expect(crossBody.error?.message).toContain(
+        "HTTP compatibility ingress only supports params rewrite",
+      );
+      expect(crossBody.error?.traceId).toBe("trace-cross-method");
+
+      allowAgentsListForMain();
+      const invalidRequest = await invokeAgentsListAuthed({ sessionKey: "main" });
+      expect(invalidRequest.status).toBe(400);
+      const invalidBody = await invalidRequest.json();
+      expect(invalidBody.ok).toBe(false);
+      expect(invalidBody.error?.type).toBe("invalid_request");
+      expect(invalidBody.error?.message).toContain("invalid payload");
+      expect(invalidBody.error?.traceId).toBe("trace-invalid");
+    } finally {
+      resetGlobalHookRunner();
+    }
   });
 });

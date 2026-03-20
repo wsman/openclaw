@@ -213,10 +213,18 @@
   - changed-files:
       - any-glob-to-any-file:
           - "extensions/memory-core/**"
+"extensions: memory-duckdb":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "extensions/memory-duckdb/**"
 "extensions: memory-lancedb":
   - changed-files:
       - any-glob-to-any-file:
           - "extensions/memory-lancedb/**"
+"extensions: negentropy-lab":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "extensions/negentropy-lab/**"
 "extensions: open-prose":
   - changed-files:
       - any-glob-to-any-file:

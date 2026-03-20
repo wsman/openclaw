@@ -28,6 +28,8 @@ import type {
   PluginHookBeforeToolCallEvent,
   PluginHookBeforeToolCallResult,
   PluginHookGatewayContext,
+  PluginHookGatewayRequestEvent,
+  PluginHookGatewayRequestResult,
   PluginHookGatewayStartEvent,
   PluginHookGatewayStopEvent,
   PluginHookMessageContext,
@@ -98,6 +100,8 @@ export type {
   PluginHookSubagentSpawnedEvent,
   PluginHookSubagentEndedEvent,
   PluginHookGatewayContext,
+  PluginHookGatewayRequestEvent,
+  PluginHookGatewayRequestResult,
   PluginHookGatewayStartEvent,
   PluginHookGatewayStopEvent,
 };
@@ -213,6 +217,21 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
     }
     return next;
   };
+
+  const mergeGatewayRequestResult = (
+    acc: PluginHookGatewayRequestResult | undefined,
+    next: PluginHookGatewayRequestResult,
+  ): PluginHookGatewayRequestResult => ({
+    block: acc?.block === true || next.block === true,
+    reason: acc?.reason ?? next.reason,
+    traceId: acc?.traceId ?? next.traceId,
+    errorCode: acc?.errorCode ?? next.errorCode,
+    method: acc?.method ?? next.method,
+    params: acc?.params ?? next.params,
+    retryable: acc?.retryable ?? next.retryable,
+    retryAfterMs: acc?.retryAfterMs ?? next.retryAfterMs,
+    details: acc?.details ?? next.details,
+  });
 
   const handleHookError = (params: {
     hookName: PluginHookName;
@@ -879,6 +898,23 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
   // =========================================================================
 
   /**
+   * Run gateway_request hook.
+   * Runs sequentially so plugins can deterministically rewrite or reject
+   * built-in Gateway requests before the selected handler executes.
+   */
+  async function runGatewayRequest(
+    event: PluginHookGatewayRequestEvent,
+    ctx: PluginHookGatewayContext,
+  ): Promise<PluginHookGatewayRequestResult | undefined> {
+    return runModifyingHook<"gateway_request", PluginHookGatewayRequestResult>(
+      "gateway_request",
+      event,
+      ctx,
+      mergeGatewayRequestResult,
+    );
+  }
+
+  /**
    * Run gateway_start hook.
    * Runs in parallel (fire-and-forget).
    */
@@ -950,6 +986,7 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
     runSubagentSpawned,
     runSubagentEnded,
     // Gateway hooks
+    runGatewayRequest,
     runGatewayStart,
     runGatewayStop,
     // Utility

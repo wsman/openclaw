@@ -46,6 +46,8 @@ export type {
   ProviderWrapStreamFnContext,
   OpenClawPluginService,
   OpenClawPluginServiceContext,
+  PluginHookGatewayRequestEvent,
+  PluginHookGatewayRequestResult,
   ProviderAuthContext,
   ProviderAuthDoctorHintContext,
   ProviderAuthMethodNonInteractiveContext,

@@ -1,9 +1,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { HISTORY_CONTEXT_MARKER } from "../auto-reply/reply/history.js";
 import { CURRENT_MESSAGE_MARKER } from "../auto-reply/reply/mentions.js";
 import { emitAgentEvent } from "../infra/agent-events.js";
+import {
+  initializeGlobalHookRunner,
+  resetGlobalHookRunner,
+} from "../plugins/hook-runner-global.js";
+import { createMockPluginRegistry } from "../plugins/hooks.test-helpers.js";
 import { buildAssistantDeltaResult } from "./test-helpers.agent-results.js";
 import { agentCommand, getFreePort, installGatewayTestHooks } from "./test-helpers.js";
 
@@ -19,6 +24,10 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await enabledServer.close({ reason: "openresponses enabled suite done" });
+});
+
+afterEach(() => {
+  resetGlobalHookRunner();
 });
 
 async function startServer(port: number, opts?: { openResponsesEnabled?: boolean }) {
@@ -695,6 +704,85 @@ describe("OpenResponses HTTP API (e2e)", () => {
       expect(agentCommand).not.toHaveBeenCalled();
     } finally {
       await capServer.close({ reason: "responses url cap hardening test done" });
+    }
+  });
+
+  it("applies gateway_request plugin reject/rewrite for OpenResponses HTTP requests", async () => {
+    const port = enabledPort;
+
+    try {
+      const gatewayRequestHook = vi
+        .fn()
+        .mockResolvedValueOnce({
+          block: true,
+          reason: "blocked by policy",
+          traceId: "trace-reject",
+          errorCode: "PERMISSION_DENIED",
+        })
+        .mockResolvedValueOnce({
+          method: "http.openresponses.create",
+          params: {
+            model: "openclaw",
+            input: "rewritten input",
+          },
+          traceId: "trace-rewrite",
+        })
+        .mockResolvedValueOnce({
+          method: "chat.forwarded",
+          params: {
+            model: "openclaw",
+            input: "cross rewrite",
+          },
+          traceId: "trace-cross-method",
+        });
+      initializeGlobalHookRunner(
+        createMockPluginRegistry([{ hookName: "gateway_request", handler: gatewayRequestHook }]),
+      );
+
+      agentCommand.mockClear();
+      const rejected = await postResponses(port, {
+        model: "openclaw",
+        input: "hello",
+      });
+      expect(rejected.status).toBe(403);
+      const rejectedJson = (await rejected.json()) as {
+        error?: { type?: string; message?: string; trace_id?: string };
+      };
+      expect(rejectedJson.error?.type).toBe("permission_denied");
+      expect(rejectedJson.error?.message).toContain("blocked by policy");
+      expect(rejectedJson.error?.trace_id).toBeTruthy();
+      expect(agentCommand).not.toHaveBeenCalled();
+
+      agentCommand.mockClear();
+      agentCommand.mockResolvedValueOnce({ payloads: [{ text: "ok" }] } as never);
+      const rewritten = await postResponses(port, {
+        model: "openclaw",
+        input: "ignored by rewrite",
+      });
+      expect(rewritten.status).toBe(200);
+      const call = (agentCommand.mock.calls[0] as unknown[] | undefined)?.[0] as
+        | { message?: string }
+        | undefined;
+      expect(call?.message).toBe("rewritten input");
+      await ensureResponseConsumed(rewritten);
+
+      agentCommand.mockClear();
+      const crossMethod = await postResponses(port, {
+        model: "openclaw",
+        input: "cross method",
+      });
+      expect(crossMethod.status).toBe(400);
+      const crossJson = (await crossMethod.json()) as {
+        error?: { type?: string; message?: string; trace_id?: string };
+      };
+      expect(crossJson.error?.type).toBe("invalid_request_error");
+      expect(crossJson.error?.message).toContain(
+        "HTTP compatibility ingress only supports params rewrite",
+      );
+      expect(crossJson.error?.trace_id).toBe("trace-cross-method");
+      expect(agentCommand).not.toHaveBeenCalled();
+    } finally {
+      resetGlobalHookRunner();
     }
   });
 });
