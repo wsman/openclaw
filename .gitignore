@@ -114,6 +114,7 @@ USER.md
 !.agent/workflows/
 /local/
 package-lock.json
+.cdd/
 .claude/
 .agent/
 skills-lock.json
