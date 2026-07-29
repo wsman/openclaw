@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0.0",
+  "audit_type": "smallpond_v5_consumer_owner_receipt",
+  "consumer": "OpenClaw",
+  "status": "signed_none_found",
+  "kind": "signed_none_found",
+  "signer": "github:wsman",
+  "source_repository": "https://github.com/wsman/openclaw",
+  "source_commit": "8e653d9667e22222c39ed2aa72a1a5e8b735470e",
+  "source_tree": "f3496944b68b2db54177abc109ea95406b5b52a4",
+  "related_source_commits": {
+    "OpenDoge": "2cfca75e67855be1bab9c5d3f12aee33d73d9885"
+  },
+  "related_source_trees": {
+    "OpenDoge": "a72cc3f55c8697fc2a73763ed6e81abdc0a860af"
+  },
+  "query_manifest_sha256": "684b60a525c9d4ed3b54d34715556699172ec190b0b9a3e9cd8656aedb50e807",
+  "artifact_sha256": "5fa14538162b5ee8904cef65f88a2a5684185d02b3d9733576c5ea878bc69464",
+  "scan_artifact_sha256": "e7dde155b9fc3d7b15542495a22a1bf39e748371a97c0dc564e79d8ae50fb5d3",
+  "related_scan_artifact_sha256": {
+    "OpenDoge": "4985d7fe131fefcdf707d1490a6d2f7defaa17397756cf597c52d7581e94f8a7"
+  },
+  "request_packet_sha256": "f8a882e3213afedfefa6e9fbad7aa9d4be67c0769ebfe2546829d45ee68a7281",
+  "result": {
+    "commit_bound_scan_complete": true,
+    "active_surface_hits": 0,
+    "documentation_hits": 0,
+    "related": {
+      "OpenDoge": {
+        "commit_bound_scan_complete": true,
+        "active_surface_hits": 0,
+        "documentation_hits": 4
+      }
+    }
+  },
+  "authority": {
+    "kind": "repository_owner",
+    "actor": "github:wsman",
+    "repository_permission": "ADMIN",
+    "hosted_runner_payment_state": "report_only"
+  },
+  "statement": "The authorized repository owner acknowledges zero active smallpond-evo v5 legacy-surface hits at the exact OpenClaw source commit and the bound OpenDoge related commit. Four OpenDoge documentation-only hits remain reported as non-active.",
+  "reference": "git+https://github.com/wsman/openclaw.git#refs/heads/evidence/smallpond-v5-receipts-20260730:docs/evidence/smallpond-evo-v5/openclaw-receipt.json",
+  "issued_at": "2026-07-29T22:48:21Z"
+}
